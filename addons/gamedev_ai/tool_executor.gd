@@ -248,6 +248,17 @@ func get_tool_definitions() -> Array:
 				},
 				"required": ["text"]
 			}
+		},
+		{
+			"name": "get_class_info",
+			"description": "Returns detailed information about a Godot class (Engine or Custom), including its base class, properties, methods, and signals. Use this if you are unsure about available properties or methods for a specific node type.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"class_name": {"type": "STRING", "description": "The name of the class to inspect (e.g., 'CharacterBody2D', 'Button')."}
+				},
+				"required": ["class_name"]
+			}
 		}
 	]
 
@@ -282,6 +293,8 @@ func execute_tool(tool_name: String, args: Dictionary):
 			_find_file(args.get("pattern"))
 		"read_file":
 			_read_file(args.get("path"))
+		"get_class_info":
+			_get_class_info(args.get("class_name"))
 		_:
 			tool_output.emit("Error: Unknown tool " + tool_name)
 
@@ -734,3 +747,33 @@ func _recursive_find(path: String, pattern: String) -> Array:
 					results.append(path + file_name)
 			file_name = dir.get_next()
 	return results
+
+func _get_class_info(class_name: String):
+	if not ClassDB.class_exists(class_name):
+		# Check if it's a custom class by scanning our index or project
+		# For now, let's assume Engine classes first.
+		tool_output.emit("Error: Class '" + class_name + "' not found in ClassDB.")
+		return
+		
+	var info = "Class: " + class_name + "\n"
+	info += "Inherits: " + ClassDB.get_parent_class(class_name) + "\n"
+	
+	var properties = ClassDB.class_get_property_list(class_name, true)
+	info += "\nProperties:\n"
+	for p in properties:
+		# Filter for actual properties, not internal ones
+		if p.usage & PROPERTY_USAGE_EDITOR:
+			info += "- " + p.name + " (Type: " + str(p.type) + ")\n"
+			
+	var methods = ClassDB.class_get_method_list(class_name, true)
+	info += "\nMethods:\n"
+	for m in methods:
+		if not m.name.begin_with("_"):
+			info += "- " + m.name + "(" + str(m.args.size()) + " args)\n"
+			
+	var signals = ClassDB.class_get_signal_list(class_name, true)
+	info += "\nSignals:\n"
+	for s in signals:
+		info += "- " + s.name + "\n"
+		
+	tool_output.emit(info)

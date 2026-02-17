@@ -70,3 +70,53 @@ func get_selection_info() -> Dictionary:
 			"path": script_editor.get_current_script().resource_path
 		}
 	return {}
+
+func get_project_index() -> String:
+	var index_str = "Project Structure Map:\n"
+	index_str += _scan_directory("res://")
+	return index_str
+
+func _scan_directory(path: String) -> String:
+	var result = ""
+	var dir = DirAccess.open(path)
+	if not dir:
+		return ""
+		
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while file_name != "":
+		if file_name.begin_with("."): 
+			file_name = dir.get_next()
+			continue
+			
+		var full_path = path + file_name
+		if dir.current_is_dir():
+			result += _scan_directory(full_path + "/")
+		else:
+			if file_name.ends_with(".tscn"):
+				result += "- [Scene] " + full_path + "\n"
+			elif file_name.ends_with(".gd"):
+				var class_name_found = _extract_class_name(full_path)
+				if class_name_found != "":
+					result += "- [Class] " + class_name_found + " (" + full_path + ")\n"
+				else:
+					result += "- [Script] " + full_path + "\n"
+		file_name = dir.get_next()
+		
+	return result
+
+func _extract_class_name(path: String) -> String:
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return ""
+		
+	# Look for 'class_name' in the first few lines
+	var count = 0
+	while not file.eof_reached() and count < 20:
+		var line = file.get_line().strip_edges()
+		if line.begin_with("class_name"):
+			var parts = line.split(" ", false)
+			if parts.size() >= 2:
+				return parts[1].replace(":", "").strip_edges()
+		count += 1
+	return ""

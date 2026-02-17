@@ -234,9 +234,10 @@ func _process_send(prompt_text: String):
 
 	var context = ""
 	if context_toggle.button_pressed and context_manager:
+		context += "Project Structure:\n" + context_manager.get_project_index() + "\n"
 		context += "Project Settings:\n" + context_manager.get_project_settings_dump() + "\n"
-		context += "Current Scene:\n" + context_manager.get_scene_tree_dump() + "\n"
-		context += "Current Script:\n" + context_manager.get_current_script() + "\n"
+		context += "Current Scene tree:\n" + context_manager.get_scene_tree_dump() + "\n"
+		context += "Current Script content:\n" + context_manager.get_current_script() + "\n"
 	
 	var image_data = {}
 	if screenshot_toggle.button_pressed and context_manager:

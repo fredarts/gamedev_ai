@@ -249,7 +249,8 @@ func _send_request(tools: Array = []):
 			"Only use `create_script` for game logic (movement, health, etc) and attach it to the nodes you created.\n" +
 			"When you create a script for a node, you MUST attach it. You can do this by passing `script_path` to `add_node` OR by using the `attach_script` tool.\n" +
 			"To modify an existing script (WITHOUT a selection), first use `read_file` to understand its content, then use `edit_script` with the FULL updated code.\n" +
-			"Use `remove_node` to delete nodes from the scene and `remove_file` to delete script/scene files from the project.\n" +
+			"The user message might contain 'Project Structure:', which lists all classes and scenes in the project. Use this to avoid hallucinating file paths or class names.\n" +
+			"If you are unsure about properties or methods for a specific node type, use the `get_class_info` tool to inspect it.\n" +
 			"Always prefer `add_node`, `instance_scene`, and `set_property` over creating nodes via code for static scene elements and UI."
 		}
 	}
