@@ -1,0 +1,72 @@
+@tool
+extends RefCounted
+
+func get_project_settings_dump() -> String:
+	var settings = ""
+	settings += "Application Name: " + str(ProjectSettings.get_setting("application/config/name")) + "\n"
+	# Add more relevant settings here
+	return settings
+
+func get_scene_tree_dump() -> String:
+	# This function would traverse the current edited scene and return a text representation
+	var root = EditorInterface.get_edited_scene_root()
+	if not root:
+		return "No scene opened."
+	return _node_to_string(root, 0)
+
+func _node_to_string(node: Node, depth: int) -> String:
+	if depth > 5: # Hard limit to prevent massive dumps
+		return "  ... (max depth reached)\n"
+		
+	var s = ""
+	for i in range(depth):
+		s += "  "
+	s += node.name + " (" + node.get_class() + ")\n"
+	
+	for child in node.get_children():
+		s += _node_to_string(child, depth + 1)
+	return s
+
+func get_current_script() -> String:
+	var script_editor = EditorInterface.get_script_editor()
+	var current_script = script_editor.get_current_script()
+	if current_script:
+		return "Current Script: " + current_script.resource_path + "\n\n" + current_script.source_code
+	return "No script selected."
+
+func get_editor_screenshot() -> Dictionary:
+	# Attempt to capture the main editor window
+	var viewport = EditorInterface.get_base_control().get_viewport()
+	if not viewport:
+		return {}
+		
+	var texture = viewport.get_texture()
+	var image = texture.get_image()
+	
+	# Resize if too large to save tokens/bandwidth (optional but recommended)
+	if image.get_width() > 1024:
+		var scale = 1024.0 / image.get_width()
+		image.resize(1024, int(image.get_height() * scale))
+		
+	var buffer = image.save_png_to_buffer()
+	var base64 = Marshalls.raw_to_base64(buffer)
+	
+	return {
+		"mime_type": "image/png",
+		"data": base64
+	}
+
+func get_selection_info() -> Dictionary:
+	var script_editor = EditorInterface.get_script_editor()
+	var current_editor = script_editor.get_current_editor()
+	if not current_editor:
+		return {}
+	
+	# Current editor has a 'code_edit' property in Godot 4
+	var code_edit = current_editor.get_base_editor()
+	if code_edit and code_edit is CodeEdit and code_edit.has_selection():
+		return {
+			"text": code_edit.get_selected_text(),
+			"path": script_editor.get_current_script().resource_path
+		}
+	return {}
