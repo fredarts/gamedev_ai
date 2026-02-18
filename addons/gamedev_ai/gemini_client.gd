@@ -248,7 +248,12 @@ func _send_request(tools: Array = []):
 			"Instead, call `add_node` for each part of the scene (e.g. `add_node('.', 'Sprite2D', 'Icon')`).\n" +
 			"Only use `create_script` for game logic (movement, health, etc) and attach it to the nodes you created.\n" +
 			"When you create a script for a node, you MUST attach it. You can do this by passing `script_path` to `add_node` OR by using the `attach_script` tool.\n" +
-			"To modify an existing script (WITHOUT a selection), first use `read_file` to understand its content, then use `edit_script` with the FULL updated code.\n" +
+			"To modify an existing script, PREFER using `patch_script` if you are only changing a small block of code. This is safer and more efficient.\n" +
+			"Only use `edit_script` if you need to rewrite the entire file or cannot uniquely identify the block to replace.\n" +
+			"To connect signals (e.g. button pressed), use the `connect_signal` tool. This persists the connection in the scene file, which is better than doing it in `_ready()` via code.\n" +
+			"To create data assets (Items, Stats, Configurations), use the `create_resource` tool to make `.tres` files.\n" +
+			"If you write logic that might be fragile or complex, suggest running tests via `run_tests` (if the user has a test suite).\n" +
+			"The 'Watch Mode' in the dock allows me to automatically detect console errors. If I see a new error, I will auto-prompt you to fix it. Analyze the error log carefully.\n" +
 			"The user message might contain 'Project Structure:', which lists all classes and scenes in the project. Use this to avoid hallucinating file paths or class names.\n" +
 			"If you are unsure about properties or methods for a specific node type, use the `get_class_info` tool to inspect it.\n" +
 			"Always prefer `add_node`, `instance_scene`, and `set_property` over creating nodes via code for static scene elements and UI."

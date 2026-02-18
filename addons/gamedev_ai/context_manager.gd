@@ -85,7 +85,7 @@ func _scan_directory(path: String) -> String:
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
 	while file_name != "":
-		if file_name.begin_with("."): 
+		if file_name.begins_with("."): 
 			file_name = dir.get_next()
 			continue
 			
@@ -114,7 +114,7 @@ func _extract_class_name(path: String) -> String:
 	var count = 0
 	while not file.eof_reached() and count < 20:
 		var line = file.get_line().strip_edges()
-		if line.begin_with("class_name"):
+		if line.begins_with("class_name"):
 			var parts = line.split(" ", false)
 			if parts.size() >= 2:
 				return parts[1].replace(":", "").strip_edges()

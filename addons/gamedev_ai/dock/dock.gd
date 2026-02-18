@@ -15,6 +15,10 @@ var history_button: MenuButton
 var new_chat_button: Button
 
 var _history_ids: Array = []
+var _pasted_image: Image = null
+var _image_preview_container: HBoxContainer
+var _image_preview_label: Label
+var _image_clear_btn: Button
 
 func _ready():
 	# Setup simple UI layout
@@ -56,6 +60,7 @@ func _ready():
 	
 	# Output Display
 	output_display = RichTextLabel.new()
+	output_display.bbcode_enabled = true
 	output_display.size_flags_vertical = SIZE_EXPAND_FILL
 	output_display.fit_content = false
 	output_display.scroll_following = true
@@ -108,9 +113,9 @@ func _ready():
 	
 	input_field = TextEdit.new()
 	input_field.size_flags_horizontal = SIZE_EXPAND_FILL
-	input_field.placeholder_text = "Ask Gamedev AI..."
+	input_field.placeholder_text = "Ask Gamedev AI... (Shift+Enter to send)"
 	input_field.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-
+	input_field.gui_input.connect(_on_input_gui_input)
 
 	input_hbox.add_child(input_field)
 	
@@ -118,6 +123,22 @@ func _ready():
 	send_button.text = "Send"
 	send_button.pressed.connect(_on_send_pressed)
 	input_hbox.add_child(send_button)
+	
+	# Image Paste Preview (hidden by default)
+	_image_preview_container = HBoxContainer.new()
+	_image_preview_container.visible = false
+	add_child(_image_preview_container)
+	
+	_image_preview_label = Label.new()
+	_image_preview_label.text = "Image attached"
+	_image_preview_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+	_image_preview_container.add_child(_image_preview_label)
+	
+	_image_clear_btn = Button.new()
+	_image_clear_btn.text = "X"
+	_image_clear_btn.tooltip_text = "Remove attached image"
+	_image_clear_btn.pressed.connect(_on_clear_pasted_image)
+	_image_preview_container.add_child(_image_clear_btn)
 	
 	# Options Toggles
 	var toggle_container = HBoxContainer.new()
@@ -132,12 +153,18 @@ func _ready():
 	screenshot_toggle.text = "Screenshot"
 	screenshot_toggle.button_pressed = false
 	toggle_container.add_child(screenshot_toggle)
+	
+	watch_mode_toggle = CheckButton.new()
+	watch_mode_toggle.text = "Watch Mode"
+	watch_mode_toggle.tooltip_text = "Monitor console for new errors and auto-prompt fix."
+	watch_mode_toggle.button_pressed = false
+	toggle_container.add_child(watch_mode_toggle)
 
-	# Selection Polling Timer
+	# Polling Timer (Selection + Watch Mode)
 	var timer = Timer.new()
 	timer.wait_time = 0.5
 	timer.autostart = true
-	timer.timeout.connect(_on_selection_timer_timeout)
+	timer.timeout.connect(_on_poll_timer_timeout)
 	add_child(timer)
 
 func setup(client, manager, executor):
@@ -194,9 +221,8 @@ func _rebuild_chat_from_transcript():
 		if entry.role == "user":
 			_log_user_message(entry.text)
 		else:
-			# AI Response
 			output_display.append_text("\n[b]Gemini:[/b]\n")
-			output_display.append_text(entry.text + "\n")
+			output_display.append_text(_markdown_to_bbcode(entry.text) + "\n")
 
 func _on_status_changed(is_requesting: bool):
 	_update_ui_state(is_requesting)
@@ -219,6 +245,27 @@ func _on_send_pressed():
 func _on_quick_action_pressed(action_text: String):
 	_process_send(action_text)
 
+func _on_input_gui_input(event: InputEvent):
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_ENTER and event.shift_pressed:
+			input_field.get_viewport().set_input_as_handled()
+			var text = input_field.text.strip_edges()
+			if not text.is_empty() or _pasted_image != null:
+				_process_send(text)
+		elif event.keycode == KEY_V and event.ctrl_pressed:
+			var clipboard_image = DisplayServer.clipboard_get_image()
+			if clipboard_image and not clipboard_image.is_empty():
+				input_field.get_viewport().set_input_as_handled()
+				_pasted_image = clipboard_image
+				_image_preview_label.text = "Image attached (" + str(clipboard_image.get_width()) + "x" + str(clipboard_image.get_height()) + ")"
+				_image_preview_container.visible = true
+				output_display.append_text("\n[color=green][i]Image pasted from clipboard.[/i][/color]\n")
+
+func _on_clear_pasted_image():
+	_pasted_image = null
+	_image_preview_container.visible = false
+	output_display.append_text("[i]Image removed.[/i]\n")
+
 func _process_send(prompt_text: String):
 	_log_user_message(prompt_text)
 	input_field.text = ""
@@ -240,7 +287,13 @@ func _process_send(prompt_text: String):
 		context += "Current Script content:\n" + context_manager.get_current_script() + "\n"
 	
 	var image_data = {}
-	if screenshot_toggle.button_pressed and context_manager:
+	# Priority: pasted image > screenshot toggle
+	if _pasted_image != null:
+		image_data = _encode_image(_pasted_image)
+		output_display.append_text("[i]Sending pasted image...[/i]\n")
+		_pasted_image = null
+		_image_preview_container.visible = false
+	elif screenshot_toggle.button_pressed and context_manager:
 		image_data = context_manager.get_editor_screenshot()
 		if not image_data.is_empty():
 			output_display.append_text("[i]Capturing screenshot...[/i]\n")
@@ -253,7 +306,22 @@ func _process_send(prompt_text: String):
 		gemini_client.send_prompt(final_prompt, context, tools, image_data)
 		output_display.append_text("\n[i]Thinking...[/i]\n")
 
-func _on_selection_timer_timeout():
+func _encode_image(image: Image) -> Dictionary:
+	var max_dim = 1024
+	if image.get_width() > max_dim or image.get_height() > max_dim:
+		var scale = float(max_dim) / max(image.get_width(), image.get_height())
+		image.resize(int(image.get_width() * scale), int(image.get_height() * scale))
+	
+	var buffer = image.save_png_to_buffer()
+	var base64 = Marshalls.raw_to_base64(buffer)
+	return {
+		"mime_type": "image/png",
+		"data": base64
+	}
+
+# Replaces _on_selection_timer_timeout
+func _on_poll_timer_timeout():
+	# 1. Update Selection Status
 	if context_manager:
 		var selection = context_manager.get_selection_info()
 		if not selection.is_empty():
@@ -262,6 +330,45 @@ func _on_selection_timer_timeout():
 		else:
 			selection_status.text = "No selection"
 			selection_status.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5)) # Gray
+			
+	# 2. Watch Mode Logic
+	if watch_mode_toggle.button_pressed:
+		_check_for_new_errors()
+
+var _last_log_size: int = 0
+var _ignore_next_error: bool = false
+var watch_mode_toggle: CheckButton
+
+func _check_for_new_errors():
+	var path = "user://logs/godot.log"
+	if not FileAccess.file_exists(path): return
+	
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var length = file.get_length()
+	file.close()
+	
+	if _last_log_size == 0:
+		_last_log_size = length # Initial sync, don't trigger on old errors
+		return
+		
+	if length > _last_log_size:
+		# Log has grown, read new content
+		file = FileAccess.open(path, FileAccess.READ)
+		file.seek(_last_log_size)
+		var new_content = file.get_buffer(length - _last_log_size).get_string_from_utf8()
+		file.close()
+		_last_log_size = length
+		
+		# Check for errors in new content
+		if "ERROR:" in new_content or "SCRIPT ERROR:" in new_content:
+			if gemini_client and not gemini_client.is_requesting:
+				output_display.append_text("\n[color=orange][b]Watch Mode:[/b] New error detected! Auto-fixing...[/color]\n")
+				# Automatically trigger fix
+				# We add a small delay or check to prevent loops if the fix itself causes errors? 
+				# The AI should be smart enough, but let's be safe.
+				_process_send("I noticed a new error in the console:\n" + new_content + "\n\nPlease analyze and fix it.")
 
 var batch_queue: Array = []
 var batch_results: Array = []
@@ -386,13 +493,8 @@ func _get_error_logs() -> String:
 
 
 func _on_ai_response(response: String):
-	# Remove "Thinking..." (simple naive way, better to use unique tags or IDs in real app)
-	# For now just append
 	output_display.append_text("\n[b]Gemini:[/b]\n")
-	output_display.append_text(response + "\n")
-	
-	# Here we would also check for tool calls in the response if we implemented function calling parsing
-	# For now, we assume direct text response
+	output_display.append_text(_markdown_to_bbcode(response) + "\n")
 
 func _on_ai_error(error: String):
 	output_display.append_text("\n[color=red]Error: " + error + "[/color]\n")
@@ -407,3 +509,70 @@ func _on_log_entry(entry: Dictionary):
 		msg += " (" + entry.source.file.get_file() + ":" + str(entry.source.line) + ")"
 	msg += "[/color]\n"
 	output_display.append_text(msg)
+
+func _markdown_to_bbcode(text: String) -> String:
+	var result = ""
+	var lines = text.split("\n")
+	var in_code_block = false
+	
+	for line in lines:
+		# Code block toggle (```)
+		if line.strip_edges().begins_with("```"):
+			if in_code_block:
+				result += "[/code]\n"
+				in_code_block = false
+			else:
+				result += "[code]"
+				in_code_block = true
+			continue
+		
+		# Inside code block: no formatting
+		if in_code_block:
+			result += line + "\n"
+			continue
+		
+		# Headers
+		if line.begins_with("### "):
+			result += "[b]" + line.substr(4) + "[/b]\n"
+			continue
+		elif line.begins_with("## "):
+			result += "\n[b][color=#8be9fd]" + line.substr(3) + "[/color][/b]\n"
+			continue
+		elif line.begins_with("# "):
+			result += "\n[b][color=#50fa7b][font_size=18]" + line.substr(2) + "[/font_size][/color][/b]\n"
+			continue
+		
+		# Bullet points
+		if line.strip_edges().begins_with("- ") or line.strip_edges().begins_with("* "):
+			var indent = line.length() - line.strip_edges().length()
+			var prefix = "  ".repeat(indent / 2) + "• "
+			line = prefix + line.strip_edges().substr(2)
+		
+		# Inline formatting
+		# Bold + Italic (***text***)
+		var regex_bold_italic = RegEx.new()
+		regex_bold_italic.compile("\\*\\*\\*(.+?)\\*\\*\\*")
+		line = regex_bold_italic.sub(line, "[b][i]$1[/i][/b]", true)
+		
+		# Bold (**text**)
+		var regex_bold = RegEx.new()
+		regex_bold.compile("\\*\\*(.+?)\\*\\*")
+		line = regex_bold.sub(line, "[b]$1[/b]", true)
+		
+		# Italic (*text*)
+		var regex_italic = RegEx.new()
+		regex_italic.compile("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)")
+		line = regex_italic.sub(line, "[i]$1[/i]", true)
+		
+		# Inline code (`text`)
+		var regex_code = RegEx.new()
+		regex_code.compile("`([^`]+)`")
+		line = regex_code.sub(line, "[code]$1[/code]", true)
+		
+		result += line + "\n"
+	
+	# Close any unclosed code block
+	if in_code_block:
+		result += "[/code]\n"
+	
+	return result

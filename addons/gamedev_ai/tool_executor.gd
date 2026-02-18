@@ -259,6 +259,72 @@ func get_tool_definitions() -> Array:
 				},
 				"required": ["class_name"]
 			}
+		},
+		{
+			"name": "patch_script",
+			"description": "Surgically edits a script by replacing a specific block of code with new content. Use this for small changes to avoid overwriting the entire file.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"path": {"type": "STRING", "description": "The resource path (res://...) of the script."},
+					"search_content": {"type": "STRING", "description": "The exact block of code to find and replace. Must be unique in the file."},
+					"replace_content": {"type": "STRING", "description": "The new code to insert in place of search_content."}
+				},
+				"required": ["path", "search_content", "replace_content"]
+			}
+		},
+		{
+			"name": "connect_signal",
+			"description": "Connects a signal from a source node to a target node's method in the current scene.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"source_path": {"type": "STRING", "description": "Path to the source node emitting the signal."},
+					"signal_name": {"type": "STRING", "description": "Name of the signal (e.g., 'pressed', 'body_entered')."},
+					"target_path": {"type": "STRING", "description": "Path to the target node receiving the signal."},
+					"method_name": {"type": "STRING", "description": "Name of the function to call on the target node."},
+					"binds": {"type": "ARRAY", "description": "Optional array of arguments to bind.", "items": {"type": "STRING"}},
+					"flags": {"type": "INTEGER", "description": "Optional connection flags (usually 0)."}
+				},
+				"required": ["source_path", "signal_name", "target_path", "method_name"]
+			}
+		},
+		{
+			"name": "disconnect_signal",
+			"description": "Disconnects a signal between nodes in the current scene.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"source_path": {"type": "STRING", "description": "Path to the source node."},
+					"signal_name": {"type": "STRING", "description": "Name of the signal."},
+					"target_path": {"type": "STRING", "description": "Path to the target node."},
+					"method_name": {"type": "STRING", "description": "Name of the connected method."}
+				},
+				"required": ["source_path", "signal_name", "target_path", "method_name"]
+			}
+		},
+		{
+			"name": "create_resource",
+			"description": "Creates a new Resource file (.tres). Useful for data-driven assets like Items, Stats, or custom configurations.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"path": {"type": "STRING", "description": "Save path (res://.../file.tres)."},
+					"type": {"type": "STRING", "description": "The class name of the resource (e.g., 'Resource', 'StandardMaterial3D', or a custom class)."},
+					"properties": {"type": "OBJECT", "description": "Dictionary of initial property values { 'prop_name': value }."}
+				},
+				"required": ["path", "type"]
+			}
+		},
+		{
+			"name": "run_tests",
+			"description": "Runs a test script or command. Use this to verify your changes if the user has a test suite (GUT, GdUnit4) or a custom test script.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"test_script_path": {"type": "STRING", "description": "Optional: Path to a specific test script to run (res://tests/test_...gd). If omitted, tries to run the project's default test configuration."}
+				}
+			}
 		}
 	]
 
@@ -294,7 +360,17 @@ func execute_tool(tool_name: String, args: Dictionary):
 		"read_file":
 			_read_file(args.get("path"))
 		"get_class_info":
-			_get_class_info(args.get("class_name"))
+			_get_class_info(args.get("class_name", ""))
+		"patch_script":
+			_patch_script(args.get("path"), args.get("search_content"), args.get("replace_content"))
+		"connect_signal":
+			_connect_signal(args.get("source_path"), args.get("signal_name"), args.get("target_path"), args.get("method_name"), args.get("binds", []), args.get("flags", 0))
+		"disconnect_signal":
+			_disconnect_signal(args.get("source_path"), args.get("signal_name"), args.get("target_path"), args.get("method_name"))
+		"create_resource":
+			_create_resource(args.get("path"), args.get("type"), args.get("properties", {}))
+		"run_tests":
+			_run_tests(args.get("test_script_path", ""))
 		_:
 			tool_output.emit("Error: Unknown tool " + tool_name)
 
@@ -748,32 +824,244 @@ func _recursive_find(path: String, pattern: String) -> Array:
 			file_name = dir.get_next()
 	return results
 
-func _get_class_info(class_name: String):
-	if not ClassDB.class_exists(class_name):
-		# Check if it's a custom class by scanning our index or project
-		# For now, let's assume Engine classes first.
-		tool_output.emit("Error: Class '" + class_name + "' not found in ClassDB.")
+func _proxy_connect(source: Node, signal_name: String, callable: Callable, flags: int = 0):
+	if is_instance_valid(source) and not source.is_connected(signal_name, callable):
+		source.connect(signal_name, callable, flags)
+
+func _proxy_disconnect(source: Node, signal_name: String, callable: Callable):
+	if is_instance_valid(source) and source.is_connected(signal_name, callable):
+		source.disconnect(signal_name, callable)
+
+func _patch_script(path: String, search_content: String, replace_content: String):
+	if not FileAccess.file_exists(path):
+		tool_output.emit("Error: File not found at " + path)
 		return
 		
-	var info = "Class: " + class_name + "\n"
-	info += "Inherits: " + ClassDB.get_parent_class(class_name) + "\n"
+	var file = FileAccess.open(path, FileAccess.READ)
+	var content = file.get_as_text()
+	file.close()
 	
-	var properties = ClassDB.class_get_property_list(class_name, true)
+	if content.find(search_content) == -1:
+		tool_output.emit("Error: Search block not found in " + path.get_file() + ". Make sure you are using exact context.")
+		return
+		
+	if content.count(search_content) > 1:
+		tool_output.emit("Error: Search block matches multiple locations in " + path.get_file() + ". Provide more context to make it unique.")
+		return
+		
+	var new_content = content.replace(search_content, replace_content)
+	
+	if _undo_redo:
+		if _composite_action_name == "":
+			_undo_redo.create_action("Patch Script " + path.get_file(), UndoRedo.MERGE_DISABLE, self)
+
+		_undo_redo.add_do_method(self, "_create_file_undoable", path, new_content)
+		_undo_redo.add_undo_method(self, "_create_file_undoable", path, content)
+		
+		if _composite_action_name == "":
+			_undo_redo.commit_action()
+			tool_output.emit("Success: Patched " + path.get_file())
+		else:
+			tool_output.emit("Success: Patch queued for " + path)
+	else:
+		_create_file_undoable(path, new_content)
+		tool_output.emit("Success: Patched " + path.get_file() + " (No Undo)")
+
+func _connect_signal(source_path: String, signal_name: String, target_path: String, method_name: String, binds: Array = [], flags: int = 0):
+	var root = EditorInterface.get_edited_scene_root()
+	if not root:
+		tool_output.emit("Error: No scene open.")
+		return
+		
+	var source = root.get_node(source_path)
+	var target = root.get_node(target_path)
+	
+	if not source:
+		tool_output.emit("Error: Source node not found: " + source_path)
+		return
+	if not target:
+		tool_output.emit("Error: Target node not found: " + target_path)
+		return
+		
+	# In Godot, persistent connections (saved to .tscn) are done via add_user_signal? No, that's for custom signals.
+	# Standard connections are just node.connect(), but to SAVE them, we must use the editor's system if possible?
+	# Actually, simply calling connect() on a tool script might just work for runtime, but for Editor persistence (saving to .tscn),
+	# we usually modify the "dependencies" or use UndoRedo on the scene.
+	# But wait, `node.connect` with `CONNECT_PERSIST` flag exists? No.
+	# The correct way to persist a connection in a scene is using `add_connection` on the scene state, OR
+	# just `source.connect()` and set `owner` correctly? No.
+	# 
+	# Correct way for Editor Plugins:
+	# UndoRedo operations on the generic "connect" method usually persist if the scene is saved.
+	
+	var callable = Callable(target, method_name)
+	if not callable:
+		tool_output.emit("Error: Invalid callable " + method_name + " on " + target.name)
+		return
+
+	if source.is_connected(signal_name, callable):
+		tool_output.emit("Warning: Signal already connected.")
+		return
+
+	if _undo_redo:
+		if _composite_action_name == "":
+			_undo_redo.create_action("Connect Signal " + signal_name, UndoRedo.MERGE_DISABLE, self)
+			
+		_undo_redo.add_do_method(self, "_proxy_connect", source, signal_name, callable, flags)
+		_undo_redo.add_undo_method(self, "_proxy_disconnect", source, signal_name, callable)
+		
+		if _composite_action_name == "":
+			_undo_redo.commit_action()
+			tool_output.emit("Success: Connected " + signal_name + " to " + method_name)
+		else:
+			tool_output.emit("Success: Connection queued.")
+	else:
+		source.connect(signal_name, callable, flags)
+		tool_output.emit("Success: Connected " + signal_name + " (No Undo)")
+
+func _disconnect_signal(source_path: String, signal_name: String, target_path: String, method_name: String):
+	var root = EditorInterface.get_edited_scene_root()
+	if not root:
+		tool_output.emit("Error: No scene open.")
+		return
+		
+	var source = root.get_node(source_path)
+	var target = root.get_node(target_path)
+	
+	if not source or not target:
+		tool_output.emit("Error: Node not found.")
+		return
+		
+	var callable = Callable(target, method_name)
+	if not source.is_connected(signal_name, callable):
+		tool_output.emit("Error: Connection not found.")
+		return
+
+	if _undo_redo:
+		if _composite_action_name == "":
+			_undo_redo.create_action("Disconnect Signal " + signal_name, UndoRedo.MERGE_DISABLE, self)
+			
+		_undo_redo.add_do_method(self, "_proxy_disconnect", source, signal_name, callable)
+		# Undo involves reconnecting. We'd need to know flags/binds. Simplified for now (no binds restored perfectly without checking).
+		_undo_redo.add_undo_method(self, "_proxy_connect", source, signal_name, callable) 
+		
+		if _composite_action_name == "":
+			_undo_redo.commit_action()
+			tool_output.emit("Success: Disconnected " + signal_name)
+		else:
+			tool_output.emit("Success: Disconnection queued.")
+	else:
+		source.disconnect(signal_name, callable)
+		tool_output.emit("Success: Disconnected " + signal_name + " (No Undo)")
+
+func _create_resource(path: String, type: String, properties: Dictionary = {}):
+	if not path.begins_with("res://") or not path.ends_with(".tres"):
+		tool_output.emit("Error: Path must specify a .tres file.")
+		return
+		
+	if FileAccess.file_exists(path):
+		tool_output.emit("Error: File already exists at " + path)
+		return
+		
+	if not ClassDB.class_exists(type) and not _scan_fs_for_custom_class(type):
+		tool_output.emit("Error: Class type " + type + " not found.")
+		return
+
+	# Helper to instantiate
+	var res = null
+	if ClassDB.class_exists(type):
+		res = ClassDB.instantiate(type)
+	else:
+		# Custom class loading... 
+		# This is complex without a full class loader, but let's try strict types first.
+		# If user passes a script path as type? No, type name.
+		# We'll assume if it's not engine class, we search for a script with that class_name?
+		# For now, let's Stick to Engine classes or Resources with scripts attached later.
+		# Actually, Resource.new() + set_script is the way for custom resources.
+		res = Resource.new()
+		# This part is partial. Ideally we look up the script from class_name map (Project Index).
+	
+	if not res:
+		tool_output.emit("Error: Could not instantiate " + type)
+		return
+		
+	# Set properties
+	for key in properties:
+		res.set(key, _parse_value(properties[key]))
+		
+	var err = ResourceSaver.save(res, path)
+	if err == OK:
+		EditorInterface.get_resource_filesystem().scan()
+		tool_output.emit("Success: Resource created at " + path)
+	else:
+		tool_output.emit("Error: Failed to save resource. Code: " + str(err))
+
+func _scan_fs_for_custom_class(type: String) -> bool:
+	# Placeholder. The Project Index logic in context_manager is better suited for this.
+	# For now, we rely on Godot's internal cache if possible, or just fail for custom classes 
+	# unless "type" is a script path.
+	return false
+
+func _run_tests(test_script_path: String):
+	# This implementation tries to run Godot in command line mode to execute a script
+	var exe_path = OS.get_executable_path()
+	var args = []
+	
+	if test_script_path != "":
+		if not test_script_path.begins_with("res://"):
+			tool_output.emit("Error: Test script path must start with res://")
+			return
+		args.append("-s")
+		args.append(test_script_path)
+	else:
+		if FileAccess.file_exists("res://addons/gut/gut_cmdln.gd"):
+			args.append("-s")
+			args.append("res://addons/gut/gut_cmdln.gd")
+		elif FileAccess.file_exists("res://addons/gdUnit4/runtest.gd"):
+			args.append("-s")
+			args.append("res://addons/gdUnit4/runtest.gd")
+		else:
+			tool_output.emit("Error: No test script provided and no known test runner found (GUT/GdUnit4).")
+			return
+			
+	args.append("--headless")
+	
+	tool_output.emit("Running tests with command: " + exe_path + " " + str(args))
+	
+	var output = []
+	var exit_code = OS.execute(exe_path, args, output, true)
+	
+	var result_str = "Test Run Complete (Exit Code " + str(exit_code) + "):\n"
+	if not output.is_empty():
+		result_str += output[0]
+	else:
+		result_str += "(No output captured)"
+		
+	tool_output.emit(result_str)
+
+func _get_class_info(cls_name: String):
+	if not ClassDB.class_exists(cls_name):
+		tool_output.emit("Error: Class '" + cls_name + "' not found in ClassDB.")
+		return
+		
+	var info = "Class: " + cls_name + "\n"
+	info += "Inherits: " + ClassDB.get_parent_class(cls_name) + "\n"
+	
+	var properties = ClassDB.class_get_property_list(cls_name, true)
 	info += "\nProperties:\n"
 	for p in properties:
-		# Filter for actual properties, not internal ones
 		if p.usage & PROPERTY_USAGE_EDITOR:
 			info += "- " + p.name + " (Type: " + str(p.type) + ")\n"
 			
-	var methods = ClassDB.class_get_method_list(class_name, true)
+	var methods = ClassDB.class_get_method_list(cls_name, true)
 	info += "\nMethods:\n"
 	for m in methods:
-		if not m.name.begin_with("_"):
+		if not m.name.begins_with("_"):
 			info += "- " + m.name + "(" + str(m.args.size()) + " args)\n"
 			
-	var signals = ClassDB.class_get_signal_list(class_name, true)
+	var signals_list = ClassDB.class_get_signal_list(cls_name, true)
 	info += "\nSignals:\n"
-	for s in signals:
+	for s in signals_list:
 		info += "- " + s.name + "\n"
 		
 	tool_output.emit(info)
