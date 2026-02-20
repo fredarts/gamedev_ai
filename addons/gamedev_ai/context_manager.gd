@@ -15,13 +15,28 @@ func get_scene_tree_dump() -> String:
 	return _node_to_string(root, 0)
 
 func _node_to_string(node: Node, depth: int) -> String:
-	if depth > 5: # Hard limit to prevent massive dumps
+	if depth > 8: # Depth limit to prevent massive dumps
 		return "  ... (max depth reached)\n"
 		
 	var s = ""
 	for i in range(depth):
 		s += "  "
-	s += node.name + " (" + node.get_class() + ")\n"
+	s += node.name + " (" + node.get_class() + ")"
+	
+	# Include key properties for better AI context
+	var extras: Array = []
+	if node.get_script():
+		extras.append("script:" + node.get_script().resource_path.get_file())
+	if node is Node2D:
+		extras.append("pos:" + str(node.position))
+	elif node is Node3D:
+		extras.append("pos:" + str(node.position))
+	if node is CanvasItem and not node.visible:
+		extras.append("hidden")
+	
+	if not extras.is_empty():
+		s += " [" + ", ".join(extras) + "]"
+	s += "\n"
 	
 	for child in node.get_children():
 		s += _node_to_string(child, depth + 1)

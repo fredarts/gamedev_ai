@@ -1,0 +1,185 @@
+@tool
+extends "res://addons/gamedev_ai/ai_provider.gd"
+
+var model_name: String = "gemini-1.5-pro"
+var _cancelled: bool = false
+
+func setup(node: Node):
+	super.setup(node)
+	
+	# Try to load API key from environment variable
+	var env = OS.get_environment("GEMINI_API_KEY")
+	if env != "":
+		api_key = env
+
+func send_prompt(prompt: String, context: String = "", tools: Array = [], image_data: Dictionary = {}):
+	if api_key == "":
+		error_occurred.emit("API Key is missing.")
+		return
+
+	var parts = []
+	if history.is_empty() and context != "":
+		parts.append({"text": context})
+	parts.append({"text": prompt})
+	
+	if not image_data.is_empty():
+		parts.append({
+			"inline_data": {
+				"mime_type": image_data["mime_type"],
+				"data": image_data["data"]
+			}
+		})
+
+	var user_content = {
+		"role": "user",
+		"parts": parts
+	}
+	
+	transcript.append({"role": "user", "text": prompt})
+	if current_session_id == "":
+		current_session_id = str(Time.get_unix_time_from_system()).replace(".", "_")
+	
+	_append_to_history(user_content)
+	_send_request(tools)
+
+func _append_to_history(content: Dictionary):
+	if not history.is_empty():
+		var last = history[-1]
+		if last.get("role") == content.get("role"):
+			if content.get("role") == "user":
+				last["parts"].append_array(content["parts"])
+				return
+			else:
+				history[-1] = content
+				return
+	
+	history.append(content)
+	while history.size() > MAX_HISTORY_TURNS:
+		history.remove_at(0)
+	while not history.is_empty() and history[0].get("role") != "user":
+		history.remove_at(0)
+
+func send_tool_responses(responses: Array, tools: Array = []):
+	var parts = []
+	for resp in responses:
+		parts.append(resp)
+		
+	var response_content = {
+		"role": "function",
+		"parts": parts
+	}
+	
+	_append_to_history(response_content)
+	_send_request(tools)
+
+func generate_tool_response(tool_name: String, output: String, _tool_call_id: String = "") -> Dictionary:
+	return {
+		"functionResponse": {
+			"name": tool_name,
+			"response": {
+				"output": output
+			}
+		}
+	}
+
+func cancel_request():
+	_cancelled = true
+	super.cancel_request()
+
+func _send_request(tools: Array = []):
+	_cancelled = false
+	var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent?key=" + api_key
+	var headers = ["Content-Type: application/json"]
+	
+	var body = {
+		"contents": history
+	}
+	
+	_inject_full_system_instruction(body)
+
+	if not tools.is_empty():
+		body["tools"] = [{"function_declarations": tools}]
+	
+	is_requesting = true
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
+	if error != OK:
+		is_requesting = false
+		error_occurred.emit("Failed to send request: " + str(error))
+
+func _inject_full_system_instruction(body: Dictionary):
+	var SysPrompt = preload("res://addons/gamedev_ai/system_prompt.gd")
+	body["system_instruction"] = {
+		"parts": {
+			"text": SysPrompt.get_system_instruction()
+		}
+	}
+
+func _on_request_completed(_result, response_code, _headers, body):
+	if _cancelled:
+		return
+	if response_code != 200:
+		is_requesting = false
+		var json = JSON.parse_string(body.get_string_from_utf8())
+		var error_msg = _format_api_error(response_code, json)
+		error_occurred.emit(error_msg)
+		return
+		
+	var json = JSON.parse_string(body.get_string_from_utf8())
+	if json and json.has("candidates"):
+		var candidate = json["candidates"][0]
+		var content = candidate.get("content", {})
+		
+		if not content.has("parts") or content["parts"].is_empty():
+			is_requesting = false
+			var finish_reason = candidate.get("finishReason", "UNKNOWN")
+			error_occurred.emit("Model failed to respond. Reason: " + finish_reason)
+			return
+
+		_append_to_history(content)
+		
+		var parts = content.get("parts", [])
+		var text = ""
+		var tool_calls = []
+		
+		for part in parts:
+			if part.has("text"):
+				text += part["text"]
+			if part.has("functionCall"):
+				tool_calls.append(part["functionCall"])
+				
+		if not tool_calls.is_empty():
+			tool_call_received.emit(tool_calls)
+			return
+		
+		if text != "":
+			is_requesting = false
+			transcript.append({"role": "model", "text": text})
+			save_session()
+			response_received.emit(text)
+		else:
+			is_requesting = false
+			error_occurred.emit("Empty response from model.")
+	else:
+		is_requesting = false
+		error_occurred.emit("Invalid response format.")
+
+func _format_api_error(code: int, json: Dictionary) -> String:
+	if json == null:
+		return "API Error: " + str(code) + " (Unknown response)"
+
+	var error_node = json.get("error", {})
+	var message = error_node.get("message", "Unknown error")
+	var status = error_node.get("status", "")
+	
+	if code == 429 or status == "RESOURCE_EXHAUSTED":
+		return "⚠️ Quota Exceeded\n\nYou have reached the free tier limit for the Gemini API.\nPlease check your billing details or wait a few minutes before trying again."
+	
+	if code == 400:
+		if "API key not valid" in message:
+			return "⚠️ Invalid API Key\n\nPlease check your API key in Editor Settings > Gamedev AI."
+		return "⚠️ Bad Request (" + str(code) + ")\n\n" + message
+	
+	if code == 401 or code == 403:
+		return "⚠️ Authorization Error (" + str(code) + ")\n\nPlease check your API key permissions."
+		
+	return "API Error (" + str(code) + ")\n\n" + message

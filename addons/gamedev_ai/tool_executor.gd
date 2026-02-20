@@ -6,6 +6,60 @@ signal tool_output(output)
 var _undo_redo: EditorUndoRedoManager
 var _composite_action_name: String = ""
 
+# Required args per tool: { tool_name: ["arg1", "arg2", ...] }
+const _TOOL_REQUIRED_ARGS = {
+	"create_script": ["path", "content"],
+	"add_node": ["parent_path", "type", "name"],
+	"attach_script": ["node_path", "script_path"],
+	"create_scene": ["path", "root_type", "root_name"],
+	"instance_scene": ["parent_path", "scene_path", "name"],
+	"edit_script": ["path", "content"],
+	"remove_node": ["node_path"],
+	"remove_file": ["path"],
+	"list_dir": ["path"],
+	"read_file": ["path"],
+	"find_file": ["pattern"],
+	"set_property": ["node_path", "property", "value"],
+	"set_theme_override": ["node_path", "override_type", "name", "value"],
+	"replace_selection": ["text"],
+	"get_class_info": ["class_name"],
+	"patch_script": ["path", "search_content", "replace_content"],
+	"connect_signal": ["source_path", "signal_name", "target_path", "method_name"],
+	"disconnect_signal": ["source_path", "signal_name", "target_path", "method_name"],
+	"create_resource": ["path", "type"],
+	"run_tests": [],
+	"grep_search": ["query"],
+	"view_file_outline": ["path"],
+}
+
+func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
+	if not _TOOL_REQUIRED_ARGS.has(tool_name):
+		return {"valid": false, "error": "Unknown tool '" + tool_name + "'. Available tools: " + str(_TOOL_REQUIRED_ARGS.keys())}
+	
+	var required = _TOOL_REQUIRED_ARGS[tool_name]
+	var missing = []
+	for arg_name in required:
+		if not args.has(arg_name) or args[arg_name] == null:
+			missing.append(arg_name)
+	
+	if not missing.is_empty():
+		return {"valid": false, "error": "Tool '" + tool_name + "' is missing required arguments: " + str(missing) + ". Please provide all required arguments and try again."}
+	
+	# Type-specific validations
+	if args.has("path") and args["path"] is String:
+		var path: String = args["path"]
+		if tool_name in ["create_script", "edit_script", "read_file", "patch_script", "remove_file", "list_dir", "create_resource"]:
+			if not path.begins_with("res://"):
+				return {"valid": false, "error": "Parameter 'path' must start with 'res://'. Got: '" + path + "'"}
+		
+		if tool_name == "create_scene" and (not path.begins_with("res://") or not path.ends_with(".tscn")):
+			return {"valid": false, "error": "Parameter 'path' must start with 'res://' and end with '.tscn'. Got: '" + path + "'"}
+		
+		if tool_name == "create_resource" and not path.ends_with(".tres"):
+			return {"valid": false, "error": "Parameter 'path' must end with '.tres'. Got: '" + path + "'"}
+	
+	return {"valid": true, "error": ""}
+
 func _init():
 	# We will need to get the UndoRedo manager from the plugin or EditorInterface
 	# But since this is RefCounted, we might need it passed in checks.
@@ -62,12 +116,32 @@ func _proxy_call(obj: Object, method: String, arg1: Variant = null, arg2: Varian
 			obj.call(method)
 
 # File Undo Helpers (Static-like)
+# File Undo Helpers (Static-like)
 func _create_file_undoable(path: String, content: String):
-	var file = FileAccess.open(path, FileAccess.WRITE)
-	if file:
-		file.store_string(content)
-		file.close()
-		_scan_fs()
+	# 1. Try to find if the script is already loaded in memory (open in editor or used by a node)
+	var script = load(path) if FileAccess.file_exists(path) else null
+	
+	if script and script is Script:
+		# Update the source code in memory
+		script.source_code = content
+		# Trigger a reload to update tool scripts or live instances
+		script.reload()
+		
+		# Save using ResourceSaver, which avoids the "modified outside" popup
+		var err = ResourceSaver.save(script)
+		if err != OK:
+			tool_output.emit("Warning: Helper failed to save open script: " + str(err))
+	else:
+		# 2. File doesn't exist or isn't a loaded script, write to disk directly
+		var file = FileAccess.open(path, FileAccess.WRITE)
+		if file:
+			file.store_string(content)
+			file.close()
+		else:
+			tool_output.emit("Error: Could not open file for write: " + path)
+
+	# 3. Always scan to ensure the filesystem is up to date
+	_scan_fs()
 
 func _delete_file_undoable(path: String):
 	if FileAccess.file_exists(path):
@@ -146,7 +220,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "edit_script",
-			"description": "Edits an existing GDScript file. You should read the file first to ensure you have the full current content before providing the updated version.",
+			"description": "(DEPRECATED: Use patch_script) Edits an existing GDScript file. You should read the file first to ensure you have the full current content before providing the updated version.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -325,11 +399,43 @@ func get_tool_definitions() -> Array:
 					"test_script_path": {"type": "STRING", "description": "Optional: Path to a specific test script to run (res://tests/test_...gd). If omitted, tries to run the project's default test configuration."}
 				}
 			}
+		},
+		{
+			"name": "grep_search",
+			"description": "Searches for text content inside project files. Use this to find references to functions, variables, classes, or any text pattern across the codebase. Returns matching lines with file path and line number.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"query": {"type": "STRING", "description": "The text pattern to search for (case-insensitive)."},
+					"include": {"type": "STRING", "description": "Optional file extension filter (e.g., '*.gd', '*.tscn'). Defaults to all text files."},
+					"max_results": {"type": "INTEGER", "description": "Maximum number of results to return (default: 20, max: 50)."}
+				},
+				"required": ["query"]
+			}
+		},
+		{
+			"name": "view_file_outline",
+			"description": "Shows the structure of a GDScript file without returning the full content: class_name, extends, functions, signals, exports, enums, inner classes, and constants with line numbers. Use this to understand a script's structure before editing it.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"path": {"type": "STRING", "description": "The resource path (res://...) to the script file."}
+				},
+				"required": ["path"]
+			}
 		}
 	]
 
 func execute_tool(tool_name: String, args: Dictionary):
+	tool_output.emit("[color=gray][i]Executing tool: " + tool_name + "...[/i][/color]")
 	print("Executing tool: " + tool_name + " with args: " + str(args))
+	
+	# Validate arguments before executing
+	var validation = _validate_args(tool_name, args)
+	if not validation.valid:
+		tool_output.emit("Error: " + validation.error)
+		return
+	
 	match tool_name:
 		"create_script":
 			_create_script(args.get("path"), args.get("content"))
@@ -371,8 +477,12 @@ func execute_tool(tool_name: String, args: Dictionary):
 			_create_resource(args.get("path"), args.get("type"), args.get("properties", {}))
 		"run_tests":
 			_run_tests(args.get("test_script_path", ""))
+		"grep_search":
+			_grep_search(args.get("query"), args.get("include", ""), args.get("max_results", 20))
+		"view_file_outline":
+			_view_file_outline(args.get("path"))
 		_:
-			tool_output.emit("Error: Unknown tool " + tool_name)
+			tool_output.emit("Error: Unknown tool '" + tool_name + "'. Available tools: " + str(_TOOL_REQUIRED_ARGS.keys()))
 
 func _create_script(path: String, content: String):
 	# Security check
@@ -389,15 +499,21 @@ func _create_script(path: String, content: String):
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
-			tool_output.emit("Success: Script created at " + path)
+			var msg = "Success: Script created at " + path
+			var validation = _validate_script(path)
+			if validation != "":
+				msg += " | " + validation
+			tool_output.emit(msg)
 		else:
-			# If composite, we don't emit success yet or we do? 
-			# Emitting success for each step is fine for the log.
 			tool_output.emit("Success: Script creation queued for " + path)
 	else:
 		# Fallback
 		_create_file_undoable(path, content)
-		tool_output.emit("Success: Script created at " + path + " (No Undo)")
+		var msg = "Success: Script created at " + path + " (No Undo)"
+		var validation = _validate_script(path)
+		if validation != "":
+			msg += " | " + validation
+		tool_output.emit(msg)
 
 func _create_scene(path: String, root_type: String, root_name: String):
 	if not path.begins_with("res://") or not path.ends_with(".tscn"):
@@ -433,13 +549,13 @@ func _create_scene_file(path: String, root_type: String, root_name: String):
 	if result == OK:
 		var err = ResourceSaver.save(scene, path)
 		if err == OK:
-			# Small delay to ensure file is written
-			await Engine.get_main_loop().create_timer(0.1).timeout
+			_scan_fs()
 			
-			EditorInterface.get_resource_filesystem().scan()
-			EditorInterface.open_scene_from_path(path)
-			# Only emit success if not part of a larger undo/redo chain calling this
-			# But here we are inside the do_method.
+			# If this scene is already open, reload it to reflect changes without popup
+			var edited_root = EditorInterface.get_edited_scene_root()
+			if edited_root and edited_root.scene_file_path == path:
+				# Re-opening the same path usually refreshes the editor view
+				EditorInterface.open_scene_from_path(path)
 		else:
 			tool_output.emit("Error: Could not save scene. Code: " + str(err))
 	else:
@@ -481,6 +597,7 @@ func _instance_scene(parent_path: String, scene_path: String, name: String):
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
+			_save_scene()
 			tool_output.emit("Success: Scene " + scene_path + " instanced as " + name + " under " + parent.name)
 		else:
 			tool_output.emit("Success: Scene instance queued: " + name)
@@ -489,6 +606,7 @@ func _instance_scene(parent_path: String, scene_path: String, name: String):
 		instance.name = name
 		parent.add_child(instance)
 		instance.owner = root
+		_save_scene()
 		tool_output.emit("Success: Scene " + scene_path + " instanced as " + name + " under " + parent.name + " (No Undo)")
 
 func _add_node(parent_path: String, type: String, name: String, script_path: String = ""):
@@ -506,7 +624,12 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 	if _undo_redo:
 		var node = ClassDB.instantiate(type)
 		if not node:
-			tool_output.emit("Error: Invalid node type: " + type)
+			var suggestion = _suggest_class_name(type)
+			var msg = "Error: Invalid node type '" + type + "'."
+			if suggestion != "":
+				msg += " Did you mean '" + suggestion + "'?"
+			msg += " Use get_class_info to check available classes."
+			tool_output.emit(msg)
 			return
 			 
 		node.name = name
@@ -535,6 +658,7 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 			
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
+			_save_scene()
 			tool_output.emit(msg)
 		else:
 			tool_output.emit(msg + " (Queued)")
@@ -579,7 +703,7 @@ func _attach_script(node_path: String, script_path: String):
 
 func _edit_script(path: String, new_content: String):
 	if not FileAccess.file_exists(path):
-		tool_output.emit("Error: File not found at " + path + ". Use create_script if it's a new file.")
+		tool_output.emit("Error: File not found at " + path + ". Use find_file('" + path.get_file().get_basename() + "') to locate it, or create_script to create a new file.")
 		return
 	
 	var file = FileAccess.open(path, FileAccess.READ)
@@ -595,12 +719,22 @@ func _edit_script(path: String, new_content: String):
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
-			tool_output.emit("Success: Script edited at " + path)
+			var msg = "Success: Script edited at " + path
+			var validation = _validate_script(path)
+			if validation != "":
+				msg += " | " + validation
+			msg += " | [color=yellow]Warning: edit_script is deprecated. Please prefer patch_script.[/color]"
+			tool_output.emit(msg)
 		else:
 			tool_output.emit("Success: Script edit queued for " + path)
 	else:
 		_create_file_undoable(path, new_content)
-		tool_output.emit("Success: Script edited at " + path + " (No Undo)")
+		var msg = "Success: Script edited at " + path + " (No Undo)"
+		var validation = _validate_script(path)
+		if validation != "":
+			msg += " | " + validation
+		msg += " | [color=yellow]Warning: edit_script is deprecated. Please prefer patch_script.[/color]"
+		tool_output.emit(msg)
 
 func _remove_node(node_path: String):
 	var root = EditorInterface.get_edited_scene_root()
@@ -610,7 +744,7 @@ func _remove_node(node_path: String):
 		
 	var node = root.get_node(node_path)
 	if not node:
-		tool_output.emit("Error: Node not found at path: " + node_path)
+		tool_output.emit("Error: Node not found at path: '" + node_path + "'. Current scene tree: " + _get_scene_tree_brief(root))
 		return
 		
 	if node == root:
@@ -627,12 +761,14 @@ func _remove_node(node_path: String):
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
+			_save_scene()
 			tool_output.emit("Success: Node " + node_path + " removed.")
 		else:
 			tool_output.emit("Success: Node removal queued: " + node_path)
 	else:
 		node.get_parent().remove_child(node)
 		node.queue_free()
+		_save_scene()
 		tool_output.emit("Success: Node " + node_path + " removed (No Undo).")
 
 func _remove_file(path: String):
@@ -669,10 +805,12 @@ func _set_property(node_path: String, property: String, value: Variant):
 		
 	var node = root.get_node(node_path) if node_path != "." else root
 	if not node:
-		tool_output.emit("Error: Node not found: " + node_path)
+		tool_output.emit("Error: Node not found: '" + node_path + "'. Current scene tree: " + _get_scene_tree_brief(root))
 		return
 		
-	var final_value = _parse_value(value)
+	# Get expected type from the property to disambiguate arrays
+	var expected_type := _get_property_type(node, property)
+	var final_value = _parse_value(value, expected_type)
 	
 	if _undo_redo:
 		if _composite_action_name == "":
@@ -683,11 +821,13 @@ func _set_property(node_path: String, property: String, value: Variant):
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
+			_save_scene()
 			tool_output.emit("Success: Set " + property + " to " + str(final_value) + " on " + node_path)
 		else:
 			tool_output.emit("Success: Set property queued: " + property + " on " + node_path)
 	else:
 		node.set(property, final_value)
+		_save_scene()
 		tool_output.emit("Success: Set " + property + " to " + str(final_value) + " on " + node_path + " (No Undo)")
 
 func _set_theme_override(node_path: String, override_type: String, name: String, value: Variant):
@@ -718,6 +858,7 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
+			_save_scene()
 			tool_output.emit("Success: Set theme override " + name + " on " + node_path)
 		else:
 			tool_output.emit("Success: Set theme override queued: " + name)
@@ -728,15 +869,36 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 			"font_size": node.add_theme_font_size_override(name, int(final_value))
 			"font": node.add_theme_font_override(name, final_value)
 			"stylebox": node.add_theme_stylebox_override(name, final_value)
+		_save_scene()
 		tool_output.emit("Success: Set theme override " + name + " on " + node_path)
 
-func _parse_value(value: Variant) -> Variant:
+func _get_property_type(node: Object, property: String) -> int:
+	# Returns the Variant.Type for a node's property, or -1 if unknown
+	var props = node.get_property_list()
+	for p in props:
+		if p.name == property:
+			return p.type
+	return -1
+
+func _parse_value(value: Variant, expected_type: int = -1) -> Variant:
 	if value is Array:
 		if value.size() == 2:
 			return Vector2(value[0], value[1])
 		if value.size() == 3:
-			return Color(value[0], value[1], value[2])
+			# Disambiguate Vector3 vs Color using expected type
+			if expected_type == TYPE_COLOR:
+				return Color(value[0], value[1], value[2])
+			if expected_type == TYPE_VECTOR3:
+				return Vector3(value[0], value[1], value[2])
+			# Default: Vector3 (more common in game dev than RGB without alpha)
+			return Vector3(value[0], value[1], value[2])
 		if value.size() == 4:
+			# Disambiguate Color vs Quaternion/Vector4 using expected type
+			if expected_type == TYPE_QUATERNION:
+				return Quaternion(value[0], value[1], value[2], value[3])
+			if expected_type == TYPE_VECTOR4:
+				return Vector4(value[0], value[1], value[2], value[3])
+			# Default: Color (most common 4-element type)
 			return Color(value[0], value[1], value[2], value[3])
 	return value
 
@@ -834,7 +996,7 @@ func _proxy_disconnect(source: Node, signal_name: String, callable: Callable):
 
 func _patch_script(path: String, search_content: String, replace_content: String):
 	if not FileAccess.file_exists(path):
-		tool_output.emit("Error: File not found at " + path)
+		tool_output.emit("Error: File not found at " + path + ". Use find_file('" + path.get_file().get_basename() + "') to locate it.")
 		return
 		
 	var file = FileAccess.open(path, FileAccess.READ)
@@ -842,7 +1004,7 @@ func _patch_script(path: String, search_content: String, replace_content: String
 	file.close()
 	
 	if content.find(search_content) == -1:
-		tool_output.emit("Error: Search block not found in " + path.get_file() + ". Make sure you are using exact context.")
+		tool_output.emit("Error: Search block not found in " + path.get_file() + ". The search must be an EXACT match including whitespace and indentation. Use read_file first to get the exact current content.")
 		return
 		
 	if content.count(search_content) > 1:
@@ -860,12 +1022,20 @@ func _patch_script(path: String, search_content: String, replace_content: String
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
-			tool_output.emit("Success: Patched " + path.get_file())
+			var msg = "Success: Patched " + path.get_file()
+			var validation = _validate_script(path)
+			if validation != "":
+				msg += " | " + validation
+			tool_output.emit(msg)
 		else:
 			tool_output.emit("Success: Patch queued for " + path)
 	else:
 		_create_file_undoable(path, new_content)
-		tool_output.emit("Success: Patched " + path.get_file() + " (No Undo)")
+		var msg = "Success: Patched " + path.get_file() + " (No Undo)"
+		var validation = _validate_script(path)
+		if validation != "":
+			msg += " | " + validation
+		tool_output.emit(msg)
 
 func _connect_signal(source_path: String, signal_name: String, target_path: String, method_name: String, binds: Array = [], flags: int = 0):
 	var root = EditorInterface.get_edited_scene_root()
@@ -912,11 +1082,13 @@ func _connect_signal(source_path: String, signal_name: String, target_path: Stri
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
+			_save_scene()
 			tool_output.emit("Success: Connected " + signal_name + " to " + method_name)
 		else:
 			tool_output.emit("Success: Connection queued.")
 	else:
 		source.connect(signal_name, callable, flags)
+		_save_scene()
 		tool_output.emit("Success: Connected " + signal_name + " (No Undo)")
 
 func _disconnect_signal(source_path: String, signal_name: String, target_path: String, method_name: String):
@@ -947,11 +1119,13 @@ func _disconnect_signal(source_path: String, signal_name: String, target_path: S
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
+			_save_scene()
 			tool_output.emit("Success: Disconnected " + signal_name)
 		else:
 			tool_output.emit("Success: Disconnection queued.")
 	else:
 		source.disconnect(signal_name, callable)
+		_save_scene()
 		tool_output.emit("Success: Disconnected " + signal_name + " (No Undo)")
 
 func _create_resource(path: String, type: String, properties: Dictionary = {}):
@@ -1065,3 +1239,227 @@ func _get_class_info(cls_name: String):
 		info += "- " + s.name + "\n"
 		
 	tool_output.emit(info)
+
+# ============================================================
+# Phase 2: New Tools & Helpers
+# ============================================================
+
+func _grep_search(query: String, include: String = "", max_results: int = 20):
+	max_results = clampi(max_results, 1, 50)
+	var results: Array = []
+	var extensions: Array = []
+	
+	# Parse include filter
+	if include != "":
+		# Support formats: "*.gd", ".gd", "gd"
+		var ext = include.replace("*", "").replace(".", "")
+		extensions.append(ext)
+	else:
+		extensions = ["gd", "tscn", "tres", "cfg", "json", "txt", "md", "shader", "gdshader"]
+	
+	_grep_recursive("res://", query.to_lower(), extensions, results, max_results)
+	
+	if results.is_empty():
+		tool_output.emit("No matches found for '" + query + "'" + (" in *." + extensions[0] if extensions.size() == 1 else "") + ".")
+		return
+	
+	var output = "Found " + str(results.size()) + " match(es) for '" + query + "':\n\n"
+	for r in results:
+		output += r.path + ":" + str(r.line) + ": " + r.content.strip_edges() + "\n"
+	
+	if results.size() >= max_results:
+		output += "\n(Results capped at " + str(max_results) + ". Narrow your query or use 'include' filter.)"
+	
+	tool_output.emit(output)
+
+func _grep_recursive(dir_path: String, query_lower: String, extensions: Array, results: Array, max_results: int):
+	if results.size() >= max_results:
+		return
+	
+	var dir = DirAccess.open(dir_path)
+	if not dir:
+		return
+	
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while file_name != "" and results.size() < max_results:
+		if file_name.begins_with(".") or file_name == "addons" and dir_path == "res://":
+			# Skip hidden files; skip addons at root level (except our own plugin)
+			# Actually, let's include addons since user may want to search there
+			pass
+		
+		var full_path = dir_path + file_name
+		if dir.current_is_dir():
+			_grep_recursive(full_path + "/", query_lower, extensions, results, max_results)
+		else:
+			var ext = file_name.get_extension()
+			if ext in extensions:
+				_grep_file(full_path, query_lower, results, max_results)
+		
+		file_name = dir.get_next()
+
+func _grep_file(file_path: String, query_lower: String, results: Array, max_results: int):
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		return
+	
+	var line_num = 0
+	while not file.eof_reached() and results.size() < max_results:
+		line_num += 1
+		var line = file.get_line()
+		if line.to_lower().find(query_lower) != -1:
+			results.append({
+				"path": file_path,
+				"line": line_num,
+				"content": line
+			})
+
+func _view_file_outline(path: String):
+	if not FileAccess.file_exists(path):
+		tool_output.emit("Error: File not found at " + path + ". Use find_file('" + path.get_file().get_basename() + "') to locate it.")
+		return
+	
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		tool_output.emit("Error: Cannot open file at " + path)
+		return
+	
+	var outline = "Outline of " + path.get_file() + ":\n\n"
+	var line_num = 0
+	var current_class = ""
+	
+	while not file.eof_reached():
+		line_num += 1
+		var line = file.get_line()
+		var stripped = line.strip_edges()
+		
+		# Skip empty lines and comments
+		if stripped == "" or stripped.begins_with("#"):
+			continue
+		
+		# class_name
+		if stripped.begins_with("class_name "):
+			outline += "L" + str(line_num) + " | class_name " + stripped.substr(11).strip_edges() + "\n"
+		# extends
+		elif stripped.begins_with("extends "):
+			outline += "L" + str(line_num) + " | extends " + stripped.substr(8).strip_edges() + "\n"
+		# Inner class
+		elif stripped.begins_with("class "):
+			var cls = stripped.split(":")[0].strip_edges()
+			current_class = cls.substr(6).strip_edges()
+			outline += "L" + str(line_num) + " | " + cls + "\n"
+		# Enum
+		elif stripped.begins_with("enum "):
+			outline += "L" + str(line_num) + " | " + stripped.split("{")[0].strip_edges() + "\n"
+		# Signal
+		elif stripped.begins_with("signal "):
+			outline += "L" + str(line_num) + " | " + stripped + "\n"
+		# @export var
+		elif stripped.begins_with("@export"):
+			# Read next line if this is just the annotation
+			if "var " in stripped:
+				var var_part = stripped.substr(stripped.find("var "))
+				outline += "L" + str(line_num) + " | @export " + var_part.split("=")[0].strip_edges() + "\n"
+			else:
+				outline += "L" + str(line_num) + " | " + stripped + "\n"
+		# Functions
+		elif stripped.begins_with("func ") or stripped.begins_with("static func "):
+			var func_sig = stripped.split(":")[0].strip_edges()
+			if func_sig.ends_with(")"):
+				outline += "L" + str(line_num) + " | " + func_sig + "\n"
+			else:
+				# Include return type
+				outline += "L" + str(line_num) + " | " + stripped.split(":")[0].strip_edges()
+				if ":" in stripped and "->" in stripped:
+					outline += " -> " + stripped.split("->")[1].split(":")[0].strip_edges()
+				outline += "\n"
+		# Constants
+		elif stripped.begins_with("const "):
+			var const_part = stripped.split("=")[0].strip_edges()
+			outline += "L" + str(line_num) + " | " + const_part + "\n"
+		# Top-level var (not indented)
+		elif stripped.begins_with("var ") and not line.begins_with("\t"):
+			var var_part = stripped.split("=")[0].strip_edges()
+			outline += "L" + str(line_num) + " | " + var_part + "\n"
+	
+	if outline.ends_with(":\n\n"):
+		outline += "(empty file)\n"
+	
+	outline += "\nTotal lines: " + str(line_num)
+	tool_output.emit(outline)
+
+func _validate_script(path: String) -> String:
+	# Only validate .gd files
+	if not path.ends_with(".gd"):
+		return ""
+	
+	# Try to load the script and check for errors
+	var script = load(path)
+	if script == null:
+		return "⚠️ Validation: Failed to load script. It may contain syntax errors."
+	
+	if script is GDScript:
+		var err = script.reload()
+		if err != OK:
+			return "⚠️ Validation: Script has errors (reload error code: " + str(err) + "). Check for syntax issues."
+	
+	return ""  # No errors
+
+func _suggest_class_name(invalid_name: String) -> String:
+	# Find the closest matching class name in ClassDB
+	var all_classes = ClassDB.get_class_list()
+	var best_match = ""
+	var best_score = 0
+	var invalid_lower = invalid_name.to_lower()
+	
+	for cls in all_classes:
+		var cls_lower = cls.to_lower()
+		
+		# Exact substring match (strongest signal)
+		if cls_lower.contains(invalid_lower) or invalid_lower.contains(cls_lower):
+			if best_match == "" or abs(cls.length() - invalid_name.length()) < abs(best_match.length() - invalid_name.length()):
+				best_match = cls
+				best_score = 100
+		
+		# Simple similarity: count matching characters in order
+		elif best_score < 50:
+			var score = 0
+			var j = 0
+			for i in range(cls_lower.length()):
+				if j < invalid_lower.length() and cls_lower[i] == invalid_lower[j]:
+					score += 1
+					j += 1
+			
+			# Require at least 60% character match
+			var threshold = invalid_lower.length() * 0.6
+			if score > threshold and score > best_score:
+				best_score = score
+				best_match = cls
+	
+	return best_match
+
+func _get_scene_tree_brief(root: Node) -> String:
+	# Return a compact, one-line-ish scene tree for error messages
+	var result = root.name + "(" + root.get_class() + ")"
+	var children = root.get_children()
+	if children.is_empty():
+		return result
+	
+	result += " > ["
+	var names: Array = []
+	for child in children:
+		names.append(child.name)
+		if names.size() >= 10:
+			names.append("... +" + str(children.size() - 10) + " more")
+			break
+	result += ", ".join(names) + "]"
+	return result
+
+func _save_scene():
+	var current_scene = EditorInterface.get_edited_scene_root()
+	if not current_scene or current_scene.scene_file_path.is_empty():
+		return
+	
+	var err = EditorInterface.save_scene()
+	if err != OK:
+		print("GamedevAI: Auto-save failed with code " + str(err))
