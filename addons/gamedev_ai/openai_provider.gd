@@ -46,7 +46,12 @@ func send_prompt(prompt: String, context: String = "", tools: Array = [], image_
 
 func _get_system_instruction() -> String:
 	var SysPrompt = preload("res://addons/gamedev_ai/system_prompt.gd")
-	return SysPrompt.get_system_instruction()
+	var info = Engine.get_version_info()
+	var version_str = "Godot Engine " + str(info.major) + "." + str(info.minor) + "." + str(info.patch)
+	var status = info.get("status", "")
+	if status != "":
+		version_str += " (" + status + ")"
+	return SysPrompt.get_system_instruction(version_str)
 
 func generate_tool_response(_tool_name: String, output: String, tool_call_id: String = "") -> Dictionary:
 	return {

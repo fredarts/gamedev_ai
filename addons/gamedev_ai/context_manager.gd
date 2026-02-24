@@ -1,10 +1,44 @@
 @tool
 extends RefCounted
 
+func get_engine_version_string() -> String:
+	var info = Engine.get_version_info()
+	var version = str(info.major) + "." + str(info.minor) + "." + str(info.patch)
+	var status = info.get("status", "")
+	if status != "":
+		version += " (" + status + ")"
+	return "Godot Engine " + version
+
+func get_engine_version_context() -> String:
+	var info = Engine.get_version_info()
+	var ctx = "Engine Version: " + get_engine_version_string() + "\n"
+	ctx += "Major: " + str(info.major) + " | Minor: " + str(info.minor) + " | Patch: " + str(info.patch) + "\n"
+	
+	# Read project.godot header to detect config_version and compatibility fields
+	var project_file = FileAccess.open("res://project.godot", FileAccess.READ)
+	if project_file:
+		var header_lines: Array = []
+		var line_count = 0
+		while not project_file.eof_reached() and line_count < 20:
+			var line = project_file.get_line()
+			header_lines.append(line)
+			line_count += 1
+			# Stop after we've passed the [godot] or first real section
+			if line_count > 5 and line.begins_with("[") and line != "[godot]":
+				break
+		project_file.close()
+		ctx += "project.godot header:\n" + "\n".join(header_lines) + "\n"
+	return ctx
+
 func get_project_settings_dump() -> String:
 	var settings = ""
 	settings += "Application Name: " + str(ProjectSettings.get_setting("application/config/name")) + "\n"
-	# Add more relevant settings here
+	settings += "Engine Version: " + get_engine_version_string() + "\n"
+	
+	# Include config_version from project.godot
+	if ProjectSettings.has_setting("application/config/features"):
+		settings += "Features: " + str(ProjectSettings.get_setting("application/config/features")) + "\n"
+	
 	return settings
 
 func get_scene_tree_dump() -> String:

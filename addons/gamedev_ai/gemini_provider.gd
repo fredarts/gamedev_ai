@@ -108,9 +108,14 @@ func _send_request(tools: Array = []):
 
 func _inject_full_system_instruction(body: Dictionary):
 	var SysPrompt = preload("res://addons/gamedev_ai/system_prompt.gd")
+	var info = Engine.get_version_info()
+	var version_str = "Godot Engine " + str(info.major) + "." + str(info.minor) + "." + str(info.patch)
+	var status = info.get("status", "")
+	if status != "":
+		version_str += " (" + status + ")"
 	body["system_instruction"] = {
 		"parts": {
-			"text": SysPrompt.get_system_instruction()
+			"text": SysPrompt.get_system_instruction(version_str)
 		}
 	}
 

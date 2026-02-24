@@ -510,7 +510,13 @@ func _on_clear_pasted_image():
 	_image_preview_container.visible = false
 	output_display.append_text("[i]Image removed.[/i]\n")
 
+func _is_game_running() -> bool:
+	return EditorInterface.is_playing_scene()
+
 func _process_send(prompt_text: String):
+	if _is_game_running():
+		output_display.append_text("\n[color=orange][b]Game is running![/b] Close the game before sending commands to the AI, as files may be locked for editing.[/color]\n")
+		return
 	_is_stopped = false
 	_watch_fix_count = 0  # Reset watch mode counter on manual user message
 	
@@ -529,6 +535,7 @@ func _process_send(prompt_text: String):
 
 	var context = ""
 	if context_toggle.button_pressed and context_manager:
+		context += "Engine Info:\n" + context_manager.get_engine_version_context() + "\n"
 		context += "Project Structure:\n" + context_manager.get_project_index() + "\n"
 		context += "Project Settings:\n" + context_manager.get_project_settings_dump() + "\n"
 		context += "Current Scene tree:\n" + context_manager.get_scene_tree_dump() + "\n"
