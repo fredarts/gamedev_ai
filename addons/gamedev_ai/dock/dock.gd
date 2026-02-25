@@ -5,29 +5,38 @@ var gemini_client
 var context_manager
 var _tool_executor
 
-var output_display: RichTextLabel
-var input_field: TextEdit
-var send_button: Button
-var context_toggle: CheckButton
-var screenshot_toggle: CheckButton
-var selection_status: Label
-var history_button: MenuButton
-var new_chat_button: Button
-var watch_mode_toggle: CheckButton
+# Scene node references (unique names from dock.tscn)
+@onready var output_display: RichTextLabel = %OutputDisplay
+@onready var input_field: TextEdit = %InputField
+@onready var send_button: Button = %SendButton
+@onready var context_toggle: CheckButton = %ContextToggle
+@onready var screenshot_toggle: CheckButton = %ScreenshotToggle
+@onready var selection_status: Label = %SelectionStatus
+@onready var history_button: MenuButton = %HistoryButton
+@onready var new_chat_button: Button = %NewChatButton
+@onready var watch_mode_toggle: CheckButton = %WatchModeToggle
+@onready var _image_preview_container: HBoxContainer = %ImagePreviewContainer
+@onready var _image_preview_label: Label = %ImagePreviewLabel
+@onready var _image_clear_btn: Button = %ImageClearBtn
+@onready var preset_selector: OptionButton = %PresetSelector
+@onready var preset_name_input: LineEdit = %PresetNameInput
+@onready var provider_selector: OptionButton = %ProviderSelector
+@onready var settings_bar: HBoxContainer = %SettingsBar
+@onready var api_input: LineEdit = %ApiInput
+@onready var url_input: LineEdit = %UrlInput
+@onready var model_input: LineEdit = %ModelInput
+@onready var _file_preview_container: HBoxContainer = %FilePreviewContainer
+@onready var _file_preview_label: RichTextLabel = %FilePreviewLabel
+@onready var _file_clear_btn: Button = %FileClearBtn
+@onready var custom_prompt_input: TextEdit = %CustomPromptInput
+@onready var _diff_preview_panel: VBoxContainer = %DiffPreviewPanel
+@onready var _diff_display: RichTextLabel = %DiffDisplay
+@onready var _apply_diff_btn: Button = %ApplyDiffBtn
+@onready var _skip_diff_btn: Button = %SkipDiffBtn
 
-var _history_ids: Array = []
 var _pasted_image: Image = null
-var _image_preview_container: HBoxContainer
-var _image_preview_label: Label
-var _image_clear_btn: Button
-
-var preset_selector: OptionButton
-var preset_name_input: LineEdit
-var provider_selector: OptionButton
-var settings_bar: HBoxContainer
-var api_input: LineEdit
-var url_input: LineEdit
-var model_input: LineEdit
+var _dropped_files: Array[String] = []
+var _history_ids: Array = []
 
 var presets: Dictionary = {}
 var active_preset_name: String = ""
@@ -43,6 +52,8 @@ var batch_queue: Array = []
 var batch_results: Array = []
 var current_tool_context: Dictionary = {}
 var _is_stopped: bool = false
+var _confirm_dialog: ConfirmationDialog
+var _batch_total: int = 0
 
 # Precompiled regex for markdown parser
 var _regex_bold_italic: RegEx
@@ -54,223 +65,53 @@ signal preset_changed(config)
 signal settings_updated()
 
 func _ready():
-	# Setup simple UI layout
-	name = "Gamedev AI"
+	# Connect scene node signals
+	$TabContainer/Chat/ActionsContainer/RefactorBtn.pressed.connect(func(): _on_quick_action_pressed("Refactor this code"))
+	$TabContainer/Chat/ActionsContainer/FixBtn.pressed.connect(func(): _on_quick_action_pressed("Fix errors in this code"))
+	$TabContainer/Chat/ActionsContainer/ExplainBtn.pressed.connect(func(): _on_quick_action_pressed("Explain what this code does"))
+	$TabContainer/Chat/ActionsContainer/UndoBtn.pressed.connect(_on_undo_pressed)
+	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.pressed.connect(_on_fix_console_pressed)
 	
-	# Get Editor Theme Colors
-	var font_color = get_theme_color("font_color", "Editor")
-
-	# Preset Bar
-	var preset_bar = HBoxContainer.new()
-	add_child(preset_bar)
+	send_button.pressed.connect(_on_send_pressed)
+	input_field.gui_input.connect(_on_input_gui_input)
+	_image_clear_btn.pressed.connect(_on_clear_pasted_image)
+	_file_clear_btn.pressed.connect(_on_clear_dropped_files)
+	_apply_diff_btn.pressed.connect(_on_apply_diff_pressed)
+	_skip_diff_btn.pressed.connect(_on_skip_diff_pressed)
 	
-	var preset_label = Label.new()
-	preset_label.text = "Preset:"
-	preset_bar.add_child(preset_label)
-	
-	preset_selector = OptionButton.new()
-	preset_selector.size_flags_horizontal = SIZE_EXPAND_FILL
 	preset_selector.item_selected.connect(_on_preset_selected)
-	preset_bar.add_child(preset_selector)
-	
-	var add_preset_btn = Button.new()
-	add_preset_btn.text = "+"
-	add_preset_btn.tooltip_text = "Add new preset"
-	add_preset_btn.pressed.connect(_on_add_preset_pressed)
-	preset_bar.add_child(add_preset_btn)
-	
-	var del_preset_btn = Button.new()
-	del_preset_btn.text = "-"
-	del_preset_btn.tooltip_text = "Delete current preset"
-	del_preset_btn.pressed.connect(_on_delete_preset_pressed)
-	preset_bar.add_child(del_preset_btn)
-
-	# Config Section
-	var config_grid = GridContainer.new()
-	config_grid.columns = 2
-	add_child(config_grid)
-	
-	var name_label = Label.new()
-	name_label.text = "Preset Name:"
-	config_grid.add_child(name_label)
-	
-	preset_name_input = LineEdit.new()
-	preset_name_input.size_flags_horizontal = SIZE_EXPAND_FILL
-	preset_name_input.tooltip_text = "Press Enter to rename current preset"
+	$TabContainer/Settings/PresetBar/AddPresetBtn.pressed.connect(_on_add_preset_pressed)
+	$TabContainer/Settings/PresetBar/DelPresetBtn.pressed.connect(_on_delete_preset_pressed)
 	preset_name_input.text_submitted.connect(_on_rename_preset)
-	config_grid.add_child(preset_name_input)
-	
-	var provider_label = Label.new()
-	provider_label.text = "Provider:"
-	config_grid.add_child(provider_label)
-	
-	provider_selector = OptionButton.new()
-	provider_selector.add_item("Gemini", 0)
-	provider_selector.add_item("OpenAI / OpenRouter", 1)
 	provider_selector.item_selected.connect(_on_provider_type_changed)
-	config_grid.add_child(provider_selector)
-	
-	var api_label = Label.new()
-	api_label.text = "API Key:"
-	config_grid.add_child(api_label)
-	
-	api_input = LineEdit.new()
-	api_input.size_flags_horizontal = SIZE_EXPAND_FILL
-	api_input.secret = true
 	api_input.text_changed.connect(_on_config_changed)
-	config_grid.add_child(api_input)
-
-	var model_label = Label.new()
-	model_label.text = "Model Name:"
-	config_grid.add_child(model_label)
-	
-	model_input = LineEdit.new()
-	model_input.size_flags_horizontal = SIZE_EXPAND_FILL
-	model_input.placeholder_text = "gemini-1.5-pro or gpt-4o"
 	model_input.text_changed.connect(_on_config_changed)
-	config_grid.add_child(model_input)
-	
-	# OpenAI Specific Settings (Base URL only)
-	settings_bar = HBoxContainer.new()
-	settings_bar.visible = false
-	add_child(settings_bar)
-	
-	var url_label = Label.new()
-	url_label.text = "Base URL:"
-	settings_bar.add_child(url_label)
-	
-	url_input = LineEdit.new()
-	url_input.size_flags_horizontal = SIZE_EXPAND_FILL
-	url_input.placeholder_text = "https://openrouter.ai/api/v1"
 	url_input.text_changed.connect(_on_config_changed)
-	settings_bar.add_child(url_input)
-
-	var session_bar = HBoxContainer.new()
-	add_child(session_bar)
 	
-	new_chat_button = Button.new()
-	new_chat_button.text = "New Chat"
 	new_chat_button.pressed.connect(_on_new_chat_pressed)
-	session_bar.add_child(new_chat_button)
-
-	history_button = MenuButton.new()
-	history_button.text = "History"
 	history_button.get_popup().about_to_popup.connect(_on_history_popup_about_to_show)
 	history_button.get_popup().id_pressed.connect(_on_history_item_pressed)
-	session_bar.add_child(history_button)
+	
+	# Add provider options
+	provider_selector.add_item("Gemini", 0)
+	provider_selector.add_item("OpenAI / OpenRouter", 1)
+	
+	# Polling timer
+	$PollTimer.timeout.connect(_on_poll_timer_timeout)
+	
+	# Load saved custom prompt
+	var settings = EditorInterface.get_editor_settings()
+	if settings.has_setting("gamedev_ai/custom_system_prompt"):
+		custom_prompt_input.text = settings.get_setting("gamedev_ai/custom_system_prompt")
+	custom_prompt_input.text_changed.connect(_on_custom_prompt_changed)
+	
+	# Initial sync of instructions if client is already set
+	if gemini_client:
+		gemini_client.custom_instructions = custom_prompt_input.text
 	
 	_load_presets()
 	
-	# Output Display
-	output_display = RichTextLabel.new()
-	output_display.bbcode_enabled = true
-	output_display.size_flags_vertical = SIZE_EXPAND_FILL
-	output_display.fit_content = false
-	output_display.scroll_following = true
-	output_display.selection_enabled = true
-	output_display.add_theme_color_override("default_color", font_color)
-	add_child(output_display)
-	
-	# Selection Status Label (Above input)
-	selection_status = Label.new()
-	selection_status.text = "No selection"
-	selection_status.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	selection_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(selection_status)
-	
-	# Quick Actions Container
-	var actions_container = HBoxContainer.new()
-	add_child(actions_container)
-	
-	var refactor_btn = Button.new()
-	refactor_btn.text = "Refactor"
-	refactor_btn.pressed.connect(func(): _on_quick_action_pressed("Refactor this code"))
-	actions_container.add_child(refactor_btn)
-	
-	var fix_btn = Button.new()
-	fix_btn.text = "Fix"
-	fix_btn.pressed.connect(func(): _on_quick_action_pressed("Fix errors in this code"))
-	actions_container.add_child(fix_btn)
-	
-	var explain_btn = Button.new()
-	explain_btn.text = "Explain"
-	explain_btn.pressed.connect(func(): _on_quick_action_pressed("Explain what this code does"))
-	actions_container.add_child(explain_btn)
-
-	var undo_btn = Button.new()
-	undo_btn.text = "Undo Last"
-	undo_btn.tooltip_text = "Undo the last AI action batch"
-	undo_btn.pressed.connect(_on_undo_pressed)
-	actions_container.add_child(undo_btn)
-	
-	var fix_console_btn = Button.new()
-	fix_console_btn.text = "Fix Console"
-	fix_console_btn.tooltip_text = "Analyze latest console errors and propose fixes"
-	fix_console_btn.pressed.connect(_on_fix_console_pressed)
-	actions_container.add_child(fix_console_btn)
-	
-	# Input Container (Standard layout with field on left, button on right)
-	var input_hbox = HBoxContainer.new()
-	input_hbox.custom_minimum_size.y = 80
-	add_child(input_hbox)
-	
-	input_field = TextEdit.new()
-	input_field.size_flags_horizontal = SIZE_EXPAND_FILL
-	input_field.placeholder_text = "Ask Gamedev AI... (Shift+Enter to send)"
-	input_field.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	input_field.gui_input.connect(_on_input_gui_input)
-
-	input_hbox.add_child(input_field)
-	
-	send_button = Button.new()
-	send_button.text = "Send"
-	send_button.pressed.connect(_on_send_pressed)
-	input_hbox.add_child(send_button)
-	
-	# Image Paste Preview (hidden by default)
-	_image_preview_container = HBoxContainer.new()
-	_image_preview_container.visible = false
-	add_child(_image_preview_container)
-	
-	_image_preview_label = Label.new()
-	_image_preview_label.text = "Image attached"
-	_image_preview_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
-	_image_preview_container.add_child(_image_preview_label)
-	
-	_image_clear_btn = Button.new()
-	_image_clear_btn.text = "X"
-	_image_clear_btn.tooltip_text = "Remove attached image"
-	_image_clear_btn.pressed.connect(_on_clear_pasted_image)
-	_image_preview_container.add_child(_image_clear_btn)
-	
-	# Options Toggles
-	var toggle_container = HBoxContainer.new()
-	add_child(toggle_container)
-	
-	context_toggle = CheckButton.new()
-	context_toggle.text = "Context"
-	context_toggle.button_pressed = true
-	toggle_container.add_child(context_toggle)
-
-	screenshot_toggle = CheckButton.new()
-	screenshot_toggle.text = "Screenshot"
-	screenshot_toggle.button_pressed = false
-	toggle_container.add_child(screenshot_toggle)
-	
-	watch_mode_toggle = CheckButton.new()
-	watch_mode_toggle.text = "Watch Mode"
-	watch_mode_toggle.tooltip_text = "Monitor console for new errors and auto-prompt fix."
-	watch_mode_toggle.button_pressed = false
-	toggle_container.add_child(watch_mode_toggle)
-
-	# Polling Timer (Selection + Watch Mode)
-	var timer = Timer.new()
-	timer.wait_time = 0.5
-	timer.autostart = true
-	timer.timeout.connect(_on_poll_timer_timeout)
-	add_child(timer)
-	
-	# Precompile regex for markdown parser (avoids re-creation per line)
+	# Precompile regex for markdown parser
 	_regex_bold_italic = RegEx.new()
 	_regex_bold_italic.compile("\\*\\*\\*(.+?)\\*\\*\\*")
 	_regex_bold = RegEx.new()
@@ -280,10 +121,22 @@ func _ready():
 	_regex_code = RegEx.new()
 	_regex_code.compile("`([^`]+)`")
 
+
 func setup(client, manager, executor):
 	context_manager = manager
 	_tool_executor = executor
 	_tool_executor.tool_output.connect(_on_tool_output)
+	_tool_executor.confirmation_needed.connect(_on_confirmation_needed)
+	_tool_executor.diff_preview_requested.connect(_on_diff_preview_requested)
+	
+	# Create destructive action confirmation dialog
+	_confirm_dialog = ConfirmationDialog.new()
+	_confirm_dialog.title = "Confirm Destructive Action"
+	_confirm_dialog.ok_button_text = "Yes, proceed"
+	_confirm_dialog.cancel_button_text = "Cancel"
+	_confirm_dialog.confirmed.connect(_on_destructive_confirmed)
+	_confirm_dialog.canceled.connect(_on_destructive_cancelled)
+	add_child(_confirm_dialog)
 	
 	_set_client(client)
 
@@ -298,6 +151,8 @@ func _set_client(client):
 			gemini_client.tool_call_received.disconnect(_on_tool_calls)
 		if gemini_client.status_changed.is_connected(_on_status_changed):
 			gemini_client.status_changed.disconnect(_on_status_changed)
+		if gemini_client.token_usage_reported.is_connected(_on_token_usage):
+			gemini_client.token_usage_reported.disconnect(_on_token_usage)
 	
 	gemini_client = client
 	
@@ -306,6 +161,9 @@ func _set_client(client):
 		gemini_client.error_occurred.connect(_on_ai_error)
 		gemini_client.tool_call_received.connect(_on_tool_calls)
 		gemini_client.status_changed.connect(_on_status_changed)
+		gemini_client.token_usage_reported.connect(_on_token_usage)
+		if custom_prompt_input:
+			gemini_client.custom_instructions = custom_prompt_input.text
 
 func _load_presets():
 	var settings = EditorInterface.get_editor_settings()
@@ -541,6 +399,16 @@ func _process_send(prompt_text: String):
 		context += "Current Scene tree:\n" + context_manager.get_scene_tree_dump() + "\n"
 		context += "Current Script content:\n" + context_manager.get_current_script() + "\n"
 	
+	# Add dropped files context
+	if not _dropped_files.is_empty():
+		context += "\n--- Additional File Context ---\n"
+		for path in _dropped_files:
+			if FileAccess.file_exists(path):
+				var f = FileAccess.open(path, FileAccess.READ)
+				if f:
+					context += "File: " + path + "\n"
+					context += f.get_as_text() + "\n\n"
+	
 	var image_data = {}
 	# Priority: pasted image > screenshot toggle
 	if _pasted_image != null:
@@ -560,6 +428,7 @@ func _process_send(prompt_text: String):
 	if gemini_client:
 		gemini_client.send_prompt(final_prompt, context, tools, image_data)
 		output_display.append_text("\n[i]Thinking...[/i]\n")
+		_on_clear_dropped_files()
 
 func _encode_image(image: Image) -> Dictionary:
 	var max_dim = 1024
@@ -631,6 +500,7 @@ func _check_for_new_errors():
 func _on_tool_calls(tool_calls: Array):
 	batch_queue = tool_calls.duplicate()
 	batch_results.clear()
+	_batch_total = tool_calls.size()
 	
 	if not batch_queue.is_empty():
 		var first_tool = batch_queue[0]
@@ -652,7 +522,9 @@ func _process_next_batch_item():
 	var tool_name = call_data["name"]
 	var args = call_data["args"]
 	
-	output_display.append_text("\n[color=yellow]Tool Call: " + tool_name + " " + str(args) + "[/color]\n")
+	var step = _batch_total - batch_queue.size()
+	var progress = "[" + str(step) + "/" + str(_batch_total) + "] " if _batch_total > 1 else ""
+	output_display.append_text("\n[color=yellow]" + progress + "Tool Call: " + tool_name + " " + str(args) + "[/color]\n")
 	_tool_executor.execute_tool(tool_name, args)
 
 func _on_tool_output(output: String):
@@ -793,3 +665,95 @@ func _markdown_to_bbcode(text: String) -> String:
 		result += "[/code]\n"
 	
 	return result
+
+func _on_confirmation_needed(message: String, _tool_name: String, _args: Dictionary):
+	_confirm_dialog.dialog_text = "⚠️ " + message + "\n\nThis action cannot be undone."
+	_confirm_dialog.popup_centered()
+
+func _on_destructive_confirmed():
+	if _tool_executor:
+		_tool_executor.confirm_pending_action()
+
+func _on_destructive_cancelled():
+	if _tool_executor:
+		_tool_executor.cancel_pending_action()
+
+func _on_token_usage(usage: Dictionary):
+	var prompt = usage.get("prompt_tokens", 0)
+	var completion = usage.get("completion_tokens", 0)
+	var total = usage.get("total_tokens", 0)
+	output_display.append_text("[color=gray][i]Tokens — Prompt: " + str(prompt) + " | Completion: " + str(completion) + " | Total: " + str(total) + "[/i][/color]\n")
+
+func _on_custom_prompt_changed():
+	var settings = EditorInterface.get_editor_settings()
+	settings.set_setting("gamedev_ai/custom_system_prompt", custom_prompt_input.text)
+	if gemini_client:
+		gemini_client.custom_instructions = custom_prompt_input.text
+
+# Drag & Drop Handlers
+func _can_drop_data(_at_pos: Vector2, data: Variant) -> bool:
+	return typeof(data) == TYPE_DICTIONARY and data.has("files")
+
+func _drop_data(_at_pos: Vector2, data: Variant):
+	var files: Array = data["files"]
+	for f in files:
+		if not _dropped_files.has(f):
+			# Support images as primary image if non set, otherwise add as context
+			var ext = f.get_extension().to_lower()
+			if (ext == "png" or ext == "jpg" or ext == "jpeg" or ext == "webp") and _pasted_image == null:
+				var img = Image.load_from_file(f)
+				if img:
+					_pasted_image = img
+					_image_preview_container.visible = true
+			else:
+				_dropped_files.append(f)
+	
+	_update_dropped_files_ui()
+
+func _update_dropped_files_ui():
+	if _dropped_files.is_empty():
+		_file_preview_container.visible = false
+	else:
+		_file_preview_container.visible = true
+		var file_names = []
+		for f in _dropped_files:
+			file_names.append(f.get_file())
+		_file_preview_label.text = "[color=cyan]Files attached:[/color] " + ", ".join(file_names)
+
+func _on_clear_dropped_files():
+	_dropped_files.clear()
+	_update_dropped_files_ui()
+
+func _on_diff_preview_requested(path: String, old_content: String, new_content: String, tool_name: String, _args: Dictionary):
+	_diff_preview_panel.visible = true
+	_diff_display.clear()
+	_diff_display.append_text("[b]Modifying: " + path + "[/b] (" + tool_name + ")\n")
+	
+	if tool_name == "patch_script" or tool_name == "replace_selection":
+		# Component-based diff
+		_diff_display.append_text("[color=red][s]" + _markdown_to_bbcode(old_content) + "[/s][/color]\n")
+		_diff_display.append_text("[color=green]" + _markdown_to_bbcode(new_content) + "[/color]\n")
+	else:
+		# Full file diff (very simplified line-by-line)
+		var old_lines = old_content.split("\n")
+		var new_lines = new_content.split("\n")
+		
+		# A very basic diff for display purposes
+		# In a real app we'd use a better diffing algorithm
+		if old_content == "":
+			_diff_display.append_text("[color=green]" + _markdown_to_bbcode(new_content) + "[/color]\n")
+		else:
+			# Just show the new content for now to avoid complexity of line diffing
+			# but color it slightly to indicate it's new
+			_diff_display.append_text("[i]New content preview:[/i]\n")
+			_diff_display.append_text(_markdown_to_bbcode(new_content))
+
+func _on_apply_diff_pressed():
+	_diff_preview_panel.visible = false
+	if _tool_executor:
+		_tool_executor.confirm_pending_action()
+
+func _on_skip_diff_pressed():
+	_diff_preview_panel.visible = false
+	if _tool_executor:
+		_tool_executor.cancel_pending_action()

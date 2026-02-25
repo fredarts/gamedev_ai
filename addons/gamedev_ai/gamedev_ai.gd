@@ -20,8 +20,8 @@ func _enter_tree():
 	logger = LoggerScript.new()
 	
 	# Load UI
-	var DockScript = load("res://addons/gamedev_ai/dock/dock.gd")
-	dock = DockScript.new()
+	var DockScene = preload("res://addons/gamedev_ai/dock/dock.tscn")
+	dock = DockScene.instantiate()
 	
 	# Load Provider
 	var settings = EditorInterface.get_editor_settings()

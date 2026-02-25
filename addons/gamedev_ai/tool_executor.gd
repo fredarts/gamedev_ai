@@ -2,9 +2,18 @@
 extends RefCounted
 
 signal tool_output(output)
+signal confirmation_needed(message: String, tool_name: String, args: Dictionary)
+signal diff_preview_requested(path: String, old_content: String, new_content: String, tool_name: String, args: Dictionary)
 
 var _undo_redo: EditorUndoRedoManager
 var _composite_action_name: String = ""
+var _pending_confirm_tool: String = ""
+var _pending_confirm_args: Dictionary = {}
+
+var use_diff_preview: bool = true
+var _pending_diff_new_content: String = ""
+var _pending_diff_old_content: String = ""
+var _pending_diff_path: String = ""
 
 # Required args per tool: { tool_name: ["arg1", "arg2", ...] }
 const _TOOL_REQUIRED_ARGS = {
@@ -79,6 +88,36 @@ func commit_composite_action():
 		_undo_redo.commit_action()
 		_composite_action_name = ""
 
+func confirm_pending_action():
+	if _pending_confirm_tool == "remove_node":
+		_remove_node(_pending_confirm_args.get("node_path"))
+	elif _pending_confirm_tool == "remove_file":
+		_remove_file(_pending_confirm_args.get("path"))
+	elif _pending_confirm_tool == "create_script":
+		_apply_create_script(_pending_confirm_args.get("path"), _pending_confirm_args.get("content"))
+	elif _pending_confirm_tool == "edit_script":
+		_apply_edit_script(_pending_confirm_args.get("path"), _pending_diff_old_content, _pending_confirm_args.get("content"))
+	elif _pending_confirm_tool == "patch_script":
+		var path = _pending_confirm_args.get("path")
+		var file = FileAccess.open(path, FileAccess.READ)
+		var old_full = file.get_as_text()
+		file.close()
+		var new_full = old_full.replace(_pending_confirm_args.get("search_content"), _pending_confirm_args.get("replace_content"))
+		_apply_patch_script(path, old_full, new_full)
+	elif _pending_confirm_tool == "replace_selection":
+		_apply_replace_selection(_pending_confirm_args.get("text"))
+		
+	_pending_confirm_tool = ""
+	_pending_confirm_args = {}
+	_pending_diff_path = ""
+	_pending_diff_old_content = ""
+	_pending_diff_new_content = ""
+
+func cancel_pending_action():
+	tool_output.emit("[color=orange]Action cancelled by user.[/color]")
+	_pending_confirm_tool = ""
+	_pending_confirm_args = {}
+
 func undo():
 	if _undo_redo:
 		var history_id = _undo_redo.get_object_history_id(self)
@@ -118,6 +157,11 @@ func _proxy_call(obj: Object, method: String, arg1: Variant = null, arg2: Varian
 # File Undo Helpers (Static-like)
 # File Undo Helpers (Static-like)
 func _create_file_undoable(path: String, content: String):
+	# Ensure directory exists
+	var dir_path = path.get_base_dir()
+	if not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_recursive_absolute(dir_path)
+
 	# 1. Try to find if the script is already loaded in memory (open in editor or used by a node)
 	var script = load(path) if FileAccess.file_exists(path) else null
 	
@@ -427,7 +471,6 @@ func get_tool_definitions() -> Array:
 	]
 
 func execute_tool(tool_name: String, args: Dictionary):
-	tool_output.emit("[color=gray][i]Executing tool: " + tool_name + "...[/i][/color]")
 	print("Executing tool: " + tool_name + " with args: " + str(args))
 	
 	# Validate arguments before executing
@@ -450,9 +493,15 @@ func execute_tool(tool_name: String, args: Dictionary):
 		"edit_script":
 			_edit_script(args.get("path"), args.get("content"))
 		"remove_node":
-			_remove_node(args.get("node_path"))
+			var node_path = args.get("node_path", "")
+			_pending_confirm_tool = "remove_node"
+			_pending_confirm_args = args
+			confirmation_needed.emit("Remove node '" + node_path + "' from the scene?", tool_name, args)
 		"remove_file":
-			_remove_file(args.get("path"))
+			var file_path = args.get("path", "")
+			_pending_confirm_tool = "remove_file"
+			_pending_confirm_args = args
+			confirmation_needed.emit("Delete file '" + file_path + "' permanently?", tool_name, args)
 		"set_property":
 			_set_property(args.get("node_path"), args.get("property"), args.get("value"))
 		"set_theme_override":
@@ -490,6 +539,18 @@ func _create_script(path: String, content: String):
 		tool_output.emit("Error: Path must start with res://")
 		return
 
+	if use_diff_preview:
+		_pending_diff_path = path
+		_pending_diff_old_content = ""
+		_pending_diff_new_content = content
+		_pending_confirm_tool = "create_script"
+		_pending_confirm_args = {"path": path, "content": content}
+		diff_preview_requested.emit(path, "", content, "create_script", _pending_confirm_args)
+		return
+
+	_apply_create_script(path, content)
+
+func _apply_create_script(path: String, content: String):
 	if _undo_redo:
 		if _composite_action_name == "":
 			_undo_redo.create_action("Create Script " + path.get_file(), UndoRedo.MERGE_DISABLE, self)
@@ -537,6 +598,11 @@ func _create_scene(path: String, root_type: String, root_name: String):
 		tool_output.emit("Success: Scene " + path + " created (No Undo).")
 
 func _create_scene_file(path: String, root_type: String, root_name: String):
+	# Ensure directory exists
+	var dir_path = path.get_base_dir()
+	if not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_recursive_absolute(dir_path)
+
 	var root = ClassDB.instantiate(root_type)
 	if not root:
 		tool_output.emit("Error: Invalid root type: " + root_type)
@@ -551,11 +617,9 @@ func _create_scene_file(path: String, root_type: String, root_name: String):
 		if err == OK:
 			_scan_fs()
 			
-			# If this scene is already open, reload it to reflect changes without popup
-			var edited_root = EditorInterface.get_edited_scene_root()
-			if edited_root and edited_root.scene_file_path == path:
-				# Re-opening the same path usually refreshes the editor view
-				EditorInterface.open_scene_from_path(path)
+			# IMPORTANT: Always open the scene after creation so subsequent tools (like add_node) 
+			# can find the edited scene root.
+			EditorInterface.open_scene_from_path(path)
 		else:
 			tool_output.emit("Error: Could not save scene. Code: " + str(err))
 	else:
@@ -636,11 +700,12 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 		
 		# Load script if provided
 		var script = null
+		var add_msg := ""
 		if script_path != "":
 			if FileAccess.file_exists(script_path):
 				script = load(script_path)
 			else:
-				tool_output.emit("Warning: Script not found at " + script_path)
+				add_msg = " | Warning: Script not found at " + script_path
 		
 		if _composite_action_name == "":
 			_undo_redo.create_action("Add Node " + name, UndoRedo.MERGE_DISABLE, self)
@@ -659,9 +724,9 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
 			_save_scene()
-			tool_output.emit(msg)
+			tool_output.emit(msg + add_msg)
 		else:
-			tool_output.emit(msg + " (Queued)")
+			tool_output.emit(msg + " (Queued)" + add_msg)
 	else:
 		tool_output.emit("Error: UndoRedoManager not available.")
 
@@ -710,6 +775,18 @@ func _edit_script(path: String, new_content: String):
 	var old_content = file.get_as_text()
 	file.close()
 
+	if use_diff_preview:
+		_pending_diff_path = path
+		_pending_diff_old_content = old_content
+		_pending_diff_new_content = new_content
+		_pending_confirm_tool = "edit_script"
+		_pending_confirm_args = {"path": path, "content": new_content}
+		diff_preview_requested.emit(path, old_content, new_content, "edit_script", _pending_confirm_args)
+		return
+
+	_apply_edit_script(path, old_content, new_content)
+
+func _apply_edit_script(path: String, old_content: String, new_content: String):
 	if _undo_redo:
 		if _composite_action_name == "":
 			_undo_redo.create_action("Edit Script " + path.get_file(), UndoRedo.MERGE_DISABLE, self)
@@ -918,10 +995,31 @@ func _replace_selection(text: String):
 		tool_output.emit("Error: No text selected in the editor.")
 		return
 		
-	# In Godot 4, we should use UndoRedo for editor changes if possible
-	# But EditorInterface doesn't give direct access to ScriptEditor's UndoRedo easily in some versions.
-	# However, CodeEdit.insert_text_at_cursor handles its own internal undo stack.
-	
+	var old_text = code_edit.get_selected_text()
+	var path = current_editor.get_base_editor().get_parent().get_parent().name # Rough path from editor hierarchy
+	# Better way to get path:
+	var current_script = script_editor.get_current_script()
+	if current_script:
+		path = current_script.resource_path
+
+	if use_diff_preview:
+		_pending_diff_path = path
+		_pending_diff_old_content = old_text
+		_pending_diff_new_content = text
+		_pending_confirm_tool = "replace_selection"
+		_pending_confirm_args = {"text": text}
+		diff_preview_requested.emit(path, old_text, text, "replace_selection", _pending_confirm_args)
+		return
+
+	_apply_replace_selection(text)
+
+func _apply_replace_selection(text: String):
+	var script_editor = EditorInterface.get_script_editor()
+	var current_editor = script_editor.get_current_editor()
+	if not current_editor: return
+	var code_edit = current_editor.get_base_editor()
+	if not code_edit: return
+
 	code_edit.begin_complex_operation()
 	code_edit.insert_text_at_cursor(text)
 	code_edit.end_complex_operation()
@@ -1012,13 +1110,25 @@ func _patch_script(path: String, search_content: String, replace_content: String
 		return
 		
 	var new_content = content.replace(search_content, replace_content)
-	
+
+	if use_diff_preview:
+		_pending_diff_path = path
+		_pending_diff_old_content = search_content
+		_pending_diff_new_content = replace_content # Show only the changed block for patch
+		_pending_confirm_tool = "patch_script"
+		_pending_confirm_args = {"path": path, "search_content": search_content, "replace_content": replace_content}
+		diff_preview_requested.emit(path, search_content, replace_content, "patch_script", _pending_confirm_args)
+		return
+
+	_apply_patch_script(path, content, new_content)
+
+func _apply_patch_script(path: String, old_content: String, new_content: String):
 	if _undo_redo:
 		if _composite_action_name == "":
 			_undo_redo.create_action("Patch Script " + path.get_file(), UndoRedo.MERGE_DISABLE, self)
 
 		_undo_redo.add_do_method(self, "_create_file_undoable", path, new_content)
-		_undo_redo.add_undo_method(self, "_create_file_undoable", path, content)
+		_undo_redo.add_undo_method(self, "_create_file_undoable", path, old_content)
 		
 		if _composite_action_name == "":
 			_undo_redo.commit_action()
@@ -1177,7 +1287,7 @@ func _scan_fs_for_custom_class(type: String) -> bool:
 	return false
 
 func _run_tests(test_script_path: String):
-	# This implementation tries to run Godot in command line mode to execute a script
+	# Run tests in a separate process to avoid freezing the editor
 	var exe_path = OS.get_executable_path()
 	var args = []
 	
@@ -1200,18 +1310,15 @@ func _run_tests(test_script_path: String):
 			
 	args.append("--headless")
 	
-	tool_output.emit("Running tests with command: " + exe_path + " " + str(args))
+	var msg = "Running tests (non-blocking): " + exe_path + " " + str(args)
+	var pid = OS.create_process(exe_path, args)
 	
-	var output = []
-	var exit_code = OS.execute(exe_path, args, output, true)
+	if pid == -1:
+		tool_output.emit("Error: Failed to start test process.")
+		return
 	
-	var result_str = "Test Run Complete (Exit Code " + str(exit_code) + "):\n"
-	if not output.is_empty():
-		result_str += output[0]
-	else:
-		result_str += "(No output captured)"
-		
-	tool_output.emit(result_str)
+	msg += " | Test process started (PID: " + str(pid) + "). Check the Godot console for results."
+	tool_output.emit(msg)
 
 func _get_class_info(cls_name: String):
 	if not ClassDB.class_exists(cls_name):
@@ -1283,10 +1390,10 @@ func _grep_recursive(dir_path: String, query_lower: String, extensions: Array, r
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
 	while file_name != "" and results.size() < max_results:
-		if file_name.begins_with(".") or file_name == "addons" and dir_path == "res://":
-			# Skip hidden files; skip addons at root level (except our own plugin)
-			# Actually, let's include addons since user may want to search there
-			pass
+		# Skip hidden files/directories (starting with .)
+		if file_name.begins_with("."):
+			file_name = dir.get_next()
+			continue
 		
 		var full_path = dir_path + file_name
 		if dir.current_is_dir():

@@ -1,0 +1,269 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/gamedev_ai/dock/dock.gd" id="1"]
+
+[node name="GamedevAI" type="VBoxContainer"]
+script = ExtResource("1")
+
+[node name="TabContainer" type="TabContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Chat" type="VBoxContainer" parent="TabContainer"]
+layout_mode = 2
+
+[node name="OutputDisplay" type="RichTextLabel" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+fit_content = false
+scroll_following = true
+selection_enabled = true
+
+[node name="SelectionStatus" type="Label" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 2
+text = "No selection"
+
+[node name="ActionsContainer" type="HBoxContainer" parent="TabContainer/Chat"]
+layout_mode = 2
+
+[node name="RefactorBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+layout_mode = 2
+text = "Refactor"
+
+[node name="FixBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+layout_mode = 2
+text = "Fix"
+
+[node name="ExplainBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+layout_mode = 2
+text = "Explain"
+
+[node name="UndoBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+layout_mode = 2
+text = "Undo Last"
+tooltip_text = "Undo the last AI action batch"
+
+[node name="FixConsoleBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+layout_mode = 2
+text = "Fix Console"
+tooltip_text = "Analyze latest console errors and propose fixes"
+
+[node name="DiffPreviewPanel" type="VBoxContainer" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DiffLabel" type="Label" parent="TabContainer/Chat/DiffPreviewPanel"]
+layout_mode = 2
+text = "Script Diff Preview:"
+
+[node name="DiffDisplay" type="RichTextLabel" parent="TabContainer/Chat/DiffPreviewPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+fit_content = false
+scroll_following = true
+
+[node name="DiffButtons" type="HBoxContainer" parent="TabContainer/Chat/DiffPreviewPanel"]
+layout_mode = 2
+
+[node name="ApplyDiffBtn" type="Button" parent="TabContainer/Chat/DiffPreviewPanel/DiffButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Apply Changes"
+
+[node name="SkipDiffBtn" type="Button" parent="TabContainer/Chat/DiffPreviewPanel/DiffButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Skip"
+
+[node name="InputHBox" type="HBoxContainer" parent="TabContainer/Chat"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 80)
+
+[node name="InputField" type="TextEdit" parent="TabContainer/Chat/InputHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Ask Gamedev AI... (Shift+Enter to send)"
+wrap_mode = 1
+
+[node name="SendButton" type="Button" parent="TabContainer/Chat/InputHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Send"
+
+[node name="ImagePreviewContainer" type="HBoxContainer" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="ImagePreviewLabel" type="Label" parent="TabContainer/Chat/ImagePreviewContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Image attached"
+
+[node name="ImageClearBtn" type="Button" parent="TabContainer/Chat/ImagePreviewContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "X"
+tooltip_text = "Remove attached image"
+
+[node name="FilePreviewContainer" type="HBoxContainer" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="FilePreviewLabel" type="RichTextLabel" parent="TabContainer/Chat/FilePreviewContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "[color=cyan]Files attached:[/color] none"
+fit_content = true
+
+[node name="FileClearBtn" type="Button" parent="TabContainer/Chat/FilePreviewContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "X"
+tooltip_text = "Remove all attached files"
+
+[node name="ToggleContainer" type="HBoxContainer" parent="TabContainer/Chat"]
+layout_mode = 2
+
+[node name="ContextToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Context"
+
+[node name="ScreenshotToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Screenshot"
+
+[node name="WatchModeToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Watch Mode"
+tooltip_text = "Monitor console for new errors and auto-prompt fix."
+
+[node name="Settings" type="VBoxContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="PresetBar" type="HBoxContainer" parent="TabContainer/Settings"]
+layout_mode = 2
+
+[node name="PresetLabel" type="Label" parent="TabContainer/Settings/PresetBar"]
+layout_mode = 2
+text = "Preset:"
+
+[node name="PresetSelector" type="OptionButton" parent="TabContainer/Settings/PresetBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AddPresetBtn" type="Button" parent="TabContainer/Settings/PresetBar"]
+layout_mode = 2
+text = "+"
+tooltip_text = "Add new preset"
+
+[node name="DelPresetBtn" type="Button" parent="TabContainer/Settings/PresetBar"]
+layout_mode = 2
+text = "-"
+tooltip_text = "Delete current preset"
+
+[node name="ConfigGrid" type="GridContainer" parent="TabContainer/Settings"]
+layout_mode = 2
+columns = 2
+
+[node name="NameLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+layout_mode = 2
+text = "Preset Name:"
+
+[node name="PresetNameInput" type="LineEdit" parent="TabContainer/Settings/ConfigGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Press Enter to rename current preset"
+
+[node name="ProviderLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+layout_mode = 2
+text = "Provider:"
+
+[node name="ProviderSelector" type="OptionButton" parent="TabContainer/Settings/ConfigGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ApiLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+layout_mode = 2
+text = "API Key:"
+
+[node name="ApiInput" type="LineEdit" parent="TabContainer/Settings/ConfigGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+secret = true
+
+[node name="ModelLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+layout_mode = 2
+text = "Model Name:"
+
+[node name="ModelInput" type="LineEdit" parent="TabContainer/Settings/ConfigGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "gemini-1.5-pro or gpt-4o"
+
+[node name="SettingsBar" type="HBoxContainer" parent="TabContainer/Settings"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="UrlLabel" type="Label" parent="TabContainer/Settings/SettingsBar"]
+layout_mode = 2
+text = "Base URL:"
+
+[node name="UrlInput" type="LineEdit" parent="TabContainer/Settings/SettingsBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "https://openrouter.ai/api/v1"
+
+[node name="SessionBar" type="HBoxContainer" parent="TabContainer/Settings"]
+layout_mode = 2
+
+[node name="NewChatButton" type="Button" parent="TabContainer/Settings/SessionBar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "New Chat"
+
+[node name="HistoryButton" type="MenuButton" parent="TabContainer/Settings/SessionBar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "History"
+
+[node name="CustomPromptLabel" type="Label" parent="TabContainer/Settings"]
+layout_mode = 2
+text = "Custom Instructions (appended to system prompt):"
+
+[node name="CustomPromptInput" type="TextEdit" parent="TabContainer/Settings"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 100)
+size_flags_vertical = 3
+placeholder_text = "e.g. Always respond in Portuguese. Focus on 2D platformer patterns..."
+wrap_mode = 1
+
+[node name="PollTimer" type="Timer" parent="."]
+wait_time = 0.5
+autostart = true

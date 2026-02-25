@@ -1,6 +1,10 @@
 @tool
 extends RefCounted
 
+var _project_index_cache: String = ""
+var _project_index_cache_time: float = 0.0
+const _PROJECT_INDEX_CACHE_TTL: float = 30.0 # seconds
+
 func get_engine_version_string() -> String:
 	var info = Engine.get_version_info()
 	var version = str(info.major) + "." + str(info.minor) + "." + str(info.patch)
@@ -121,8 +125,14 @@ func get_selection_info() -> Dictionary:
 	return {}
 
 func get_project_index() -> String:
+	var now = Time.get_unix_time_from_system()
+	if _project_index_cache != "" and (now - _project_index_cache_time) < _PROJECT_INDEX_CACHE_TTL:
+		return _project_index_cache
+	
 	var index_str = "Project Structure Map:\n"
 	index_str += _scan_directory("res://")
+	_project_index_cache = index_str
+	_project_index_cache_time = now
 	return index_str
 
 func _scan_directory(path: String) -> String:

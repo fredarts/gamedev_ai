@@ -3,6 +3,7 @@ extends "res://addons/gamedev_ai/ai_provider.gd"
 
 var model_name: String = "gemini-1.5-pro"
 var _cancelled: bool = false
+var _last_tools: Array = []
 
 func setup(node: Node):
 	super.setup(node)
@@ -88,6 +89,7 @@ func cancel_request():
 
 func _send_request(tools: Array = []):
 	_cancelled = false
+	_last_tools = tools
 	var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent?key=" + api_key
 	var headers = ["Content-Type: application/json"]
 	
@@ -101,8 +103,10 @@ func _send_request(tools: Array = []):
 		body["tools"] = [{"function_declarations": tools}]
 	
 	is_requesting = true
+	_start_timeout()
 	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
 	if error != OK:
+		_stop_timeout()
 		is_requesting = false
 		error_occurred.emit("Failed to send request: " + str(error))
 
@@ -115,21 +119,42 @@ func _inject_full_system_instruction(body: Dictionary):
 		version_str += " (" + status + ")"
 	body["system_instruction"] = {
 		"parts": {
-			"text": SysPrompt.get_system_instruction(version_str)
+			"text": SysPrompt.get_system_instruction(version_str, custom_instructions)
 		}
 	}
 
 func _on_request_completed(_result, response_code, _headers, body):
+	_stop_timeout()
 	if _cancelled:
 		return
 	if response_code != 200:
 		is_requesting = false
 		var json = JSON.parse_string(body.get_string_from_utf8())
+		# Retry on transient errors (429 rate limit, 5xx server errors)
+		if (response_code == 429 or response_code >= 500) and _retry_count < MAX_RETRIES:
+			_retry_count += 1
+			var wait_secs = pow(2, _retry_count) # Exponential backoff: 2s, 4s
+			error_occurred.emit("⚠️ Transient error (" + str(response_code) + "). Retrying in " + str(int(wait_secs)) + "s... (" + str(_retry_count) + "/" + str(MAX_RETRIES) + ")")
+			await http_request.get_tree().create_timer(wait_secs).timeout
+			_send_request(_last_tools)
+			return
+		_retry_count = 0
 		var error_msg = _format_api_error(response_code, json)
 		error_occurred.emit(error_msg)
 		return
-		
+	
+	_retry_count = 0
 	var json = JSON.parse_string(body.get_string_from_utf8())
+	
+	# Extract token usage metadata
+	if json and json.has("usageMetadata"):
+		var usage = json["usageMetadata"]
+		token_usage_reported.emit({
+			"prompt_tokens": usage.get("promptTokenCount", 0),
+			"completion_tokens": usage.get("candidatesTokenCount", 0),
+			"total_tokens": usage.get("totalTokenCount", 0)
+		})
+	
 	if json and json.has("candidates"):
 		var candidate = json["candidates"][0]
 		var content = candidate.get("content", {})

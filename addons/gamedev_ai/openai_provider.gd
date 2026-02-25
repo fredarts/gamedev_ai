@@ -5,6 +5,7 @@ var base_url: String = "https://api.openai.com/v1"
 var model_name: String = "gpt-4o"
 var custom_headers: Dictionary = {}
 var _cancelled: bool = false
+var _last_tools: Array = []
 
 func setup(node: Node):
 	super.setup(node)
@@ -51,7 +52,7 @@ func _get_system_instruction() -> String:
 	var status = info.get("status", "")
 	if status != "":
 		version_str += " (" + status + ")"
-	return SysPrompt.get_system_instruction(version_str)
+	return SysPrompt.get_system_instruction(version_str, custom_instructions)
 
 func generate_tool_response(_tool_name: String, output: String, tool_call_id: String = "") -> Dictionary:
 	return {
@@ -72,6 +73,7 @@ func cancel_request():
 
 func _send_request(tools: Array = []):
 	_cancelled = false
+	_last_tools = tools
 	var url = base_url + "/chat/completions"
 	var headers = [
 		"Content-Type: application/json",
@@ -101,21 +103,44 @@ func _send_request(tools: Array = []):
 		body["tools"] = openai_tools
 	
 	is_requesting = true
+	_start_timeout()
 	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
 	if error != OK:
+		_stop_timeout()
 		is_requesting = false
 		error_occurred.emit("Failed to send request: " + str(error))
 
 func _on_request_completed(_result, response_code, _headers, body):
+	_stop_timeout()
 	if _cancelled:
 		return
 	if response_code != 200:
 		var json = JSON.parse_string(body.get_string_from_utf8())
+		# Retry on transient errors (429 rate limit, 5xx server errors)
+		if (response_code == 429 or response_code >= 500) and _retry_count < MAX_RETRIES:
+			_retry_count += 1
+			var wait_secs = pow(2, _retry_count)
+			error_occurred.emit("⚠️ Transient error (" + str(response_code) + "). Retrying in " + str(int(wait_secs)) + "s... (" + str(_retry_count) + "/" + str(MAX_RETRIES) + ")")
+			await http_request.get_tree().create_timer(wait_secs).timeout
+			_send_request(_last_tools)
+			return
+		_retry_count = 0
 		error_occurred.emit("API Error: " + str(response_code) + " - " + str(json))
 		is_requesting = false
 		return
 		
+	_retry_count = 0
 	var json = JSON.parse_string(body.get_string_from_utf8())
+	
+	# Extract token usage metadata
+	if json and json.has("usage"):
+		var usage = json["usage"]
+		token_usage_reported.emit({
+			"prompt_tokens": usage.get("prompt_tokens", 0),
+			"completion_tokens": usage.get("completion_tokens", 0),
+			"total_tokens": usage.get("total_tokens", 0)
+		})
+	
 	if json and json.has("choices"):
 		var choice = json["choices"][0]
 		var message = choice.get("message", {})

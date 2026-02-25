@@ -6,22 +6,34 @@ signal response_received(response)
 signal error_occurred(error_msg)
 signal tool_call_received(tool_calls)
 signal status_changed(is_requesting)
+signal token_usage_reported(usage: Dictionary)
 
 var api_key: String = ""
+var custom_instructions: String = ""
 var http_request: HTTPRequest
 var history: Array = [] # Stores conversation history (Technical format)
 var transcript: Array = [] # Stores user-friendly text for UI display
 var is_requesting: bool = false : set = _set_is_requesting
 var current_session_id: String = ""
+var _timeout_timer: Timer
+var _retry_count: int = 0
 
 const MAX_HISTORY_TURNS = 100 
 const HISTORY_DIR = "res://.gamedev_ai/history/"
+const REQUEST_TIMEOUT_SECS = 120.0
+const MAX_RETRIES = 2
 
 func setup(node: Node):
 	http_request = HTTPRequest.new()
 	node.add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
 	http_request.use_threads = true
+	
+	_timeout_timer = Timer.new()
+	_timeout_timer.one_shot = true
+	_timeout_timer.wait_time = REQUEST_TIMEOUT_SECS
+	_timeout_timer.timeout.connect(_on_timeout)
+	node.add_child(_timeout_timer)
 
 func set_api_key(key: String):
 	api_key = key
@@ -91,10 +103,12 @@ func list_sessions() -> Array:
 
 func _read_session_metadata(path: String) -> Dictionary:
 	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
 	var content = file.get_as_text()
 	file.close()
 	var data = JSON.parse_string(content)
-	if data:
+	if data and data is Dictionary:
 		var title = "New Chat"
 		var t = data.get("transcript", [])
 		if not t.is_empty():
@@ -114,9 +128,25 @@ func _set_is_requesting(value: bool):
 	status_changed.emit(is_requesting)
 
 func cancel_request():
+	if _timeout_timer:
+		_timeout_timer.stop()
 	if http_request and http_request.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		http_request.cancel_request()
+	_retry_count = 0
 	is_requesting = false
+
+func _start_timeout():
+	if _timeout_timer:
+		_timeout_timer.start()
+
+func _stop_timeout():
+	if _timeout_timer:
+		_timeout_timer.stop()
+
+func _on_timeout():
+	if is_requesting:
+		cancel_request()
+		error_occurred.emit("⚠️ Request Timeout\n\nThe API did not respond within " + str(int(REQUEST_TIMEOUT_SECS)) + " seconds. Please try again.")
 
 # Virtual methods to be overridden
 func send_prompt(_prompt: String, _context: String = "", _tools: Array = [], _image_data: Dictionary = {}):

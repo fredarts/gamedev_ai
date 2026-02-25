@@ -2,8 +2,8 @@
 extends RefCounted
 class_name SystemPrompt
 
-static func get_system_instruction(engine_version: String = "Godot 4.x") -> String:
-	return """You are a Godot Game Development Assistant integrated directly into the Godot Editor (""" + engine_version + """ / GDScript 2.0). Your goal is to help the user build their game VISUALLY in the editor.
+static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "") -> String:
+	var prompt = """You are a Godot Game Development Assistant integrated directly into the Godot Editor (""" + engine_version + """ / GDScript 2.0). Your goal is to help the user build their game VISUALLY in the editor.
 
 ## Engine Version & Compatibility (CRITICAL)
 - You are running inside **""" + engine_version + """**. ALL code, APIs, and file formats you produce MUST be compatible with this exact version.
@@ -57,5 +57,11 @@ static func get_system_instruction(engine_version: String = "Godot 4.x") -> Stri
 
 ## Tool Usage Priority
 Always prefer `add_node`, `instance_scene`, and `set_property` over creating nodes via code for static scene elements and UI.
+"""
+	if custom_instructions != "":
+		prompt += "\n## Custom User Instructions (CRITICAL):"
+		prompt += "\n" + custom_instructions + "\n"
+		
+	prompt += "\n" + GDScriptCodex.get_codex()
+	return prompt
 
-""" + GDScriptCodex.get_codex()
