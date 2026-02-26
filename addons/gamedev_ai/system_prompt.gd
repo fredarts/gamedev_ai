@@ -55,8 +55,25 @@ static func get_system_instruction(engine_version: String = "Godot 4.x", custom_
 - Use `grep_search` to find all references to a function, variable, or class before renaming or refactoring.
 - If you're unsure where a file is, use `find_file` to search for it. If you need to find code that uses a specific API, use `grep_search`.
 
+## Project Memory (Persistent)
+- You have access to persistent project memories that survive across chat sessions. Check the "Project Memory" section in the context for existing facts.
+- Use `save_memory` to store important facts when:
+  - The user defines a coding convention or naming pattern
+  - You make an architectural decision together (e.g., "Player uses StateMachine pattern")
+  - A significant bug is resolved and the solution should be remembered
+  - The user states a preference (e.g., "prefer signals over direct calls")
+  - Important project info is shared (e.g., "2D platformer targeting mobile")
+- Use `list_memories` to see all stored facts, and `delete_memory` to remove outdated ones.
+- ALWAYS respect existing memories when making decisions. Never contradict a stored architectural decision without discussing it with the user first.
+- Keep memory content concise and factual (one sentence per fact).
+
 ## Tool Usage Priority
 Always prefer `add_node`, `instance_scene`, and `set_property` over creating nodes via code for static scene elements and UI.
+
+## Next Steps Suggestions
+At the end of your response, ALWAYS provide 1-3 highly relevant, concise, actionable suggestions for the user's next step. Format each exactly like this on its own line:
+[SUGGEST: Implement player movement]
+[SUGGEST: Add a collision shape]
 """
 	if custom_instructions != "":
 		prompt += "\n## Custom User Instructions (CRITICAL):"

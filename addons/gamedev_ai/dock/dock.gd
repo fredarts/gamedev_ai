@@ -4,6 +4,7 @@ extends VBoxContainer
 var gemini_client
 var context_manager
 var _tool_executor
+var _memory_manager
 
 # Scene node references (unique names from dock.tscn)
 @onready var output_display: RichTextLabel = %OutputDisplay
@@ -15,12 +16,20 @@ var _tool_executor
 @onready var history_button: MenuButton = %HistoryButton
 @onready var new_chat_button: Button = %NewChatButton
 @onready var watch_mode_toggle: CheckButton = %WatchModeToggle
+@onready var plan_first_toggle: CheckButton = %PlanFirstToggle
+@onready var execute_plan_btn: Button = %ExecutePlanBtn
+@onready var chat_preset_selector: OptionButton = %ChatPresetSelector
+@onready var font_size_minus_btn: Button = %FontSizeMinusBtn
+@onready var font_size_plus_btn: Button = %FontSizePlusBtn
 @onready var _image_preview_container: HBoxContainer = %ImagePreviewContainer
 @onready var _image_preview_label: Label = %ImagePreviewLabel
 @onready var _image_clear_btn: Button = %ImageClearBtn
 @onready var preset_selector: OptionButton = %PresetSelector
 @onready var preset_name_input: LineEdit = %PresetNameInput
 @onready var provider_selector: OptionButton = %ProviderSelector
+@onready var preset_edit_panel: VBoxContainer = %PresetEditPanel
+@onready var edit_preset_btn: Button = %EditPresetBtn
+@onready var close_edit_btn: Button = %CloseEditBtn
 @onready var settings_bar: HBoxContainer = %SettingsBar
 @onready var api_input: LineEdit = %ApiInput
 @onready var url_input: LineEdit = %UrlInput
@@ -54,12 +63,14 @@ var current_tool_context: Dictionary = {}
 var _is_stopped: bool = false
 var _confirm_dialog: ConfirmationDialog
 var _batch_total: int = 0
+var _plan_pending: bool = false
 
 # Precompiled regex for markdown parser
 var _regex_bold_italic: RegEx
 var _regex_bold: RegEx
 var _regex_italic: RegEx
 var _regex_code: RegEx
+var _regex_suggest: RegEx
 
 signal preset_changed(config)
 signal settings_updated()
@@ -71,6 +82,7 @@ func _ready():
 	$TabContainer/Chat/ActionsContainer/ExplainBtn.pressed.connect(func(): _on_quick_action_pressed("Explain what this code does"))
 	$TabContainer/Chat/ActionsContainer/UndoBtn.pressed.connect(_on_undo_pressed)
 	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.pressed.connect(_on_fix_console_pressed)
+	%ExecutePlanBtn.pressed.connect(_on_execute_plan_pressed)
 	
 	send_button.pressed.connect(_on_send_pressed)
 	input_field.gui_input.connect(_on_input_gui_input)
@@ -79,9 +91,19 @@ func _ready():
 	_apply_diff_btn.pressed.connect(_on_apply_diff_pressed)
 	_skip_diff_btn.pressed.connect(_on_skip_diff_pressed)
 	
+	# Enable drag and drop across the main chat interface
+	input_field.set_drag_forwarding(Callable(), _can_drop_data_fw, _drop_data_fw)
+	output_display.set_drag_forwarding(Callable(), _can_drop_data_fw, _drop_data_fw)
+	
+	chat_preset_selector.item_selected.connect(_on_chat_preset_selected)
+	font_size_minus_btn.pressed.connect(_on_font_minus_pressed)
+	font_size_plus_btn.pressed.connect(_on_font_plus_pressed)
+	
 	preset_selector.item_selected.connect(_on_preset_selected)
 	$TabContainer/Settings/PresetBar/AddPresetBtn.pressed.connect(_on_add_preset_pressed)
+	edit_preset_btn.pressed.connect(_on_edit_preset_pressed)
 	$TabContainer/Settings/PresetBar/DelPresetBtn.pressed.connect(_on_delete_preset_pressed)
+	close_edit_btn.pressed.connect(_on_close_edit_pressed)
 	preset_name_input.text_submitted.connect(_on_rename_preset)
 	provider_selector.item_selected.connect(_on_provider_type_changed)
 	api_input.text_changed.connect(_on_config_changed)
@@ -120,6 +142,14 @@ func _ready():
 	_regex_italic.compile("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)")
 	_regex_code = RegEx.new()
 	_regex_code.compile("`([^`]+)`")
+	_regex_suggest = RegEx.new()
+	_regex_suggest.compile("\\[SUGGEST:\\s*(.+?)\\]")
+	
+	output_display.meta_clicked.connect(_on_meta_clicked)
+	
+	var fs = EditorInterface.get_resource_filesystem()
+	if fs and not fs.filesystem_changed.is_connected(_on_filesystem_changed):
+		fs.filesystem_changed.connect(_on_filesystem_changed)
 
 
 func setup(client, manager, executor):
@@ -194,12 +224,15 @@ func _load_presets():
 			idx = i
 			break
 	preset_selector.selected = idx
+	chat_preset_selector.selected = idx
 	_on_preset_selected(idx)
 
 func _update_preset_selector():
 	preset_selector.clear()
+	chat_preset_selector.clear()
 	for p_name in presets.keys():
 		preset_selector.add_item(p_name)
+		chat_preset_selector.add_item(p_name)
 
 func _save_presets():
 	var settings = EditorInterface.get_editor_settings()
@@ -217,8 +250,15 @@ func _on_preset_selected(index: int):
 	url_input.text = config["base_url"]
 	model_input.text = config["model_name"]
 	
+	# Sync chat selector
+	chat_preset_selector.selected = index
+	
 	_save_presets()
 	preset_changed.emit(config)
+
+func _on_chat_preset_selected(index: int):
+	preset_selector.selected = index
+	_on_preset_selected(index)
 
 func _on_add_preset_pressed():
 	var new_name = "New Preset " + str(presets.size() + 1)
@@ -234,6 +274,30 @@ func _on_add_preset_pressed():
 			preset_selector.selected = i
 			_on_preset_selected(i)
 			break
+	preset_edit_panel.visible = true
+
+func _on_edit_preset_pressed():
+	preset_edit_panel.visible = true
+
+func _on_close_edit_pressed():
+	preset_edit_panel.visible = false
+
+var _current_font_size: int = 14
+
+func _on_font_minus_pressed():
+	_current_font_size = max(10, _current_font_size - 2)
+	_apply_font_size()
+
+func _on_font_plus_pressed():
+	_current_font_size = min(32, _current_font_size + 2)
+	_apply_font_size()
+
+func _apply_font_size():
+	output_display.add_theme_font_size_override("normal_font_size", _current_font_size)
+	output_display.add_theme_font_size_override("bold_font_size", _current_font_size)
+	output_display.add_theme_font_size_override("italics_font_size", _current_font_size)
+	output_display.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
+	output_display.add_theme_font_size_override("mono_font_size", _current_font_size)
 
 func _on_delete_preset_pressed():
 	if presets.size() <= 1:
@@ -334,6 +398,11 @@ func _on_send_pressed():
 		
 	_process_send(text)
 
+func _on_execute_plan_pressed():
+	execute_plan_btn.visible = false
+	_plan_pending = false
+	_process_send("Okay, the plan looks good. Please execute the proposed plan now using the appropriate tools.", true)
+
 func _on_quick_action_pressed(action_text: String):
 	_process_send(action_text)
 
@@ -371,25 +440,35 @@ func _on_clear_pasted_image():
 func _is_game_running() -> bool:
 	return EditorInterface.is_playing_scene()
 
-func _process_send(prompt_text: String):
+func _process_send(prompt_text: String, is_execute_plan: bool = false):
 	if _is_game_running():
 		output_display.append_text("\n[color=orange][b]Game is running![/b] Close the game before sending commands to the AI, as files may be locked for editing.[/color]\n")
 		return
 	_is_stopped = false
 	_watch_fix_count = 0  # Reset watch mode counter on manual user message
 	
-	var est_tokens = int(prompt_text.length() / 4.0)
-	_log_user_message(prompt_text, est_tokens)
-	input_field.text = ""
+	if not is_execute_plan:
+		var est_tokens = int(prompt_text.length() / 4.0)
+		_log_user_message(prompt_text, est_tokens)
+		input_field.text = ""
+	else:
+		output_display.append_text("\n[color=cyan][b]Executing Plan...[/b][/color]\n")
 	
 	var selection = {}
 	if context_manager:
 		selection = context_manager.get_selection_info()
 	
 	var final_prompt = prompt_text
-	if not selection.is_empty():
+	if not selection.is_empty() and not is_execute_plan:
 		final_prompt = "Selection Context (File: " + selection.path + "):\n```gdscript\n" + selection.text + "\n```\n\nCommand: " + prompt_text
 		output_display.append_text("[i]Using selection from " + selection.path.get_file() + "...[/i]\n")
+
+	if plan_first_toggle.button_pressed and not is_execute_plan:
+		final_prompt += "\n\nCRITICAL INSTRUCTION: The user has enabled 'Plan First' mode. Do NOT output any tool calls to modify files yet. Instead, output a detailed, numbered step-by-step plan explaining exactly what tools you will use and what you will do. This is your planning phase."
+		_plan_pending = true
+	else:
+		_plan_pending = false
+		execute_plan_btn.visible = false
 
 	var context = ""
 	if context_toggle.button_pressed and context_manager:
@@ -398,6 +477,12 @@ func _process_send(prompt_text: String):
 		context += "Project Settings:\n" + context_manager.get_project_settings_dump() + "\n"
 		context += "Current Scene tree:\n" + context_manager.get_scene_tree_dump() + "\n"
 		context += "Current Script content:\n" + context_manager.get_current_script() + "\n"
+	
+	# Inject persistent project memory
+	if _memory_manager:
+		var memory_text = _memory_manager.get_all_memories_formatted()
+		if memory_text != "":
+			context += "\n" + memory_text + "\n"
 	
 	# Add dropped files context
 	if not _dropped_files.is_empty():
@@ -601,6 +686,9 @@ func _get_error_logs() -> String:
 func _on_ai_response(response: String):
 	output_display.append_text("\n[b]Response:[/b]\n")
 	output_display.append_text(_markdown_to_bbcode(response) + "\n")
+	
+	if _plan_pending:
+		execute_plan_btn.visible = true
 
 func _on_ai_error(error: String):
 	output_display.append_text("\n[color=red]Error: " + error + "[/color]\n")
@@ -691,14 +779,61 @@ func _on_custom_prompt_changed():
 		gemini_client.custom_instructions = custom_prompt_input.text
 
 # Drag & Drop Handlers
+func _can_drop_data_fw(_at_pos: Vector2, data: Variant) -> bool:
+	return _can_drop_data(_at_pos, data)
+
+func _drop_data_fw(_at_pos: Vector2, data: Variant):
+	_drop_data(_at_pos, data)
+
 func _can_drop_data(_at_pos: Vector2, data: Variant) -> bool:
-	return typeof(data) == TYPE_DICTIONARY and data.has("files")
+	if typeof(data) == TYPE_DICTIONARY:
+		if data.has("type"):
+			if data["type"] in ["files", "nodes", "resource", "obj"]:
+				return true
+		if data.has("files"):
+			return true
+	return false
 
 func _drop_data(_at_pos: Vector2, data: Variant):
-	var files: Array = data["files"]
-	for f in files:
+	var paths_to_add: Array[String] = []
+	
+	if typeof(data) == TYPE_DICTIONARY:
+		if data.has("type"):
+			if data["type"] == "files" and data.has("files"):
+				paths_to_add.append_array(data["files"])
+			elif data["type"] == "nodes" and data.has("nodes"):
+				# Iterate nodes natively, trying to find script or scene
+				var editor = EditorInterface.get_edited_scene_root()
+				for np in data["nodes"]:
+					var node = editor.get_node_or_null(np) if editor else null
+					if node:
+						if node.scene_file_path != "":
+							paths_to_add.append(node.scene_file_path)
+						var script = node.get_script()
+						if script and script.resource_path != "":
+							paths_to_add.append(script.resource_path)
+			elif data["type"] == "resource" and data.has("resource"):
+				var res = data["resource"]
+				if res and res.resource_path != "":
+					paths_to_add.append(res.resource_path)
+			elif data["type"] == "obj" and data.has("object"):
+				var obj = data["object"]
+				if obj is Resource and obj.resource_path != "":
+					paths_to_add.append(obj.resource_path)
+				elif obj is Node:
+					if obj.scene_file_path != "":
+						paths_to_add.append(obj.scene_file_path)
+					var script = obj.get_script()
+					if script and script.resource_path != "":
+						paths_to_add.append(script.resource_path)
+		
+		# Fallback if just 'files' array exists and wasn't caught by above
+		if paths_to_add.is_empty() and data.has("files"):
+			paths_to_add.append_array(data["files"])
+			
+	for f in paths_to_add:
 		if not _dropped_files.has(f):
-			# Support images as primary image if non set, otherwise add as context
+			# Support images as primary image if none set, otherwise add as context
 			var ext = f.get_extension().to_lower()
 			if (ext == "png" or ext == "jpg" or ext == "jpeg" or ext == "webp") and _pasted_image == null:
 				var img = Image.load_from_file(f)
@@ -757,3 +892,22 @@ func _on_skip_diff_pressed():
 	_diff_preview_panel.visible = false
 	if _tool_executor:
 		_tool_executor.cancel_pending_action()
+
+func _on_filesystem_changed():
+	var valid_files: Array[String] = []
+	for f in _dropped_files:
+		if FileAccess.file_exists(f):
+			valid_files.append(f)
+			
+	if valid_files.size() != _dropped_files.size():
+		_dropped_files = valid_files
+		_update_dropped_files_ui()
+
+func _on_meta_clicked(meta):
+	var meta_str = str(meta)
+	if meta_str.begins_with("suggest:"):
+		var suggestion = meta_str.substr(8)
+		input_field.text = suggestion
+		_on_send_pressed()
+	else:
+		OS.shell_open(meta_str)

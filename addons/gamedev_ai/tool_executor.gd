@@ -6,6 +6,7 @@ signal confirmation_needed(message: String, tool_name: String, args: Dictionary)
 signal diff_preview_requested(path: String, old_content: String, new_content: String, tool_name: String, args: Dictionary)
 
 var _undo_redo: EditorUndoRedoManager
+var memory_manager
 var _composite_action_name: String = ""
 var _pending_confirm_tool: String = ""
 var _pending_confirm_args: Dictionary = {}
@@ -39,6 +40,10 @@ const _TOOL_REQUIRED_ARGS = {
 	"run_tests": [],
 	"grep_search": ["query"],
 	"view_file_outline": ["path"],
+	"save_memory": ["category", "content"],
+	"list_memories": [],
+	"delete_memory": ["id"],
+	"search_in_files": ["pattern"],
 }
 
 func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
@@ -467,6 +472,48 @@ func get_tool_definitions() -> Array:
 				},
 				"required": ["path"]
 			}
+		},
+		{
+			"name": "save_memory",
+			"description": "Saves a persistent project memory fact that will be available across all future chat sessions. Use this to remember important architectural decisions, code conventions, user preferences, bug fixes, and project info.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"category": {"type": "STRING", "enum": ["architecture", "convention", "preference", "bug_fix", "project_info"], "description": "The category of the memory fact."},
+					"content": {"type": "STRING", "description": "A concise description of the fact to remember (e.g., 'Player uses StateMachine pattern with State nodes as children')."}
+				},
+				"required": ["category", "content"]
+			}
+		},
+		{
+			"name": "list_memories",
+			"description": "Lists all persistent project memory facts stored for this project.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {}
+			}
+		},
+		{
+			"name": "delete_memory",
+			"description": "Deletes a specific project memory fact by its ID.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"id": {"type": "STRING", "description": "The ID of the memory fact to delete (e.g., 'fact_1740500000')."}
+				},
+				"required": ["id"]
+			}
+		},
+		{
+			"name": "search_in_files",
+			"description": "Searches for a regex pattern in all .gd files in the project to find usages of variables, functions, or specific logic. Returns path, line number, and match context (up to 20 results).",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"pattern": {"type": "STRING", "description": "The regular expression pattern to search for."}
+				},
+				"required": ["pattern"]
+			}
 		}
 	]
 
@@ -530,6 +577,14 @@ func execute_tool(tool_name: String, args: Dictionary):
 			_grep_search(args.get("query"), args.get("include", ""), args.get("max_results", 20))
 		"view_file_outline":
 			_view_file_outline(args.get("path"))
+		"save_memory":
+			_save_memory(args.get("category"), args.get("content"))
+		"list_memories":
+			_list_memories()
+		"delete_memory":
+			_delete_memory(args.get("id"))
+		"search_in_files":
+			_search_in_files(args.get("pattern"))
 		_:
 			tool_output.emit("Error: Unknown tool '" + tool_name + "'. Available tools: " + str(_TOOL_REQUIRED_ARGS.keys()))
 
@@ -1348,8 +1403,70 @@ func _get_class_info(cls_name: String):
 	tool_output.emit(info)
 
 # ============================================================
-# Phase 2: New Tools & Helpers
 # ============================================================
+
+func _search_in_files(pattern: String, max_results: int = 20):
+	max_results = clampi(max_results, 1, 50)
+	var regex = RegEx.new()
+	var err = regex.compile(pattern)
+	if err != OK:
+		tool_output.emit("Error: Invalid regular expression pattern.")
+		return
+		
+	var results: Array = []
+	_search_in_files_recursive("res://", regex, results, max_results)
+	
+	if results.is_empty():
+		tool_output.emit("No matches found for pattern '" + pattern + "' in .gd files.")
+		return
+		
+	var output = "Found " + str(results.size()) + " match(es) for pattern '" + pattern + "':\n\n"
+	for r in results:
+		output += r.path + ":" + str(r.line) + ": " + r.content.strip_edges() + "\n"
+		
+	if results.size() >= max_results:
+		output += "\n(Results capped at " + str(max_results) + ". Narrow your pattern if needed.)"
+		
+	tool_output.emit(output)
+
+func _search_in_files_recursive(dir_path: String, regex: RegEx, results: Array, max_results: int):
+	if results.size() >= max_results:
+		return
+		
+	var dir = DirAccess.open(dir_path)
+	if not dir:
+		return
+		
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while file_name != "" and results.size() < max_results:
+		if file_name.begins_with("."):
+			file_name = dir.get_next()
+			continue
+			
+		var full_path = dir_path + file_name
+		if dir.current_is_dir():
+			_search_in_files_recursive(full_path + "/", regex, results, max_results)
+		elif file_name.ends_with(".gd"):
+			_regex_search_file(full_path, regex, results, max_results)
+			
+		file_name = dir.get_next()
+
+func _regex_search_file(file_path: String, regex: RegEx, results: Array, max_results: int):
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		return
+		
+	var line_num = 0
+	while not file.eof_reached() and results.size() < max_results:
+		line_num += 1
+		var line = file.get_line()
+		if regex.search(line) != null:
+			results.append({
+				"path": file_path,
+				"line": line_num,
+				"content": line
+			})
 
 func _grep_search(query: String, include: String = "", max_results: int = 20):
 	max_results = clampi(max_results, 1, 50)
@@ -1570,3 +1687,35 @@ func _save_scene():
 	var err = EditorInterface.save_scene()
 	if err != OK:
 		print("GamedevAI: Auto-save failed with code " + str(err))
+
+# --- Memory Tools ---
+
+func _save_memory(category: String, content: String):
+	if not memory_manager:
+		tool_output.emit("Error: Memory Manager not available.")
+		return
+	
+	var valid_categories = ["architecture", "convention", "preference", "bug_fix", "project_info"]
+	if category not in valid_categories:
+		tool_output.emit("Error: Invalid category '" + category + "'. Valid categories: " + str(valid_categories))
+		return
+	
+	var fact = memory_manager.save_memory(category, content, "ai")
+	tool_output.emit("Memory saved: [" + fact.get("id", "?") + "] (" + category + ") " + content)
+
+func _list_memories():
+	if not memory_manager:
+		tool_output.emit("Error: Memory Manager not available.")
+		return
+	
+	tool_output.emit(memory_manager.list_memories_text())
+
+func _delete_memory(fact_id: String):
+	if not memory_manager:
+		tool_output.emit("Error: Memory Manager not available.")
+		return
+	
+	if memory_manager.delete_memory(fact_id):
+		tool_output.emit("Memory deleted: " + fact_id)
+	else:
+		tool_output.emit("Error: Memory not found with id '" + fact_id + "'. Use list_memories to see available memories.")

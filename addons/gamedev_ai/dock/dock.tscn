@@ -12,6 +12,41 @@ size_flags_vertical = 3
 [node name="Chat" type="VBoxContainer" parent="TabContainer"]
 layout_mode = 2
 
+[node name="ChatHeaderHBox" type="HBoxContainer" parent="TabContainer/Chat"]
+layout_mode = 2
+alignment = 0
+
+[node name="ChatPresetSelector" type="OptionButton" parent="TabContainer/Chat/ChatHeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Spacer" type="Control" parent="TabContainer/Chat/ChatHeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FontSizeMinusBtn" type="Button" parent="TabContainer/Chat/ChatHeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "A-"
+tooltip_text = "Decrease font size"
+
+[node name="FontSizePlusBtn" type="Button" parent="TabContainer/Chat/ChatHeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "A+"
+tooltip_text = "Increase font size"
+
+[node name="NewChatButton" type="Button" parent="TabContainer/Chat/ChatHeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "New Chat"
+
+[node name="HistoryButton" type="MenuButton" parent="TabContainer/Chat/ChatHeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "History"
+
 [node name="OutputDisplay" type="RichTextLabel" parent="TabContainer/Chat"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -51,6 +86,13 @@ tooltip_text = "Undo the last AI action batch"
 layout_mode = 2
 text = "Fix Console"
 tooltip_text = "Analyze latest console errors and propose fixes"
+
+[node name="ExecutePlanBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Run Plan"
+tooltip_text = "Execute the AI proposed plan step-by-step"
 
 [node name="DiffPreviewPanel" type="VBoxContainer" parent="TabContainer/Chat"]
 unique_name_in_owner = true
@@ -150,6 +192,12 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Screenshot"
 
+[node name="PlanFirstToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Plan First"
+tooltip_text = "Ask the AI to generate a step-by-step plan before executing."
+
 [node name="WatchModeToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -159,6 +207,8 @@ tooltip_text = "Monitor console for new errors and auto-prompt fix."
 [node name="Settings" type="VBoxContainer" parent="TabContainer"]
 visible = false
 layout_mode = 2
+theme_type_variation = &"MarginContainer"
+clip_contents = true
 
 [node name="PresetBar" type="HBoxContainer" parent="TabContainer/Settings"]
 layout_mode = 2
@@ -174,83 +224,90 @@ size_flags_horizontal = 3
 
 [node name="AddPresetBtn" type="Button" parent="TabContainer/Settings/PresetBar"]
 layout_mode = 2
-text = "+"
+text = "Add"
 tooltip_text = "Add new preset"
+
+[node name="EditPresetBtn" type="Button" parent="TabContainer/Settings/PresetBar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Edit"
+tooltip_text = "Edit current preset"
 
 [node name="DelPresetBtn" type="Button" parent="TabContainer/Settings/PresetBar"]
 layout_mode = 2
-text = "-"
+text = "Del"
 tooltip_text = "Delete current preset"
 
-[node name="ConfigGrid" type="GridContainer" parent="TabContainer/Settings"]
+[node name="PresetEditPanel" type="VBoxContainer" parent="TabContainer/Settings"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="ConfigGrid" type="GridContainer" parent="TabContainer/Settings/PresetEditPanel"]
 layout_mode = 2
 columns = 2
 
-[node name="NameLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+[node name="NameLabel" type="Label" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 layout_mode = 2
 text = "Preset Name:"
 
-[node name="PresetNameInput" type="LineEdit" parent="TabContainer/Settings/ConfigGrid"]
+[node name="PresetNameInput" type="LineEdit" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Press Enter to rename current preset"
 
-[node name="ProviderLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+[node name="ProviderLabel" type="Label" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 layout_mode = 2
 text = "Provider:"
 
-[node name="ProviderSelector" type="OptionButton" parent="TabContainer/Settings/ConfigGrid"]
+[node name="ProviderSelector" type="OptionButton" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="ApiLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+[node name="ApiLabel" type="Label" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 layout_mode = 2
 text = "API Key:"
 
-[node name="ApiInput" type="LineEdit" parent="TabContainer/Settings/ConfigGrid"]
+[node name="ApiInput" type="LineEdit" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 secret = true
 
-[node name="ModelLabel" type="Label" parent="TabContainer/Settings/ConfigGrid"]
+[node name="ModelLabel" type="Label" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 layout_mode = 2
 text = "Model Name:"
 
-[node name="ModelInput" type="LineEdit" parent="TabContainer/Settings/ConfigGrid"]
+[node name="ModelInput" type="LineEdit" parent="TabContainer/Settings/PresetEditPanel/ConfigGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "gemini-1.5-pro or gpt-4o"
 
-[node name="SettingsBar" type="HBoxContainer" parent="TabContainer/Settings"]
+[node name="SettingsBar" type="HBoxContainer" parent="TabContainer/Settings/PresetEditPanel"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="UrlLabel" type="Label" parent="TabContainer/Settings/SettingsBar"]
+[node name="UrlLabel" type="Label" parent="TabContainer/Settings/PresetEditPanel/SettingsBar"]
 layout_mode = 2
 text = "Base URL:"
 
-[node name="UrlInput" type="LineEdit" parent="TabContainer/Settings/SettingsBar"]
+[node name="UrlInput" type="LineEdit" parent="TabContainer/Settings/PresetEditPanel/SettingsBar"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "https://openrouter.ai/api/v1"
 
-[node name="SessionBar" type="HBoxContainer" parent="TabContainer/Settings"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/Settings/PresetEditPanel"]
 layout_mode = 2
+alignment = 2
 
-[node name="NewChatButton" type="Button" parent="TabContainer/Settings/SessionBar"]
+[node name="CloseEditBtn" type="Button" parent="TabContainer/Settings/PresetEditPanel/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "New Chat"
-
-[node name="HistoryButton" type="MenuButton" parent="TabContainer/Settings/SessionBar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "History"
+text = "Done Editing"
 
 [node name="CustomPromptLabel" type="Label" parent="TabContainer/Settings"]
 layout_mode = 2

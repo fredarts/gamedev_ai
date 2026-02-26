@@ -5,6 +5,7 @@ var dock
 var ai_provider
 var context_manager
 var tool_executor
+var memory_manager
 var logger
 
 func _enter_tree():
@@ -12,11 +13,14 @@ func _enter_tree():
 	var ContextManager = preload("res://addons/gamedev_ai/context_manager.gd")
 	var ToolExecutor = preload("res://addons/gamedev_ai/tool_executor.gd")
 	var LoggerScript = preload("res://addons/gamedev_ai/logger.gd")
+	var MemoryMgr = preload("res://addons/gamedev_ai/memory_manager.gd")
 	
 	# Initialize components
 	context_manager = ContextManager.new()
 	tool_executor = ToolExecutor.new()
 	tool_executor.setup(get_undo_redo())
+	memory_manager = MemoryMgr.new()
+	tool_executor.memory_manager = memory_manager
 	logger = LoggerScript.new()
 	
 	# Load UI
@@ -46,6 +50,7 @@ func _enter_tree():
 	
 	# Setup Dock
 	dock.setup(ai_provider, context_manager, tool_executor)
+	dock._memory_manager = memory_manager
 	dock.preset_changed.connect(_on_preset_changed)
 	dock.settings_updated.connect(_on_provider_settings_updated)
 	
