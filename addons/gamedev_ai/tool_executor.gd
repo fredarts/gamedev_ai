@@ -44,6 +44,7 @@ const _TOOL_REQUIRED_ARGS = {
 	"list_memories": [],
 	"delete_memory": ["id"],
 	"search_in_files": ["pattern"],
+	"read_skill": ["skill_name"],
 }
 
 func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
@@ -514,8 +515,52 @@ func get_tool_definitions() -> Array:
 				},
 				"required": ["pattern"]
 			}
+		},
+		{
+			"name": "read_skill",
+			"description": "Reads a specific skill documentation file from the AI's skills library. Use this to learn Godot 4 best practices, modern GDScript patterns, or how to implement specific features before you start coding.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"skill_name": {"type": "STRING", "description": "The exact name of the skill file to read (e.g. 'gdscript_style_guide.md', 'gdscript_signals_and_tweens.md')."}
+				},
+				"required": ["skill_name"]
+			}
 		}
 	]
+	
+func _read_skill(skill_name: String):
+	if not skill_name.ends_with(".md"):
+		if FileAccess.file_exists("res://addons/gamedev_ai/skills/" + skill_name + ".md"):
+			skill_name += ".md"
+	
+	var path = "res://addons/gamedev_ai/skills/" + skill_name
+	
+	if not FileAccess.file_exists(path):
+		tool_output.emit("Error: Skill '" + skill_name + "' not found. Available skills:\n" + _get_available_skills_list())
+		return
+	
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		tool_output.emit("Error: Failed to open skill file '" + path + "'.")
+		return
+		
+	var content = file.get_as_text()
+	file.close()
+	
+	tool_output.emit("--- SKILL LOADED: " + skill_name + " ---\n\n" + content)
+
+func _get_available_skills_list() -> String:
+	var list := ""
+	var skills_dir := DirAccess.open("res://addons/gamedev_ai/skills")
+	if skills_dir:
+		skills_dir.list_dir_begin()
+		var file_name := skills_dir.get_next()
+		while file_name != "":
+			if not skills_dir.current_is_dir() and file_name.ends_with(".md"):
+				list += "- " + file_name + "\n"
+			file_name = skills_dir.get_next()
+	return list
 
 func execute_tool(tool_name: String, args: Dictionary):
 	print("Executing tool: " + tool_name + " with args: " + str(args))
@@ -577,6 +622,8 @@ func execute_tool(tool_name: String, args: Dictionary):
 			_grep_search(args.get("query"), args.get("include", ""), args.get("max_results", 20))
 		"view_file_outline":
 			_view_file_outline(args.get("path"))
+		"read_skill":
+			_read_skill(args.get("skill_name"))
 		"save_memory":
 			_save_memory(args.get("category"), args.get("content"))
 		"list_memories":

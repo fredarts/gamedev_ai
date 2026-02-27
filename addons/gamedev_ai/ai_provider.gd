@@ -149,7 +149,7 @@ func _on_timeout():
 		error_occurred.emit("⚠️ Request Timeout\n\nThe API did not respond within " + str(int(REQUEST_TIMEOUT_SECS)) + " seconds. Please try again.")
 
 # Virtual methods to be overridden
-func send_prompt(_prompt: String, _context: String = "", _tools: Array = [], _image_data: Dictionary = {}):
+func send_prompt(_prompt: String, _context: String = "", _tools: Array = [], _images: Array = []):
 	pass
 
 func send_tool_responses(_responses: Array, _tools: Array = []):

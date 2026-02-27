@@ -15,7 +15,7 @@ func setup(node: Node):
 	if env != "":
 		api_key = env
 
-func send_prompt(prompt: String, context: String = "", tools: Array = [], image_data: Dictionary = {}):
+func send_prompt(prompt: String, context: String = "", tools: Array = [], images: Array = []):
 	if api_key == "":
 		error_occurred.emit("API Key is missing.")
 		return
@@ -29,13 +29,14 @@ func send_prompt(prompt: String, context: String = "", tools: Array = [], image_
 	var user_content = []
 	user_content.append({"type": "text", "text": prompt})
 	
-	if not image_data.is_empty():
-		user_content.append({
-			"type": "image_url",
-			"image_url": {
-				"url": "data:" + image_data["mime_type"] + ";base64," + image_data["data"]
-			}
-		})
+	for img_data in images:
+		if not img_data.is_empty():
+			user_content.append({
+				"type": "image_url",
+				"image_url": {
+					"url": "data:" + img_data["mime_type"] + ";base64," + img_data["data"]
+				}
+			})
 
 	history.append({"role": "user", "content": user_content})
 	transcript.append({"role": "user", "text": prompt})

@@ -21,9 +21,12 @@ var _memory_manager
 @onready var chat_preset_selector: OptionButton = %ChatPresetSelector
 @onready var font_size_minus_btn: Button = %FontSizeMinusBtn
 @onready var font_size_plus_btn: Button = %FontSizePlusBtn
-@onready var _image_preview_container: HBoxContainer = %ImagePreviewContainer
-@onready var _image_preview_label: Label = %ImagePreviewLabel
-@onready var _image_clear_btn: Button = %ImageClearBtn
+@onready var _image_preview_scroll: ScrollContainer = %ImagePreviewScroll
+@onready var _thumbnail_list: HBoxContainer = %ThumbnailList
+@onready var add_image_btn: Button = %AddImageBtn
+@onready var _image_file_dialog: FileDialog = %ImageFileDialog
+@onready var _image_popup_dialog: AcceptDialog = %ImagePopupDialog
+@onready var _popup_texture_rect: TextureRect = %PopupTextureRect
 @onready var preset_selector: OptionButton = %PresetSelector
 @onready var preset_name_input: LineEdit = %PresetNameInput
 @onready var provider_selector: OptionButton = %ProviderSelector
@@ -43,7 +46,7 @@ var _memory_manager
 @onready var _apply_diff_btn: Button = %ApplyDiffBtn
 @onready var _skip_diff_btn: Button = %SkipDiffBtn
 
-var _pasted_image: Image = null
+var _attached_images: Array[Image] = []
 var _dropped_files: Array[String] = []
 var _history_ids: Array = []
 
@@ -86,7 +89,8 @@ func _ready():
 	
 	send_button.pressed.connect(_on_send_pressed)
 	input_field.gui_input.connect(_on_input_gui_input)
-	_image_clear_btn.pressed.connect(_on_clear_pasted_image)
+	add_image_btn.pressed.connect(func(): _image_file_dialog.popup_centered())
+	_image_file_dialog.file_selected.connect(_on_image_file_selected)
 	_file_clear_btn.pressed.connect(_on_clear_dropped_files)
 	_apply_diff_btn.pressed.connect(_on_apply_diff_pressed)
 	_skip_diff_btn.pressed.connect(_on_skip_diff_pressed)
@@ -421,21 +425,79 @@ func _on_input_gui_input(event: InputEvent):
 		if event.keycode == KEY_ENTER and event.shift_pressed:
 			input_field.get_viewport().set_input_as_handled()
 			var text = input_field.text.strip_edges()
-			if not text.is_empty() or _pasted_image != null:
+			if not text.is_empty() or not _attached_images.is_empty():
 				_process_send(text)
 		elif event.keycode == KEY_V and event.ctrl_pressed:
 			var clipboard_image = DisplayServer.clipboard_get_image()
 			if clipboard_image and not clipboard_image.is_empty():
 				input_field.get_viewport().set_input_as_handled()
-				_pasted_image = clipboard_image
-				_image_preview_label.text = "Image attached (" + str(clipboard_image.get_width()) + "x" + str(clipboard_image.get_height()) + ")"
-				_image_preview_container.visible = true
+				_attached_images.append(clipboard_image)
+				_refresh_thumbnails()
 				output_display.append_text("\n[color=green][i]Image pasted from clipboard.[/i][/color]\n")
 
-func _on_clear_pasted_image():
-	_pasted_image = null
-	_image_preview_container.visible = false
-	output_display.append_text("[i]Image removed.[/i]\n")
+func _on_image_file_selected(path: String):
+	var img = Image.new()
+	var err = img.load(path)
+	if err == OK:
+		_attached_images.append(img)
+		_refresh_thumbnails()
+		output_display.append_text("\n[color=green][i]Image attached from file.[/i][/color]\n")
+	else:
+		output_display.append_text("\n[color=red]Failed to load image at: " + path + "[/color]\n")
+
+func _refresh_thumbnails():
+	for child in _thumbnail_list.get_children():
+		child.queue_free()
+		
+	if _attached_images.is_empty():
+		_image_preview_scroll.visible = false
+		return
+		
+	_image_preview_scroll.visible = true
+	
+	for i in range(_attached_images.size()):
+		var img = _attached_images[i]
+		
+		# Create a texture rect for the thumbnail
+		var thumb_rect = TextureRect.new()
+		thumb_rect.custom_minimum_size = Vector2(80, 80)
+		var texture = ImageTexture.create_from_image(img)
+		thumb_rect.texture = texture
+		thumb_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		thumb_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		
+		# Make the thumbnail clickable for full preview
+		thumb_rect.gui_input.connect(func(event):
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				_popup_texture_rect.texture = texture
+				_image_popup_dialog.popup_centered()
+		)
+		thumb_rect.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		
+		# Container for thumb and close button
+		var container = Control.new()
+		container.custom_minimum_size = Vector2(80, 80)
+		container.add_child(thumb_rect)
+		
+		# The "X" button
+		var close_btn = Button.new()
+		close_btn.text = "X"
+		close_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		close_btn.size = Vector2(24, 24)
+		close_btn.position = Vector2(56, 0)
+		close_btn.add_theme_color_override("font_color", Color(1, 0, 0)) # Red X
+		close_btn.pressed.connect(func():
+			_remove_attached_image(i)
+		)
+		
+		container.add_child(close_btn)
+		_thumbnail_list.add_child(container)
+
+func _remove_attached_image(index: int):
+	if index >= 0 and index < _attached_images.size():
+		_attached_images.remove_at(index)
+		_refresh_thumbnails()
+		output_display.append_text("[i]Image removed.[/i]\n")
 
 func _is_game_running() -> bool:
 	return EditorInterface.is_playing_scene()
@@ -494,16 +556,18 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 					context += "File: " + path + "\n"
 					context += f.get_as_text() + "\n\n"
 	
-	var image_data = {}
-	# Priority: pasted image > screenshot toggle
-	if _pasted_image != null:
-		image_data = _encode_image(_pasted_image)
-		output_display.append_text("[i]Sending pasted image...[/i]\n")
-		_pasted_image = null
-		_image_preview_container.visible = false
+	var images_data = []
+	# Priority: manually attached images > screenshot toggle
+	if not _attached_images.is_empty():
+		for img in _attached_images:
+			images_data.append(_encode_image(img))
+		output_display.append_text("[i]Sending attached images...[/i]\n")
+		_attached_images.clear()
+		_refresh_thumbnails()
 	elif screenshot_toggle.button_pressed and context_manager:
-		image_data = context_manager.get_editor_screenshot()
-		if not image_data.is_empty():
+		var scr = context_manager.get_editor_screenshot()
+		if not scr.is_empty():
+			images_data.append(scr)
 			output_display.append_text("[i]Capturing screenshot...[/i]\n")
 
 	var tools = []
@@ -511,7 +575,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 		tools = _tool_executor.get_tool_definitions()
 	
 	if gemini_client:
-		gemini_client.send_prompt(final_prompt, context, tools, image_data)
+		gemini_client.send_prompt(final_prompt, context, tools, images_data)
 		output_display.append_text("\n[i]Thinking...[/i]\n")
 		_on_clear_dropped_files()
 
@@ -833,13 +897,14 @@ func _drop_data(_at_pos: Vector2, data: Variant):
 			
 	for f in paths_to_add:
 		if not _dropped_files.has(f):
-			# Support images as primary image if none set, otherwise add as context
+			# Support dragged images
 			var ext = f.get_extension().to_lower()
-			if (ext == "png" or ext == "jpg" or ext == "jpeg" or ext == "webp") and _pasted_image == null:
-				var img = Image.load_from_file(f)
-				if img:
-					_pasted_image = img
-					_image_preview_container.visible = true
+			if ext == "png" or ext == "jpg" or ext == "jpeg" or ext == "webp":
+				var img = Image.new()
+				var err = img.load(f)
+				if err == OK:
+					_attached_images.append(img)
+					_refresh_thumbnails()
 			else:
 				_dropped_files.append(f)
 	

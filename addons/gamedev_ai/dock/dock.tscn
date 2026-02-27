@@ -143,21 +143,20 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Send"
 
-[node name="ImagePreviewContainer" type="HBoxContainer" parent="TabContainer/Chat"]
+[node name="ImagePreviewScroll" type="ScrollContainer" parent="TabContainer/Chat"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+custom_minimum_size = Vector2(0, 100)
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
 
-[node name="ImagePreviewLabel" type="Label" parent="TabContainer/Chat/ImagePreviewContainer"]
+[node name="ThumbnailList" type="HBoxContainer" parent="TabContainer/Chat/ImagePreviewScroll"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Image attached"
-
-[node name="ImageClearBtn" type="Button" parent="TabContainer/Chat/ImagePreviewContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "X"
-tooltip_text = "Remove attached image"
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
 
 [node name="FilePreviewContainer" type="HBoxContainer" parent="TabContainer/Chat"]
 unique_name_in_owner = true
@@ -191,6 +190,12 @@ text = "Context"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Screenshot"
+
+[node name="AddImageBtn" type="Button" parent="TabContainer/Chat/ToggleContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Add Image"
+tooltip_text = "Select an image file to attach"
 
 [node name="PlanFirstToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
 unique_name_in_owner = true
@@ -324,3 +329,37 @@ wrap_mode = 1
 [node name="PollTimer" type="Timer" parent="."]
 wait_time = 0.5
 autostart = true
+
+[node name="ImageFileDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+title = "Open a File"
+size = Vector2i(600, 400)
+ok_button_text = "Open"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp ; Image Files")
+
+[node name="ImagePopupDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+title = "Image Preview"
+size = Vector2i(800, 600)
+
+[node name="ScrollContainer" type="ScrollContainer" parent="ImagePopupDialog"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -49.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PopupTextureRect" type="TextureRect" parent="ImagePopupDialog/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+

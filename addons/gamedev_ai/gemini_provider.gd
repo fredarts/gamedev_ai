@@ -13,7 +13,7 @@ func setup(node: Node):
 	if env != "":
 		api_key = env
 
-func send_prompt(prompt: String, context: String = "", tools: Array = [], image_data: Dictionary = {}):
+func send_prompt(prompt: String, context: String = "", tools: Array = [], images: Array = []):
 	if api_key == "":
 		error_occurred.emit("API Key is missing.")
 		return
@@ -23,13 +23,14 @@ func send_prompt(prompt: String, context: String = "", tools: Array = [], image_
 		parts.append({"text": context})
 	parts.append({"text": prompt})
 	
-	if not image_data.is_empty():
-		parts.append({
-			"inline_data": {
-				"mime_type": image_data["mime_type"],
-				"data": image_data["data"]
-			}
-		})
+	for img_data in images:
+		if not img_data.is_empty():
+			parts.append({
+				"inline_data": {
+					"mime_type": img_data["mime_type"],
+					"data": img_data["data"]
+				}
+			})
 
 	var user_content = {
 		"role": "user",

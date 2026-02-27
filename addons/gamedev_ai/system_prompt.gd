@@ -79,6 +79,17 @@ At the end of your response, ALWAYS provide 1-3 highly relevant, concise, action
 		prompt += "\n## Custom User Instructions (CRITICAL):"
 		prompt += "\n" + custom_instructions + "\n"
 		
-	prompt += "\n" + GDScriptCodex.get_codex()
+	prompt += "\n## Available Skills:"
+	prompt += "\nYou have access to the following skills (detailed guides/documentation). Use the `read_skill` tool to read their full contents before generating code if you need a refresher on the standard practices."
+	
+	var skills_dir := DirAccess.open("res://addons/gamedev_ai/skills")
+	if skills_dir:
+		skills_dir.list_dir_begin()
+		var file_name := skills_dir.get_next()
+		while file_name != "":
+			if not skills_dir.current_is_dir() and file_name.ends_with(".md"):
+				prompt += "\n- " + file_name.get_basename()
+			file_name = skills_dir.get_next()
+	
 	return prompt
 
