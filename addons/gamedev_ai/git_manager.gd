@@ -44,3 +44,26 @@ func git_remote_add(url: String) -> String:
 
 func git_get_remote() -> String:
 	return _execute_git(["config", "--get", "remote.origin.url"]).strip_edges()
+
+func git_discard_changes() -> String:
+	_execute_git(["reset", "--hard", "HEAD"])
+	return _execute_git(["clean", "-fd"])
+
+func git_force_pull() -> String:
+	_execute_git(["fetch", "origin"])
+	var current_branch = git_get_current_branch()
+	if current_branch == "":
+		current_branch = "main"
+	_execute_git(["reset", "--hard", "origin/" + current_branch])
+	return _execute_git(["clean", "-fd"])
+
+func git_get_current_branch() -> String:
+	return _execute_git(["rev-parse", "--abbrev-ref", "HEAD"]).strip_edges()
+
+func git_checkout_branch(branch_name: String) -> String:
+	# Check if branch exists
+	var branches = _execute_git(["branch", "--list", branch_name]).strip_edges()
+	if branches != "":
+		return _execute_git(["checkout", branch_name])
+	else:
+		return _execute_git(["checkout", "-b", branch_name])

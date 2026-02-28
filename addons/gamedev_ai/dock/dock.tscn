@@ -23,6 +23,7 @@ alignment = 0
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Select an AI behavior preset"
 
 [node name="Spacer" type="Control" parent="TabContainer/Chat/ChatHeaderHBox"]
 layout_mode = 2
@@ -44,11 +45,13 @@ tooltip_text = "Increase font size"
 unique_name_in_owner = true
 layout_mode = 2
 text = "New Chat"
+tooltip_text = "Start a new chat session, clearing the current history"
 
 [node name="HistoryButton" type="MenuButton" parent="TabContainer/Chat/ChatHeaderHBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "History"
+tooltip_text = "View and load past chat sessions"
 
 [node name="OutputDisplay" type="RichTextLabel" parent="TabContainer/Chat"]
 unique_name_in_owner = true
@@ -65,20 +68,56 @@ layout_mode = 2
 horizontal_alignment = 2
 text = "No selection"
 
+[node name="TTSPlayerContainer" type="VBoxContainer" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TTSControlsHBox" type="HBoxContainer" parent="TabContainer/Chat/TTSPlayerContainer"]
+layout_mode = 2
+
+[node name="TTSPlayBtn" type="Button" parent="TabContainer/Chat/TTSPlayerContainer/TTSControlsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "▶ Read Aloud"
+tooltip_text = "Play AI text-to-speech narration"
+
+[node name="TTSStopBtn" type="Button" parent="TabContainer/Chat/TTSPlayerContainer/TTSControlsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "⏹"
+tooltip_text = "Stop audio"
+disabled = true
+
+[node name="TTSSeekSlider" type="HSlider" parent="TabContainer/Chat/TTSPlayerContainer/TTSControlsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+step = 0.1
+tooltip_text = "Scrub through the audio timeline"
+
+[node name="TTSSpeedSelector" type="OptionButton" parent="TabContainer/Chat/TTSPlayerContainer/TTSControlsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Adjust playback speed"
+
 [node name="ActionsContainer" type="HBoxContainer" parent="TabContainer/Chat"]
 layout_mode = 2
 
 [node name="RefactorBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
 layout_mode = 2
 text = "Refactor"
+tooltip_text = "Refactor the currently selected code in the editor"
 
 [node name="FixBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
 layout_mode = 2
 text = "Fix"
+tooltip_text = "Propose a fix for errors in the currently selected code"
 
 [node name="ExplainBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
 layout_mode = 2
 text = "Explain"
+tooltip_text = "Explain how the currently selected code works"
 
 [node name="UndoBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
 layout_mode = 2
@@ -89,12 +128,6 @@ tooltip_text = "Undo the last AI action batch"
 layout_mode = 2
 text = "Fix Console"
 tooltip_text = "Analyze latest console errors and propose fixes"
-
-[node name="TTSBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "🔊 Read Aloud"
-tooltip_text = "Play AI text-to-speech narration"
 
 [node name="ExecutePlanBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
 unique_name_in_owner = true
@@ -129,12 +162,14 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Apply Changes"
+tooltip_text = "Accept these AI modifications and apply them to the file"
 
 [node name="SkipDiffBtn" type="Button" parent="TabContainer/Chat/DiffPreviewPanel/DiffButtons"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Skip"
+tooltip_text = "Discard these suggested changes"
 
 [node name="InputHBox" type="HBoxContainer" parent="TabContainer/Chat"]
 layout_mode = 2
@@ -147,10 +182,17 @@ size_flags_horizontal = 3
 placeholder_text = "Ask Gamedev AI... (Shift+Enter to send)"
 wrap_mode = 1
 
+[node name="AddFileBtn" type="Button" parent="TabContainer/Chat/InputHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "📎"
+tooltip_text = "Attach an image, document, or audio file to your message"
+
 [node name="SendButton" type="Button" parent="TabContainer/Chat/InputHBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Send"
+tooltip_text = "Send your message to the AI"
 
 [node name="ImagePreviewScroll" type="ScrollContainer" parent="TabContainer/Chat"]
 unique_name_in_owner = true
@@ -194,17 +236,14 @@ unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Context"
+tooltip_text = "Include the text of the currently open script in the AI prompt"
 
 [node name="ScreenshotToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Screenshot"
+tooltip_text = "Take a screenshot of the editor and send it to the AI"
 
-[node name="AddImageBtn" type="Button" parent="TabContainer/Chat/ToggleContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Add Image"
-tooltip_text = "Select an image file to attach"
 
 [node name="PlanFirstToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
 unique_name_in_owner = true
@@ -342,6 +381,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 text = "Initialize Repository"
+tooltip_text = "Initialize a new local Git repository in your project folder"
 
 [node name="RemoteContainer" type="HBoxContainer" parent="TabContainer/Git"]
 unique_name_in_owner = true
@@ -378,12 +418,14 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Pull"
+tooltip_text = "Download and merge the latest changes from GitHub"
 
 [node name="RefreshGitBtn" type="Button" parent="TabContainer/Git/GitActionsContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Refresh Status"
+tooltip_text = "Refresh the list of changed files below"
 
 [node name="CommitMsgContainer" type="VBoxContainer" parent="TabContainer/Git"]
 layout_mode = 2
@@ -392,6 +434,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 text = "✨ Auto-Generate Commit Message"
+tooltip_text = "Use AI to analyze your changes and write a commit message automatically"
 
 [node name="CommitMsgInput" type="TextEdit" parent="TabContainer/Git/CommitMsgContainer"]
 unique_name_in_owner = true
@@ -404,19 +447,75 @@ placeholder_text = "Enter commit message here..."
 unique_name_in_owner = true
 layout_mode = 2
 text = "Commit & Sync (Push)"
+tooltip_text = "Save your changes locally (Commit) and upload them to GitHub (Push)"
+
+[node name="HSeparator" type="HSeparator" parent="TabContainer/Git"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="BranchContainer" type="HBoxContainer" parent="TabContainer/Git"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BranchLabel" type="RichTextLabel" parent="TabContainer/Git/BranchContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "Current Branch: [b]main[/b]"
+fit_content = true
+
+[node name="BranchNameInput" type="LineEdit" parent="TabContainer/Git/BranchContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "new-branch-name"
+
+[node name="CheckoutBranchBtn" type="Button" parent="TabContainer/Git/BranchContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Create/Switch"
+tooltip_text = "Creates a parallel 'timeline' (branch). Great for testing new mechanics without the risk of breaking your functional game."
+
+[node name="AdvancedGitHBox" type="HBoxContainer" parent="TabContainer/Git"]
+layout_mode = 2
+
+[node name="UndoChangesBtn" type="Button" parent="TabContainer/Git/AdvancedGitHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Undo Uncommitted Changes"
+tooltip_text = "Discards all local edits that haven't been committed, reverting the project to its last locally saved version."
+
+[node name="ForcePullBtn" type="Button" parent="TabContainer/Git/AdvancedGitHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Force Pull Overwrite"
+tooltip_text = "Completely replaces your project with the latest version saved on GitHub, ignoring any current local errors."
 
 [node name="PollTimer" type="Timer" parent="."]
 wait_time = 0.5
 autostart = true
 
-[node name="ImageFileDialog" type="FileDialog" parent="."]
+[node name="UndoConfirmDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Undo Uncommitted Changes"
+dialog_text = "Are you sure? This will permanently delete all current edits that have not been saved/committed to Git."
+
+[node name="ForcePullConfirmDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Force Pull Overwrite"
+dialog_text = "WARNING: Are you sure? This will ignore your local edits and force the project to exactly match what is on GitHub today. You will lose any unpushed work!"
+
+[node name="AddFileDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true
 title = "Open a File"
 size = Vector2i(600, 400)
 ok_button_text = "Open"
 file_mode = 0
 access = 2
-filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp ; Image Files")
+filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp ; Images", "*.pdf, *.txt, *.md, *.csv, *.json, *.gd ; Documents", "*.mp3, *.wav, *.ogg ; Audio", "*.* ; All Files")
 
 [node name="ImagePopupDialog" type="AcceptDialog" parent="."]
 unique_name_in_owner = true

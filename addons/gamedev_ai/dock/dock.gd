@@ -23,8 +23,8 @@ var _memory_manager
 @onready var font_size_plus_btn: Button = %FontSizePlusBtn
 @onready var _image_preview_scroll: ScrollContainer = %ImagePreviewScroll
 @onready var _thumbnail_list: HBoxContainer = %ThumbnailList
-@onready var add_image_btn: Button = %AddImageBtn
-@onready var _image_file_dialog: FileDialog = %ImageFileDialog
+@onready var add_file_btn: Button = %AddFileBtn
+@onready var _add_file_dialog: FileDialog = %AddFileDialog
 @onready var _image_popup_dialog: AcceptDialog = %ImagePopupDialog
 @onready var _popup_texture_rect: TextureRect = %PopupTextureRect
 @onready var preset_selector: OptionButton = %PresetSelector
@@ -58,14 +58,30 @@ var _memory_manager
 @onready var commit_msg_input: TextEdit = %CommitMsgInput
 @onready var commit_sync_btn: Button = %CommitSyncBtn
 
-@onready var tts_btn: Button = %TTSBtn
+@onready var branch_label: RichTextLabel = %BranchLabel
+@onready var branch_name_input: LineEdit = %BranchNameInput
+@onready var checkout_branch_btn: Button = %CheckoutBranchBtn
+@onready var undo_changes_btn: Button = %UndoChangesBtn
+@onready var force_pull_btn: Button = %ForcePullBtn
+@onready var undo_confirm_dialog: ConfirmationDialog = %UndoConfirmDialog
+@onready var force_pull_confirm_dialog: ConfirmationDialog = %ForcePullConfirmDialog
+
+@onready var tts_player_container: VBoxContainer = %TTSPlayerContainer
+@onready var tts_play_btn: Button = %TTSPlayBtn
+@onready var tts_stop_btn: Button = %TTSStopBtn
+@onready var tts_seek_slider: HSlider = %TTSSeekSlider
+@onready var tts_speed_selector: OptionButton = %TTSSpeedSelector
 @onready var tts_player: AudioStreamPlayer = %TTSPlayer
+
+var _cached_tts_text: String = ""
+var _cached_tts_stream: AudioStreamWAV = null
 
 var git_manager
 var _is_generating_commit: bool = false
 var _last_ai_response_text: String = ""
+var _is_dragging_tts_slider: bool = false
 
-var _attached_images: Array[Image] = []
+var _attached_files: Array[Dictionary] = []
 var _dropped_files: Array[String] = []
 var _history_ids: Array = []
 
@@ -104,13 +120,44 @@ func _ready():
 	$TabContainer/Chat/ActionsContainer/ExplainBtn.pressed.connect(func(): _on_quick_action_pressed("Explain what this code does"))
 	$TabContainer/Chat/ActionsContainer/UndoBtn.pressed.connect(_on_undo_pressed)
 	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.pressed.connect(_on_fix_console_pressed)
-	tts_btn.pressed.connect(_on_tts_pressed)
+	
+	init_repo_btn.pressed.connect(_on_init_repo_pressed)
+	set_remote_btn.pressed.connect(_on_set_remote_pressed)
+	pull_btn.pressed.connect(_on_pull_pressed)
+	refresh_git_btn.pressed.connect(_update_git_status)
+	auto_generate_commit_btn.pressed.connect(_on_auto_generate_commit_pressed)
+	commit_sync_btn.pressed.connect(_on_commit_sync_pressed)
+	
+	checkout_branch_btn.pressed.connect(_on_checkout_branch_pressed)
+	undo_changes_btn.pressed.connect(func(): undo_confirm_dialog.popup_centered())
+	force_pull_btn.pressed.connect(func(): force_pull_confirm_dialog.popup_centered())
+	
+	undo_confirm_dialog.confirmed.connect(_on_undo_changes_confirmed)
+	force_pull_confirm_dialog.confirmed.connect(_on_force_pull_confirmed)
+	
+	tts_play_btn.pressed.connect(_on_tts_play_pressed)
+	tts_stop_btn.pressed.connect(_on_tts_stop_pressed)
+	tts_speed_selector.item_selected.connect(_on_tts_speed_changed)
+	tts_player.finished.connect(_on_tts_finished)
+	
+	tts_seek_slider.drag_started.connect(func(): _is_dragging_tts_slider = true)
+	tts_seek_slider.drag_ended.connect(func(changed):
+		_is_dragging_tts_slider = false
+		if changed and tts_player.playing:
+			tts_player.seek(tts_seek_slider.value)
+	)
+	# Setup speed selector
+	tts_speed_selector.add_item("1.0x", 0)
+	tts_speed_selector.add_item("1.25x", 1)
+	tts_speed_selector.add_item("1.5x", 2)
+	tts_speed_selector.add_item("2.0x", 3)
+	
 	%ExecutePlanBtn.pressed.connect(_on_execute_plan_pressed)
 	
 	send_button.pressed.connect(_on_send_pressed)
 	input_field.gui_input.connect(_on_input_gui_input)
-	add_image_btn.pressed.connect(func(): _image_file_dialog.popup_centered())
-	_image_file_dialog.file_selected.connect(_on_image_file_selected)
+	add_file_btn.pressed.connect(func(): _add_file_dialog.popup_centered())
+	_add_file_dialog.file_selected.connect(_on_add_file_selected)
 	_file_clear_btn.pressed.connect(_on_clear_dropped_files)
 	_apply_diff_btn.pressed.connect(_on_apply_diff_pressed)
 	_skip_diff_btn.pressed.connect(_on_skip_diff_pressed)
@@ -137,13 +184,6 @@ func _ready():
 	new_chat_button.pressed.connect(_on_new_chat_pressed)
 	history_button.get_popup().about_to_popup.connect(_on_history_popup_about_to_show)
 	history_button.get_popup().id_pressed.connect(_on_history_item_pressed)
-	
-	init_repo_btn.pressed.connect(_on_init_repo_pressed)
-	set_remote_btn.pressed.connect(_on_set_remote_pressed)
-	pull_btn.pressed.connect(_on_pull_pressed)
-	refresh_git_btn.pressed.connect(_update_git_status)
-	auto_generate_commit_btn.pressed.connect(_on_auto_generate_commit_pressed)
-	commit_sync_btn.pressed.connect(_on_commit_sync_pressed)
 	
 	var GitManager = preload("res://addons/gamedev_ai/git_manager.gd")
 	git_manager = GitManager.new()
@@ -440,47 +480,118 @@ func _on_send_pressed():
 func _on_execute_plan_pressed():
 	execute_plan_btn.visible = false
 	_plan_pending = false
+	plan_first_toggle.button_pressed = false # Auto-disable to avoid loop
 	_process_send("Okay, the plan looks good. Please execute the proposed plan now using the appropriate tools.", true)
 
 func _on_quick_action_pressed(action_text: String):
 	_process_send(action_text)
 
-func _on_tts_pressed():
-	print("TTS Button Pressed. Last response text length: ", _last_ai_response_text.length())
+func _on_tts_play_pressed():
 	if _last_ai_response_text.is_empty():
 		return
+		
+	# Check if we already have the cache for this exact response
+	if _cached_tts_text == _last_ai_response_text and _cached_tts_stream != null:
+		if tts_player.playing:
+			tts_player.stream_paused = true
+			tts_play_btn.text = "▶ Play"
+		elif tts_player.stream_paused:
+			tts_player.stream_paused = false
+			tts_play_btn.text = "⏸ Pause"
+		else:
+			# Not playing, start from slider position
+			var pos = tts_seek_slider.value
+			tts_player.stream = _cached_tts_stream
+			tts_player.play(pos)
+			tts_play_btn.text = "⏸ Pause"
+			tts_stop_btn.disabled = false
+		return
+		
+	# No cache, request from API
 	if gemini_client:
-		print("Gemini client found, requesting TTS...")
-		tts_btn.disabled = true
-		tts_btn.text = "🔊 Loading..."
-		# Strip BBCode tags for TTS clarity
+		tts_play_btn.disabled = true
+		tts_play_btn.text = "⏳ Loading..."
+		
+		# Strip BBCode
 		var regex = RegEx.new()
 		regex.compile("\\[.*?\\]")
 		var plain_text = regex.sub(_last_ai_response_text, "", true)
+		
+		_cached_tts_text = _last_ai_response_text
 		gemini_client.request_tts(plain_text)
 	else:
 		print("Error: gemini_client is null!")
 
 func _on_audio_received(raw_data: PackedByteArray):
-	print("Audio received! Bypassing main-thread decoding...")
-	tts_btn.disabled = false
-	tts_btn.text = "🔊 Read Aloud"
+	tts_play_btn.disabled = false
+	tts_play_btn.text = "⏸ Pause"
+	tts_stop_btn.disabled = false
 	
-	print("Raw data decoded length: ", raw_data.size())
 	if raw_data.is_empty():
 		return
 		
-	# Gemini TTS typically returns PCM audio by default. 
-	# To play it natively in Godot 4, we configure an AudioStreamWAV.
-	var stream = AudioStreamWAV.new()
-	stream.data = raw_data
-	# Typical Gemini TTS params: 24kHz, 16-bit, Mono
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = 24000
-	stream.stereo = false
+	var audio_data = raw_data
+	var sample_rate = 24000
+	var channels = 1
+	var bytes_per_sample = 2
+	var is_16bit = true
 	
+	# Parse WAV RIFF Header to extract pure PCM and avoid the "glitch"
+	if raw_data.size() > 44 and raw_data.slice(0, 4) == "RIFF".to_ascii_buffer() and raw_data.slice(8, 12) == "WAVE".to_ascii_buffer():
+		channels = raw_data.decode_u16(22)
+		sample_rate = raw_data.decode_u32(24)
+		var bits_per_sample = raw_data.decode_u16(34)
+		
+		is_16bit = (bits_per_sample == 16)
+		bytes_per_sample = bits_per_sample / 8
+		
+		# Find the "data" subchunk dynamically
+		var data_idx = 12
+		while data_idx < raw_data.size() - 8:
+			var chunk_id = raw_data.slice(data_idx, data_idx + 4)
+			var chunk_size = raw_data.decode_u32(data_idx + 4)
+			if chunk_id == "data".to_ascii_buffer():
+				audio_data = raw_data.slice(data_idx + 8, data_idx + 8 + chunk_size)
+				break
+			data_idx += 8 + chunk_size
+			
+	var stream = AudioStreamWAV.new()
+	stream.data = audio_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS if is_16bit else AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = (channels == 2)
+	
+	_cached_tts_stream = stream
 	tts_player.stream = stream
 	tts_player.play()
+	
+	# Compute exact length in seconds
+	var length_seconds = float(audio_data.size()) / float(sample_rate * channels * bytes_per_sample)
+	tts_seek_slider.max_value = length_seconds
+	tts_seek_slider.value = 0.0
+
+func _on_tts_stop_pressed():
+	tts_player.stop()
+	tts_player.stream_paused = false
+	tts_play_btn.text = "▶ Play"
+	tts_seek_slider.value = 0.0
+	tts_stop_btn.disabled = true
+
+func _on_tts_seek_changed(_value: float):
+	pass # Logic moved to drag signals
+
+func _on_tts_speed_changed(index: int):
+	var speeds = [1.0, 1.25, 1.5, 2.0]
+	tts_player.pitch_scale = speeds[index]
+
+func _on_tts_finished():
+	tts_play_btn.text = "▶ Play"
+	tts_stop_btn.disabled = true
+	tts_seek_slider.value = 0.0
+
+func _process(_delta):
+	if tts_player.playing and not _is_dragging_tts_slider:
+		tts_seek_slider.set_value_no_signal(tts_player.get_playback_position())
 
 func _stop_ai():
 	_is_stopped = true
@@ -497,79 +608,141 @@ func _on_input_gui_input(event: InputEvent):
 		if event.keycode == KEY_ENTER and event.shift_pressed:
 			input_field.get_viewport().set_input_as_handled()
 			var text = input_field.text.strip_edges()
-			if not text.is_empty() or not _attached_images.is_empty():
-				_process_send(text)
+			if text.is_empty() and _attached_files.is_empty():
+				return
+			_process_send(text)
 		elif event.keycode == KEY_V and event.ctrl_pressed:
 			var clipboard_image = DisplayServer.clipboard_get_image()
 			if clipboard_image and not clipboard_image.is_empty():
 				input_field.get_viewport().set_input_as_handled()
-				_attached_images.append(clipboard_image)
+				var img_buffer = clipboard_image.save_png_to_buffer()
+				_attached_files.append({
+					"type": "image",
+					"filename": "clipboard.png",
+					"mime_type": "image/png",
+					"image_obj": clipboard_image,
+					"raw_bytes": img_buffer
+				})
 				_refresh_thumbnails()
 				output_display.append_text("\n[color=green][i]Image pasted from clipboard.[/i][/color]\n")
 
-func _on_image_file_selected(path: String):
-	var img = Image.new()
-	var err = img.load(path)
-	if err == OK:
-		_attached_images.append(img)
-		_refresh_thumbnails()
-		output_display.append_text("\n[color=green][i]Image attached from file.[/i][/color]\n")
-	else:
-		output_display.append_text("\n[color=red]Failed to load image at: " + path + "[/color]\n")
+func _on_add_file_selected(path: String):
+	var ext = path.get_extension().to_lower()
+	var filename = path.get_file()
+	
+	if ext in ["png", "jpg", "jpeg", "webp"]:
+		var img = Image.new()
+		var err = img.load(path)
+		if err == OK:
+			var file = FileAccess.open(path, FileAccess.READ)
+			var bytes = file.get_buffer(file.get_length())
+			var mime = "image/" + ("jpeg" if ext in ["jpg", "jpeg"] else ext)
+			
+			_attached_files.append({
+				"type": "image",
+				"filename": filename,
+				"mime_type": mime,
+				"image_obj": img,
+				"raw_bytes": bytes
+			})
+			_refresh_thumbnails()
+			output_display.append_text("\n[color=green][i]Image attached from file: " + filename + "[/i][/color]\n")
+		else:
+			output_display.append_text("\n[color=red]Failed to load image at: " + path + "[/color]\n")
+	elif ext in ["txt", "md", "csv", "json", "gd"]:
+		var file = FileAccess.open(path, FileAccess.READ)
+		if file:
+			var content = file.get_as_text()
+			_attached_files.append({
+				"type": "text",
+				"filename": filename,
+				"text_content": content
+			})
+			_refresh_thumbnails()
+			output_display.append_text("\n[color=green][i]Text file attached: " + filename + "[/i][/color]\n")
+	elif ext in ["pdf", "mp3", "wav", "ogg"]:
+		var file = FileAccess.open(path, FileAccess.READ)
+		if file:
+			var bytes = file.get_buffer(file.get_length())
+			var mime = "application/pdf" if ext == "pdf" else "audio/" + ("mpeg" if ext == "mp3" else ext)
+			_attached_files.append({
+				"type": "binary",
+				"filename": filename,
+				"mime_type": mime,
+				"raw_bytes": bytes
+			})
+			_refresh_thumbnails()
+			output_display.append_text("\n[color=green][i]File attached: " + filename + "[/i][/color]\n")
 
 func _refresh_thumbnails():
 	for child in _thumbnail_list.get_children():
 		child.queue_free()
 		
-	if _attached_images.is_empty():
+	if _attached_files.is_empty():
 		_image_preview_scroll.visible = false
 		return
 		
 	_image_preview_scroll.visible = true
 	
-	for i in range(_attached_images.size()):
-		var img = _attached_images[i]
-		
-		# Create a texture rect for the thumbnail
-		var thumb_rect = TextureRect.new()
-		thumb_rect.custom_minimum_size = Vector2(80, 80)
-		var texture = ImageTexture.create_from_image(img)
-		thumb_rect.texture = texture
-		thumb_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		thumb_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		
-		# Make the thumbnail clickable for full preview
-		thumb_rect.gui_input.connect(func(event):
-			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				_popup_texture_rect.texture = texture
-				_image_popup_dialog.popup_centered()
-		)
-		thumb_rect.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		
-		# Container for thumb and close button
+	for i in range(_attached_files.size()):
+		var file_data = _attached_files[i]
 		var container = Control.new()
-		container.custom_minimum_size = Vector2(80, 80)
-		container.add_child(thumb_rect)
 		
-		# The "X" button
+		if file_data["type"] == "image":
+			var img = file_data["image_obj"]
+			var thumb_rect = TextureRect.new()
+			thumb_rect.custom_minimum_size = Vector2(80, 80)
+			var texture = ImageTexture.create_from_image(img)
+			thumb_rect.texture = texture
+			thumb_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			thumb_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			
+			thumb_rect.gui_input.connect(func(event):
+				if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+					_popup_texture_rect.texture = texture
+					_image_popup_dialog.popup_centered()
+			)
+			thumb_rect.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			container.custom_minimum_size = Vector2(80, 80)
+			container.add_child(thumb_rect)
+		else:
+			var panel = PanelContainer.new()
+			panel.custom_minimum_size = Vector2(120, 80)
+			var vbox = VBoxContainer.new()
+			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+			var icon_label = Label.new()
+			var is_audio = file_data["filename"].ends_with("mp3") or file_data["filename"].ends_with("wav") or file_data["filename"].ends_with("ogg")
+			icon_label.text = "🎵" if is_audio else "📄"
+			icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			var name_label = Label.new()
+			name_label.text = file_data["filename"]
+			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			name_label.clip_text = true
+			name_label.custom_minimum_size = Vector2(110, 0)
+			vbox.add_child(icon_label)
+			vbox.add_child(name_label)
+			panel.add_child(vbox)
+			container.custom_minimum_size = Vector2(120, 80)
+			container.add_child(panel)
+		
 		var close_btn = Button.new()
 		close_btn.text = "X"
 		close_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		close_btn.size = Vector2(24, 24)
-		close_btn.position = Vector2(56, 0)
-		close_btn.add_theme_color_override("font_color", Color(1, 0, 0)) # Red X
+		close_btn.position = Vector2(container.custom_minimum_size.x - 24, 0)
+		close_btn.add_theme_color_override("font_color", Color(1, 0, 0))
 		close_btn.pressed.connect(func():
-			_remove_attached_image(i)
+			_remove_attached_file(i)
 		)
 		
 		container.add_child(close_btn)
 		_thumbnail_list.add_child(container)
 
-func _remove_attached_image(index: int):
-	if index >= 0 and index < _attached_images.size():
-		_attached_images.remove_at(index)
+func _remove_attached_file(index: int):
+	if index >= 0 and index < _attached_files.size():
+		_attached_files.remove_at(index)
 		_refresh_thumbnails()
-		output_display.append_text("[i]Image removed.[/i]\n")
+		output_display.append_text("[i]Attachment removed.[/i]\n")
 
 func _is_game_running() -> bool:
 	return EditorInterface.is_playing_scene()
@@ -628,18 +801,31 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 					context += "File: " + path + "\n"
 					context += f.get_as_text() + "\n\n"
 	
-	var images_data = []
-	# Priority: manually attached images > screenshot toggle
-	if not _attached_images.is_empty():
-		for img in _attached_images:
-			images_data.append(_encode_image(img))
-		output_display.append_text("[i]Sending attached images...[/i]\n")
-		_attached_images.clear()
+	var files_data = []
+	# Process attached files
+	if not _attached_files.is_empty():
+		for file in _attached_files:
+			if file["type"] == "text":
+				context += "\n--- Attached File: " + file["filename"] + " ---\n"
+				context += file["text_content"] + "\n"
+			elif file["type"] == "image":
+				var encoded = _encode_image(file["image_obj"])
+				files_data.append(encoded)
+			elif file["type"] == "binary":
+				var base64 = Marshalls.raw_to_base64(file["raw_bytes"])
+				files_data.append({
+					"mime_type": file["mime_type"],
+					"data": base64
+				})
+		output_display.append_text("[i]Sending attachments...[/i]\n")
+		_attached_files.clear()
 		_refresh_thumbnails()
-	elif screenshot_toggle.button_pressed and context_manager:
+		
+	# Fallback/append screenshot toggle
+	if screenshot_toggle.button_pressed and context_manager:
 		var scr = context_manager.get_editor_screenshot()
 		if not scr.is_empty():
-			images_data.append(scr)
+			files_data.append(scr)
 			output_display.append_text("[i]Capturing screenshot...[/i]\n")
 
 	var tools = []
@@ -647,7 +833,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 		tools = _tool_executor.get_tool_definitions()
 	
 	if gemini_client:
-		gemini_client.send_prompt(final_prompt, context, tools, images_data)
+		gemini_client.send_prompt(final_prompt, context, tools, files_data)
 		output_display.append_text("\n[i]Thinking...[/i]\n")
 		_on_clear_dropped_files()
 
@@ -866,6 +1052,9 @@ func _update_git_status():
 		if current_remote != "":
 			remote_url_input.text = current_remote
 			
+		var branch = git_manager.git_get_current_branch()
+		branch_label.text = "Current Branch: [b]" + branch + "[/b]"
+			
 		var status = git_manager.git_status()
 		if status.strip_edges() == "":
 			git_status_label.text = "[color=green]Working tree clean.[/color]"
@@ -887,6 +1076,32 @@ func _on_pull_pressed():
 	git_status_label.text = "Pulling..."
 	var res = git_manager.git_pull()
 	git_status_label.text = "Pull result:\n" + res
+	await get_tree().create_timer(3.0).timeout
+	_update_git_status()
+
+func _on_checkout_branch_pressed():
+	var branch_name = branch_name_input.text.strip_edges()
+	if branch_name == "":
+		return
+	
+	git_status_label.text = "Switching branch..."
+	var res = git_manager.git_checkout_branch(branch_name)
+	git_status_label.text = res
+	branch_name_input.text = ""
+	await get_tree().create_timer(2.0).timeout
+	_update_git_status()
+
+func _on_undo_changes_confirmed():
+	git_status_label.text = "Undoing uncommitted changes..."
+	var res = git_manager.git_discard_changes()
+	git_status_label.text = "Modifications discarded.\n" + res
+	await get_tree().create_timer(3.0).timeout
+	_update_git_status()
+	
+func _on_force_pull_confirmed():
+	git_status_label.text = "Force pulling from GitHub..."
+	var res = git_manager.git_force_pull()
+	git_status_label.text = "Force Pull complete.\n" + res
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
 
@@ -1069,7 +1284,17 @@ func _drop_data(_at_pos: Vector2, data: Variant):
 				var img = Image.new()
 				var err = img.load(f)
 				if err == OK:
-					_attached_images.append(img)
+					var file = FileAccess.open(f, FileAccess.READ)
+					var bytes = file.get_buffer(file.get_length())
+					var mime = "image/" + ("jpeg" if ext in ["jpg", "jpeg"] else ext)
+					
+					_attached_files.append({
+						"type": "image",
+						"filename": f.get_file(),
+						"mime_type": mime,
+						"image_obj": img,
+						"raw_bytes": bytes
+					})
 					_refresh_thumbnails()
 			else:
 				_dropped_files.append(f)

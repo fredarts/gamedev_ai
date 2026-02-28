@@ -85,7 +85,7 @@ func _process_tts_payload(payload: String):
 	
 	call_deferred("emit_signal", "error_occurred", "Failed to parse TTS response data.")
 
-func send_prompt(prompt: String, context: String = "", tools: Array = [], images: Array = []):
+func send_prompt(prompt: String, context: String = "", tools: Array = [], files: Array = []):
 	if api_key == "":
 		error_occurred.emit("API Key is missing.")
 		return
@@ -95,12 +95,12 @@ func send_prompt(prompt: String, context: String = "", tools: Array = [], images
 		parts.append({"text": context})
 	parts.append({"text": prompt})
 	
-	for img_data in images:
-		if not img_data.is_empty():
+	for file_data in files:
+		if not file_data.is_empty():
 			parts.append({
 				"inline_data": {
-					"mime_type": img_data["mime_type"],
-					"data": img_data["data"]
+					"mime_type": file_data["mime_type"],
+					"data": file_data["data"]
 				}
 			})
 
