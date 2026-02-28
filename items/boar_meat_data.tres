@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ConsumableItemData" format=3 uid="uid://boarmeat123"]
+
+[ext_resource type="Texture2D" uid="uid://dt7c8iu4ywfhl" path="res://images/Boar/meat.png" id="1_j7uuy"]
+[ext_resource type="Script" uid="uid://cje1fqv2xy0up" path="res://consumable_item_data.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://b8q7yaw2y304a" path="res://pickup_effect.tscn" id="3_effect"]
+[ext_resource type="AudioStream" uid="uid://lasmjt6v4l7j" path="res://items/pickup.wav" id="3_s75mj"]
+
+[resource]
+script = ExtResource("1_script")
+health_restored = 5
+name = "Carne de Javali"
+description = "Restaura 5 pontos de vida."
+icon = ExtResource("1_j7uuy")
+drop_light_color = Color(0.8, 0.4, 0.2, 0.8)
+pickup_effect = ExtResource("3_effect")
+pickup_sound = ExtResource("3_s75mj")

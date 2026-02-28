@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://d4k5636qxllmr"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_y07hw"]
+[ext_resource type="AudioStream" uid="uid://ols4wp2ma8a5" path="res://sfx/orc_dying.wav" id="2_hd1uu"]
+
+[resource]
+script = ExtResource("1_y07hw")
+stream = ExtResource("2_hd1uu")
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"

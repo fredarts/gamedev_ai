@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="WeaponItemData" format=3 uid="uid://j1volj287ny2"]
+
+[ext_resource type="Script" uid="uid://dr11w8ppbuxvu" path="res://weapon_item_data.gd" id="1_es5ut"]
+[ext_resource type="Texture2D" uid="uid://d0t1e5t1ebwe" path="res://images/swords/sword_02.png" id="1_r7vlg"]
+[ext_resource type="PackedScene" uid="uid://b8q7yaw2y304a" path="res://pickup_effect.tscn" id="2_r7vlg"]
+[ext_resource type="AudioStream" uid="uid://dqq4hyfovcwkn" path="res://sfx/wooden_sword_pickup.wav" id="3_mlwo1"]
+[ext_resource type="AudioStream" uid="uid://cbxof5khv7pmc" path="res://items/equip.wav" id="4_r7vlg"]
+
+[resource]
+script = ExtResource("1_es5ut")
+knockback_bonus = 10.0
+stamina_cost = 0
+name = "Wooden Sword"
+description = "Uma espada simples de madeira."
+icon = ExtResource("1_r7vlg")
+drop_light_color = Color(1, 1, 1, 1)
+pickup_effect = ExtResource("2_r7vlg")
+pickup_sound = ExtResource("3_mlwo1")
+use_sound = ExtResource("4_r7vlg")
+weight = 2.0
+metadata/_custom_type_script = "uid://dr11w8ppbuxvu"

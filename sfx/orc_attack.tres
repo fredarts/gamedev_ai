@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://btclx5e4of7sg"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_isgfk"]
+[ext_resource type="AudioStream" uid="uid://balymdlpv8e3n" path="res://sfx/orc_attack.wav" id="2_v5klp"]
+
+[resource]
+script = ExtResource("1_isgfk")
+stream = ExtResource("2_v5klp")
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"

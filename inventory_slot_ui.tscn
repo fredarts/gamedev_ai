@@ -1,0 +1,39 @@
+[gd_scene load_steps=3 format=3 uid="uid://dtdk50n45xl0c"]
+
+[ext_resource type="Texture2D" uid="uid://ds66dkpdf0ex7" path="res://inventory_atlas_slot.tres" id="1_tpl3w"]
+[ext_resource type="Script" path="res://inventory_slot_ui.gd" id="1_script"]
+
+[node name="InventorySlotUI" type="TextureRect" unique_id=1652325900]
+custom_minimum_size = Vector2(16, 16)
+offset_right = 16.0
+offset_bottom = 16.0
+texture = ExtResource("1_tpl3w")
+expand_mode = 1
+script = ExtResource("1_script")
+
+[node name="Icon" type="TextureRect" parent="." unique_id=1846975333]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="QuantityLabel" type="Label" parent="Icon" unique_id=1369609987]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -16.0
+offset_top = -14.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 8
+horizontal_alignment = 2
+vertical_alignment = 2

@@ -1,0 +1,58 @@
+[
+	{
+		"category": "preference",
+		"content": "All text and fonts should use Nearest filtering and Antialiasing=Off for crisp pixel art rendering in small viewports.",
+		"created": "2026-02-27T02:15:54",
+		"id": "fact_1772158554",
+		"source": "ai"
+	},
+	{
+		"category": "convention",
+		"content": "O projeto utiliza o GUT (Godot Unit Testing) para testes. Os arquivos de teste devem herdar de 'res://addons/gut/test.gd' e serem salvos na pasta 'res://tests/'.",
+		"created": "2026-02-27T04:17:55",
+		"id": "fact_1772165875",
+		"source": "ai"
+	},
+	{
+		"category": "convention",
+		"content": "O HUD do jogo foi remodelado para utilizar TextureRect e TextureProgressBars com SpriteSheets (AtlasTexture). Pontuação e Ícones de Poção temporariamente removidos da UI principal.",
+		"created": "2026-02-27T04:38:15",
+		"id": "fact_1772167095",
+		"source": "ai"
+	},
+	{
+		"category": "convention",
+		"content": "HUD do jogo atualizado para incluir 4 barras de progresso (TextureProgressBar): HP (Vermelho), SP (Azul), Estamina (Amarelo) e EXP (Verde). O hud_manager contém métodos para atualizar cada uma destas barras.",
+		"created": "2026-02-27T05:07:20",
+		"id": "fact_1772168840",
+		"source": "ai"
+	},
+	{
+		"category": "bug_fix",
+		"content": "O ItemTooltip estava esticando infinitamente na vertical e esmagando os textos porque os Labels com autowrap = 2 forçavam a largura mínima do MarginContainer a 0. Fixado definindo um custom_minimum_size = Vector2(160, 0) no root do Tooltip e definindo o NinePatchRect para desenhar o background corretamente.",
+		"created": "2026-02-27T05:27:46",
+		"id": "fact_1772170066",
+		"source": "ai"
+	},
+	{
+		"category": "architecture",
+		"content": "Entities utilize a LootComponent that holds a list of LootTableEntry resources. Upon death (handled by Entity base class), the component instantiates ItemPickup scenes with a parabolic drop animation using Tweens.",
+		"created": "2026-02-27T08:35:17",
+		"id": "fact_1772181317",
+		"source": "ai"
+	},
+	{
+		"category": "architecture",
+		"content": "Boar enemy refactored to use the standard Entity component-based architecture (MovementComponent, AnimationComponent, AIController, CombatComponent, LootComponent), replacing legacy monolithic code.",
+		"created": "2026-02-28T01:05:30",
+		"id": "fact_1772240730",
+		"source": "ai"
+	},
+	{
+		"category": "architecture",
+		"content": "Audio system uses AudioData (Resource) for sound configs. Spatial sounds are handled by adding an AudioComponent to entities, which dynamically instances AudioStreamPlayer2D. Global BGM and UI sounds are managed by the AudioManager autoload singleton with crossfade support.",
+		"created": "2026-02-28T02:50:10",
+		"id": "fact_1772247010",
+		"source": "ai"
+	}
+]

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://cdyrfcf2pyrx"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_7cfjy"]
+[ext_resource type="AudioStream" uid="uid://ceinqcde8swn5" path="res://sfx/orc_idle.wav" id="2_4o0g8"]
+
+[resource]
+script = ExtResource("1_7cfjy")
+stream = ExtResource("2_4o0g8")
+volume_db = -18.825000000000003
+pitch_variation = 0.4
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"

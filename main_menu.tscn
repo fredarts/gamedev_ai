@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://crev2inf1u6xe"]
+
+[ext_resource type="Script" uid="uid://di3gspjylwtpb" path="res://main_menu.gd" id="1_fu7sn"]
+[ext_resource type="Texture2D" uid="uid://i27hkkyk3ywf" path="res://images/TittleScreen.jpg" id="2_fu7sn"]
+[ext_resource type="Theme" uid="uid://b8j2k3l4m5n6" path="res://game_theme.tres" id="3_fu7sn"]
+
+[node name="MainMenu" type="Control" unique_id=224567219]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_fu7sn")
+
+[node name="BackgroundSprite" type="Sprite2D" parent="." unique_id=1161185553]
+position = Vector2(331.6119, 183.75)
+scale = Vector2(0.34934697, 0.349347)
+texture = ExtResource("2_fu7sn")
+
+[node name="TitleLabel" type="Label" parent="." unique_id=2037263762]
+texture_filter = 1
+layout_mode = 0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 139.0
+offset_bottom = 69.0
+scale = Vector2(0.05, 0.05)
+size_flags_horizontal = 4
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 5
+theme_override_constants/shadow_offset_y = 5
+theme_override_constants/shadow_outline_size = 0
+theme_override_font_sizes/font_size = 1389
+text = "Zeldor"
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1876450829]
+layout_mode = 0
+offset_left = 528.0
+offset_top = 208.0
+offset_right = 630.0
+offset_bottom = 327.0
+theme = ExtResource("3_fu7sn")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1633444774]
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=231094551]
+texture_filter = 1
+layout_mode = 2
+text = "Start"
+
+[node name="OptionsButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1307839770]
+layout_mode = 2
+text = "Options"
+
+[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1490495732]
+layout_mode = 2
+text = "Exit"

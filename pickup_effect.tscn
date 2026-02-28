@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://b8q7yaw2y304a"]
+
+[ext_resource type="Script" uid="uid://dus7pok1nlr2c" path="res://pickup_effect.gd" id="1_script"]
+
+[sub_resource type="Gradient" id="Gradient_fade"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_fade"]
+gradient = SubResource("Gradient_fade")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_puff"]
+particle_flag_disable_z = true
+direction = Vector3(0, -1, 0)
+spread = 180.0
+initial_velocity_min = 30.0
+initial_velocity_max = 60.0
+gravity = Vector3(0, 0, 0)
+scale_min = 2.0
+scale_max = 4.0
+color_ramp = SubResource("GradientTexture1D_fade")
+
+[node name="PickupEffect" type="GPUParticles2D" unique_id=1408665836]
+emitting = false
+amount = 12
+lifetime = 0.4
+one_shot = true
+explosiveness = 0.9
+process_material = SubResource("ParticleProcessMaterial_puff")
+script = ExtResource("1_script")

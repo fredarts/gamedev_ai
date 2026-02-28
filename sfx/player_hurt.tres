@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://bfmdhuneikmv"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_h7xj5"]
+[ext_resource type="AudioStream" uid="uid://du6y2fxn4xr4l" path="res://sfx/player_hurt_2.wav" id="2_7gk3r"]
+
+[resource]
+script = ExtResource("1_h7xj5")
+stream = ExtResource("2_7gk3r")
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"

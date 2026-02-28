@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://b8ca2yhjn7kvn"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_mvqf7"]
+[ext_resource type="AudioStream" uid="uid://h1y8r2glgb4f" path="res://sfx/boar_death.wav" id="2_sptuk"]
+
+[resource]
+script = ExtResource("1_mvqf7")
+stream = ExtResource("2_sptuk")
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://dwq1d01rf6g7l"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_rcnss"]
+[ext_resource type="AudioStream" uid="uid://cxndtfh6jf2kk" path="res://sfx/player_miss_attack.wav" id="2_2n2yt"]
+
+[resource]
+script = ExtResource("1_rcnss")
+stream = ExtResource("2_2n2yt")
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"

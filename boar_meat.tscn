@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cerp7jc5ubrb7"]
+
+[ext_resource type="Script" uid="uid://djpi2dl2ihuua" path="res://boar_meat.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://ci7u5uqscn7s8" path="res://FOOD.png" id="2_tex"]
+[ext_resource type="Shape2D" uid="uid://57irhxca8tyo" path="res://boar_meat_shape.tres" id="3_shape"]
+
+[node name="BoarMeat" type="Area2D" unique_id=110417915]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=786913297]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_tex")
+region_enabled = true
+region_rect = Rect2(65.88614, 121.008575, 26.069794, 25.914642)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2022967706]
+shape = ExtResource("3_shape")

@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://c8jtv7268bjjo"]
+
+[ext_resource type="Script" uid="uid://dltyb57ytl66m" path="res://item_pickup.gd" id="1_hpx0b"]
+[ext_resource type="Texture2D" uid="uid://ckk0w7r0y1q2x" path="res://item_pickup_light.tres" id="2_light"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hpx0b"]
+
+[node name="ItemPickup" type="Area2D" unique_id=2074914677]
+collision_mask = 2
+script = ExtResource("1_hpx0b")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1820530894]
+
+[node name="PointLight2D" type="PointLight2D" parent="Sprite2D" unique_id=2100332003]
+color = Color(0, 1, 1, 1)
+energy = 0.4
+texture = ExtResource("2_light")
+texture_scale = 0.4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=367385932]
+shape = SubResource("CircleShape2D_hpx0b")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=121585079]

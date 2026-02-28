@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://c1he0nf8cc710"]
+
+[ext_resource type="Script" uid="uid://dueugfp70wk3" path="res://audio_manager.gd" id="1_6jj5d"]
+[ext_resource type="Script" uid="uid://dsdl0y1hhfyic" path="res://scene_bgm_data.gd" id="2_5olve"]
+[ext_resource type="Resource" uid="uid://bochdorr306p4" path="res://bgm/title_screen_bg.tres" id="3_nhx87"]
+[ext_resource type="Resource" uid="uid://gmh0fomat68o" path="res://bgm/world_background.tres" id="4_5olve"]
+
+[sub_resource type="Resource" id="Resource_l2k84"]
+script = ExtResource("2_5olve")
+scene_path = "uid://crev2inf1u6xe"
+bgm_data = ExtResource("3_nhx87")
+metadata/_custom_type_script = "uid://dsdl0y1hhfyic"
+
+[sub_resource type="Resource" id="Resource_nhx87"]
+script = ExtResource("2_5olve")
+scene_path = "uid://ckavqb25bdaul"
+bgm_data = ExtResource("4_5olve")
+metadata/_custom_type_script = "uid://dsdl0y1hhfyic"
+
+[node name="AudioManager" type="Node" unique_id=1838121422]
+script = ExtResource("1_6jj5d")
+bgm_playlist = Array[ExtResource("2_5olve")]([SubResource("Resource_l2k84"), SubResource("Resource_nhx87")])

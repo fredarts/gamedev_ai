@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://6uea4hdypi72"]
+
+[ext_resource type="Script" uid="uid://bgf1qti2cowot" path="res://day_night_cycle.gd" id="1_f1roh"]
+
+[node name="DayNightCycle" type="Node2D" unique_id=884319981]
+script = ExtResource("1_f1roh")
+
+[node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=1220572124]
+
+[node name="UI_Layer" type="CanvasLayer" parent="." unique_id=846387911]
+
+[node name="Vignette" type="ColorRect" parent="UI_Layer" unique_id=410790062]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://b8j2x4g5y607"]
+
+[ext_resource type="Texture2D" uid="uid://b7mmvk2upho4n" path="res://images/arvore 2.png" id="1_brfkd"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tree"]
+size = Vector2(51, 74)
+
+[node name="Tree" type="StaticBody2D" unique_id=948788665]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1511741409]
+texture_filter = 1
+texture = ExtResource("1_brfkd")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=739385991]
+position = Vector2(-0.5, 0)
+shape = SubResource("RectangleShape2D_tree")

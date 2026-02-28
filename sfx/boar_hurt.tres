@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://d4ibf0vn4elwi"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_akgrq"]
+[ext_resource type="AudioStream" uid="uid://crwo30ghgd64j" path="res://sfx/boar_hurt.wav" id="2_rist6"]
+
+[resource]
+script = ExtResource("1_akgrq")
+stream = ExtResource("2_rist6")
+pitch_variation = 0.3
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"

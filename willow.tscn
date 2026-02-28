@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://bi1aex8lbabps"]
+
+[ext_resource type="Texture2D" uid="uid://ct8vkcrdugtyk" path="res://images/arvore 3.png" id="1_dhtrj"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tree"]
+size = Vector2(81, 76)
+
+[node name="Willow" type="StaticBody2D" unique_id=948788665]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1511741409]
+texture_filter = 1
+texture = ExtResource("1_dhtrj")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=739385991]
+position = Vector2(-0.5, -1)
+shape = SubResource("RectangleShape2D_tree")

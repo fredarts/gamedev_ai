@@ -1,0 +1,160 @@
+[gd_scene format=3 uid="uid://8bnjfpb70btd"]
+
+[ext_resource type="Texture2D" uid="uid://bte0emgv2j52w" path="res://inventory_atlas_bg.tres" id="1_gf3dx"]
+[ext_resource type="Script" uid="uid://dab1fswqm0soo" path="res://inventory_ui.gd" id="1_r57pj"]
+[ext_resource type="Texture2D" uid="uid://boymsuuj5p0p4" path="res://inventory_atlas_header.tres" id="2_34y5v"]
+[ext_resource type="Texture2D" uid="uid://ctynue3bgsmm8" path="res://inventory_atlas_close.tres" id="3_34y5v"]
+[ext_resource type="PackedScene" uid="uid://dtdk50n45xl0c" path="res://inventory_slot_ui.tscn" id="4_slot"]
+[ext_resource type="AudioStream" uid="uid://d2lfu3txirafq" path="res://sfx/close_tab.wav" id="6_5bopx"]
+
+[node name="InventoryUI" type="Control" unique_id=694539940]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 328.0
+offset_right = 168.0
+offset_bottom = -85.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_r57pj")
+
+[node name="Background" type="NinePatchRect" parent="." unique_id=1801380506]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 184.0
+offset_top = 96.0
+offset_right = -196.0
+offset_bottom = -86.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_gf3dx")
+
+[node name="Header" type="TextureRect" parent="Background" unique_id=943275697]
+layout_mode = 0
+offset_top = -14.0
+offset_right = 100.0
+texture = ExtResource("2_34y5v")
+
+[node name="SlotGrid" type="GridContainer" parent="Background" unique_id=688814989]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -38.0
+offset_top = -40.0
+offset_right = 38.0
+offset_bottom = 36.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 4
+
+[node name="InventorySlotUI" parent="Background/SlotGrid" unique_id=668060898 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI2" parent="Background/SlotGrid" unique_id=1418556219 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI3" parent="Background/SlotGrid" unique_id=1048485138 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI4" parent="Background/SlotGrid" unique_id=2092813130 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI5" parent="Background/SlotGrid" unique_id=1326317321 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI6" parent="Background/SlotGrid" unique_id=1521052468 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI7" parent="Background/SlotGrid" unique_id=899325856 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI8" parent="Background/SlotGrid" unique_id=1360532832 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI9" parent="Background/SlotGrid" unique_id=991042698 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI10" parent="Background/SlotGrid" unique_id=395281815 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI11" parent="Background/SlotGrid" unique_id=1482759514 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI12" parent="Background/SlotGrid" unique_id=63549634 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI13" parent="Background/SlotGrid" unique_id=1750630119 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI14" parent="Background/SlotGrid" unique_id=1767190105 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI15" parent="Background/SlotGrid" unique_id=267115846 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI16" parent="Background/SlotGrid" unique_id=1751010841 instance=ExtResource("4_slot")]
+layout_mode = 2
+
+[node name="InventorySlotUI17" parent="Background/SlotGrid" unique_id=420735480 instance=ExtResource("4_slot")]
+visible = false
+layout_mode = 2
+
+[node name="InventorySlotUI18" parent="Background/SlotGrid" unique_id=19736403 instance=ExtResource("4_slot")]
+visible = false
+layout_mode = 2
+
+[node name="InventorySlotUI19" parent="Background/SlotGrid" unique_id=699894495 instance=ExtResource("4_slot")]
+visible = false
+layout_mode = 2
+
+[node name="InventorySlotUI20" parent="Background/SlotGrid" unique_id=296930136 instance=ExtResource("4_slot")]
+visible = false
+layout_mode = 2
+
+[node name="PrevButton" type="TextureButton" parent="Background" unique_id=1144103531]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.18
+anchor_bottom = 0.162
+offset_right = -86.4
+offset_bottom = -43.74
+
+[node name="NextButton" type="TextureButton" parent="Background" unique_id=527471176]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.27100003
+anchor_bottom = 0.165
+offset_right = -130.08002
+offset_bottom = -44.550003
+
+[node name="CloseButton" type="TextureButton" parent="Background" unique_id=1506896982]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.87000006
+anchor_top = -0.136
+anchor_right = 0.96000004
+anchor_bottom = -0.034
+offset_left = -1.0000076
+offset_top = 0.9680004
+offset_right = -1.0000076
+offset_bottom = 0.9920001
+grow_horizontal = 0
+texture_normal = ExtResource("3_34y5v")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="OpenSound" type="AudioStreamPlayer" parent="." unique_id=1457614201]
+stream = ExtResource("6_5bopx")
+
+[node name="CloseSound" type="AudioStreamPlayer" parent="." unique_id=1151735218]
+stream = ExtResource("6_5bopx")

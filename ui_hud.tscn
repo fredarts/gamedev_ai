@@ -1,0 +1,101 @@
+[gd_scene format=3 uid="uid://jboyuxvhhmlt"]
+
+[ext_resource type="Script" uid="uid://c6n1xfxx0l68h" path="res://hud_manager.gd" id="1_b66af"]
+[ext_resource type="Texture2D" uid="uid://c6r2c38h8i4k7" path="res://images/hud/character_panel.png" id="2_svere"]
+[ext_resource type="Texture2D" uid="uid://bmvlbs6dsargo" path="res://images/hud/hud.png" id="3_jkgtr"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jkgtr"]
+atlas = ExtResource("2_svere")
+region = Rect2(118, 134, 22, 22)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3jkaj"]
+atlas = ExtResource("3_jkgtr")
+region = Rect2(0, 24, 84, 30)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_svere"]
+atlas = ExtResource("3_jkgtr")
+region = Rect2(8, 2, 52, 2)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6r4qr"]
+atlas = ExtResource("3_jkgtr")
+region = Rect2(10, 7, 43, 2)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eui3o"]
+atlas = ExtResource("3_jkgtr")
+region = Rect2(6, 17, 36, 2)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_stamina"]
+atlas = ExtResource("3_jkgtr")
+region = Rect2(9, 12, 38, 2)
+
+[node name="HUD" type="CanvasLayer" unique_id=1574186531]
+script = ExtResource("1_b66af")
+
+[node name="HUDControl" type="Control" parent="." unique_id=973177450]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 92.0
+offset_bottom = 44.0
+
+[node name="TextureRect" type="TextureRect" parent="HUDControl" unique_id=646593355]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 3.0
+offset_right = 27.0
+offset_bottom = 26.0
+texture = SubResource("AtlasTexture_jkgtr")
+
+[node name="Background" type="TextureRect" parent="HUDControl" unique_id=973177451]
+texture_filter = 1
+layout_mode = 0
+offset_right = 87.0
+offset_bottom = 36.0
+texture = SubResource("AtlasTexture_3jkaj")
+expand_mode = 1
+stretch_mode = 2
+
+[node name="HPBar" type="TextureProgressBar" parent="HUDControl" unique_id=973177452]
+texture_filter = 1
+layout_mode = 0
+offset_left = 28.0
+offset_top = 8.0
+offset_right = 80.0
+offset_bottom = 10.0
+value = 100.0
+nine_patch_stretch = true
+texture_progress = SubResource("AtlasTexture_svere")
+
+[node name="SPBar" type="TextureProgressBar" parent="HUDControl" unique_id=973177453]
+texture_filter = 1
+layout_mode = 0
+offset_left = 30.0
+offset_top = 13.0
+offset_right = 72.0
+offset_bottom = 15.0
+value = 100.0
+nine_patch_stretch = true
+texture_progress = SubResource("AtlasTexture_6r4qr")
+
+[node name="EXPBar" type="TextureProgressBar" parent="HUDControl" unique_id=973177454]
+texture_filter = 1
+layout_mode = 0
+offset_left = 26.0
+offset_top = 23.0
+offset_right = 61.0
+offset_bottom = 25.0
+value = 100.0
+nine_patch_stretch = true
+texture_progress = SubResource("AtlasTexture_eui3o")
+
+[node name="StaminaBar" type="TextureProgressBar" parent="HUDControl" unique_id=973177455]
+texture_filter = 1
+layout_mode = 0
+offset_left = 29.0
+offset_top = 18.0
+offset_right = 67.0
+offset_bottom = 20.0
+value = 100.0
+nine_patch_stretch = true
+texture_progress = SubResource("AtlasTexture_stamina")

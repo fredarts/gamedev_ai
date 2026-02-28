@@ -1,0 +1,78 @@
+[gd_scene format=3 uid="uid://ckavqb25bdaul"]
+
+[ext_resource type="Script" uid="uid://qisjs751jbk7" path="res://world_setup.gd" id="1_tlwt5"]
+[ext_resource type="PackedScene" uid="uid://j7d7vpg421xm" path="res://Terrain.tscn" id="2_ic0uy"]
+[ext_resource type="PackedScene" uid="uid://ckudr8chj1kgo" path="res://player.tscn" id="2_pkg7o"]
+[ext_resource type="PackedScene" uid="uid://cx2al2io732pa" path="res://slime.tscn" id="3_pkg7o"]
+[ext_resource type="PackedScene" uid="uid://dbdmefrenkpal" path="res://potion.tscn" id="6_dwbse"]
+[ext_resource type="PackedScene" uid="uid://6uea4hdypi72" path="res://day_night_cycle.tscn" id="7_gbfbk"]
+[ext_resource type="PackedScene" uid="uid://jboyuxvhhmlt" path="res://ui_hud.tscn" id="7_pkg7o"]
+[ext_resource type="PackedScene" uid="uid://cdqxwn8m76jpy" path="res://boar.tscn" id="8_gbfbk"]
+[ext_resource type="PackedScene" uid="uid://cpk3c2pl87t43" path="res://orc.tscn" id="9_ioo17"]
+[ext_resource type="PackedScene" uid="uid://co4wvnerfdri4" path="res://chestnut.tscn" id="10_wse8f"]
+[ext_resource type="PackedScene" uid="uid://c8jtv7268bjjo" path="res://item_pickup.tscn" id="11_k3n1d"]
+[ext_resource type="Resource" uid="uid://j1volj287ny2" path="res://items/sword.tres" id="12_2o6r5"]
+[ext_resource type="Texture2D" uid="uid://m55ojmny73d4" path="res://items/sword.png" id="13_70uel"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2u3nc"]
+radius = 12.0
+
+[sub_resource type="Environment" id="Environment_2o6r5"]
+background_mode = 3
+glow_enabled = true
+glow_strength = 1.08
+glow_bloom = 0.46
+adjustment_enabled = true
+adjustment_brightness = 0.93
+adjustment_contrast = 1.005
+adjustment_saturation = 1.17
+
+[node name="World" type="Node2D" unique_id=1698694145]
+script = ExtResource("1_tlwt5")
+
+[node name="Terrain" parent="." unique_id=1441618200 instance=ExtResource("2_ic0uy")]
+position = Vector2(-24, 0)
+
+[node name="Player" parent="." unique_id=725680566 instance=ExtResource("2_pkg7o")]
+z_index = 2
+position = Vector2(712, 344)
+
+[node name="Boar" parent="." unique_id=477434784 instance=ExtResource("8_gbfbk")]
+position = Vector2(648, 240)
+
+[node name="Potion" parent="." unique_id=1024938731 instance=ExtResource("6_dwbse")]
+position = Vector2(52, 570)
+
+[node name="HUD" parent="." unique_id=1792761004 instance=ExtResource("7_pkg7o")]
+layer = 10
+
+[node name="DayNightCycle" parent="." unique_id=1832438112 instance=ExtResource("7_gbfbk")]
+
+[node name="Slime" parent="." unique_id=1699030708 instance=ExtResource("3_pkg7o")]
+position = Vector2(234, 444)
+
+[node name="Orc" parent="." unique_id=2134222969 instance=ExtResource("9_ioo17")]
+position = Vector2(777, 145)
+
+[node name="Chestnut" parent="." unique_id=948788665 instance=ExtResource("10_wse8f")]
+position = Vector2(534, 448)
+
+[node name="ItemPickup" parent="." unique_id=2074914677 instance=ExtResource("11_k3n1d")]
+position = Vector2(496, 344)
+collision_layer = 0
+item_data = ExtResource("12_2o6r5")
+
+[node name="Sprite2D" parent="ItemPickup" index="0" unique_id=1820530894]
+texture = ExtResource("13_70uel")
+
+[node name="CollisionShape2D" parent="ItemPickup" index="1" unique_id=367385932]
+shape = SubResource("CircleShape2D_2u3nc")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=158744459]
+environment = SubResource("Environment_2o6r5")
+
+[node name="DirectionalLight2D" type="DirectionalLight2D" parent="." unique_id=2104653291]
+rotation = -0.30505392
+energy = 0.4
+
+[editable path="ItemPickup"]

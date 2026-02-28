@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://qihhjryg4ba"]
+
+[ext_resource type="Shader" uid="uid://b4d8ra4cb22pv" path="res://pause_blur.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/amount = 2.5

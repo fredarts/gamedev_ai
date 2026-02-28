@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://cvkvtb25je5tc"]
+
+[ext_resource type="Script" uid="uid://br0d87jg6yxks" path="res://menu.gd" id="1_script"]
+[ext_resource type="Material" uid="uid://qihhjryg4ba" path="res://pause_material.tres" id="2_mat"]
+[ext_resource type="Theme" uid="uid://b8j2k3l4m5n6" path="res://game_theme.tres" id="3_mae5d"]
+[ext_resource type="FontFile" uid="uid://1m5lngbyrxoo" path="res://fonts/Broken Console Bold.ttf" id="4_ytr4m"]
+[ext_resource type="FontFile" uid="uid://ks1eppo680hw" path="res://fonts/PixelPurl.ttf" id="5_l48gv"]
+
+[node name="Menu" type="CanvasLayer" unique_id=946792700]
+process_mode = 3
+layer = 10
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="." unique_id=337705968]
+material = ExtResource("2_mat")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1102110561]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_mae5d")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1650111922]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1946033646]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_ytr4m")
+theme_override_font_sizes/font_size = 50
+text = "PAUSADO"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1434509105]
+layout_mode = 2
+theme = ExtResource("3_mae5d")
+theme_override_fonts/font = ExtResource("5_l48gv")
+theme_override_font_sizes/font_size = 30
+text = "Back to the Game"
+
+[node name="OptionsButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=510607584]
+layout_mode = 2
+theme = ExtResource("3_mae5d")
+theme_override_font_sizes/font_size = 30
+text = "Options"
+
+[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=305444110]
+texture_filter = 1
+layout_mode = 2
+theme = ExtResource("3_mae5d")
+theme_override_font_sizes/font_size = 30
+text = "Exit Game"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/OptionsButton" to="." method="_on_options_button_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

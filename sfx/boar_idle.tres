@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioData" format=3 uid="uid://dajarad7jqmrt"]
+
+[ext_resource type="Script" uid="uid://cgh14wyi02dg7" path="res://audio_data.gd" id="1_r4crf"]
+[ext_resource type="AudioStream" uid="uid://db5ngx6udqc48" path="res://sfx/boar_idle.wav" id="2_vp1hu"]
+
+[resource]
+script = ExtResource("1_r4crf")
+stream = ExtResource("2_vp1hu")
+volume_db = -17.793
+pitch_variation = 0.225
+metadata/_custom_type_script = "uid://cgh14wyi02dg7"
