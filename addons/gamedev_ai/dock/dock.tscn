@@ -494,6 +494,13 @@ size_flags_horizontal = 3
 text = "Force Pull Overwrite"
 tooltip_text = "Completely replaces your project with the latest version saved on GitHub, ignoring any current local errors."
 
+[node name="ForcePushBtn" type="Button" parent="TabContainer/Git/AdvancedGitHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Force Push"
+tooltip_text = "Force upload your local project to GitHub, overwriting whatever is there. Useful when your local Git history got out of sync with GitHub."
+
 [node name="PollTimer" type="Timer" parent="."]
 wait_time = 0.5
 autostart = true
@@ -507,6 +514,11 @@ dialog_text = "Are you sure? This will permanently delete all current edits that
 unique_name_in_owner = true
 title = "Force Pull Overwrite"
 dialog_text = "WARNING: Are you sure? This will ignore your local edits and force the project to exactly match what is on GitHub today. You will lose any unpushed work!"
+
+[node name="ForcePushConfirmDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Force Push to GitHub"
+dialog_text = "WARNING: This will overwrite the version on GitHub with your current local project. Any commits on GitHub that you don't have locally will be permanently lost. Continue?"
 
 [node name="AddFileDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true

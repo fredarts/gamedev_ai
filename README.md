@@ -10,6 +10,9 @@
 
 ---
 
+![Gamedev AI Main Interface](docs/images/main_interface.png)
+*(Main chat UI with context toggles, file attachments, and quick actions)*
+
 ## 🚀 Features
 
 ### 🧠 Core Agentic Capabilities
@@ -17,6 +20,9 @@
 - **👁️ Context Awareness**: Automatically gathers context from your **Active Scene**, **Open Scripts**, **Project Structure**, and takes **Viewport Screenshots** for visual guidance.
 - **💾 Persistent Project Memory**: The AI remembers architectural decisions, naming conventions, and project facts across different sessions. It learns your game as you build it!
 - **📋 Plan First Mode**: For complex tasks, ask the AI to generate a step-by-step numbered plan before executing any changes. Review the plan, then click **Run Plan** to watch it work. The toggle automatically disables after execution to prevent accidental re-planning loops.
+
+![Plan First Mode](docs/images/plan_first.png)
+*(Plan First toggle and Run Plan button in action)*
 
 ### 📚 Built-in Skills Library
 The AI is powered by a comprehensive set of **GDScript skill documents** that are injected into its knowledge base, ensuring high-quality, idiomatic code generation:
@@ -40,11 +46,17 @@ The AI is powered by a comprehensive set of **GDScript skill documents** that ar
 - **Smart Caching**: Once audio is generated, it's cached in memory. Pressing Play again is instant — no API call needed.
 - **Background Processing**: Audio decoding runs on a separate thread so the editor never freezes.
 
+![TTS Audio Player](docs/images/tts_player.png)
+*(Read Aloud player with seek slider and speed controls)*
+
 ### 📎 Universal File Attachments
 - **Beyond Images**: Attach **PDFs, text files (.txt, .md, .csv, .gd, .json), audio (.mp3, .wav, .ogg),** and images directly to your prompts.
 - **Smart Processing**: Text files are extracted and injected into the AI context. Binary files (PDFs, audio) are Base64-encoded and sent via `inlineData` for native Gemini Pro multimodal processing.
 - **Drag & Drop**: Drag files from your OS or the Godot FileSystem dock directly into the chat.
 - **Clipboard Paste**: Paste images from your clipboard with `Ctrl+V`.
+
+![Drag and Drop](docs/images/drag_and_drop.png)
+*(Files and images dragged into the context preview)*
 
 ### ⚡ Workflow Accelerators
 - **💡 Quick Suggestions**: At the end of every response, the AI provides clickable "Smart Actions" to instantly trigger the logical next steps in your workflow.
@@ -61,6 +73,9 @@ The AI is powered by a comprehensive set of **GDScript skill documents** that ar
 - **🎮 Game State Detection**: The plugin pauses destructive agentic actions if it detects that your game is currently running to prevent file locks and data corruption.
 - **💬 Tooltips Everywhere**: Every button, toggle, and slider has an English tooltip explaining exactly what it does — beginner-friendly by design.
 
+![Diff Preview](docs/images/diff_preview.png)
+*(Diff preview panel showing proposed code changes)*
+
 ### 🔀 Integrated Git Version Control
 A full Git workflow built right into the plugin, designed for users who aren't Git experts:
 
@@ -75,6 +90,9 @@ A full Git workflow built right into the plugin, designed for users who aren't G
 | **Create/Switch Branch** | Create a parallel "timeline" to test features safely without breaking your main game |
 | **Undo Uncommitted Changes** | Discards all local edits that haven't been committed (with confirmation dialog) |
 | **Force Pull Overwrite** | Replaces your entire local project with the version on GitHub (panic button, with confirmation) |
+
+![Git Tab](docs/images/git_tab.png)
+*(Built-in Git version control with branch management and safety buttons)*
 
 ### ⚙️ Customization & Providers
 - **🤖 Multi-Provider Support**: Works flawlessly with **Google Gemini** and **OpenAI / OpenRouter** APIs.
@@ -98,6 +116,9 @@ A full Git workflow built right into the plugin, designed for users who aren't G
 2. In the Godot Editor, navigate to the **Settings** tab in the Gamedev AI dock.
 3. Click **Edit** to configure your API Provider, Model, and Key. It will be saved securely in your local Editor Settings.
 4. You can create multiple presets and switch between them directly from the main Chat tab.
+
+![Settings UI](docs/images/settings_ui.png)
+*(Settings panel with provider configuration and presets)*
 
 ---
 

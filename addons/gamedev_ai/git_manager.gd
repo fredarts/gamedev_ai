@@ -32,6 +32,10 @@ func git_push() -> String:
 	# Use -u origin HEAD to automatically set upstream for the current branch
 	return _execute_git(["push", "-u", "origin", "HEAD"])
 
+func git_force_push() -> String:
+	# Force push to overwrite remote history (useful when local and remote are out of sync)
+	return _execute_git(["push", "--force", "-u", "origin", "HEAD"])
+
 func git_pull() -> String:
 	return _execute_git(["pull", "origin", "HEAD"])
 
@@ -50,12 +54,20 @@ func git_discard_changes() -> String:
 	return _execute_git(["clean", "-fd"])
 
 func git_force_pull() -> String:
-	_execute_git(["fetch", "origin"])
+	var fetch_res = _execute_git(["fetch", "origin"])
+	if fetch_res.begins_with("fatal:") or fetch_res.begins_with("error:"):
+		return "ERROR during fetch:\n" + fetch_res
 	var current_branch = git_get_current_branch()
 	if current_branch == "":
 		current_branch = "main"
-	_execute_git(["reset", "--hard", "origin/" + current_branch])
-	return _execute_git(["clean", "-fd"])
+	# Delete all tracked files so Git is forced to recreate everything fresh
+	_execute_git(["rm", "-rf", "--cached", "."])
+	_execute_git(["checkout", "origin/" + current_branch, "--", "."])
+	var reset_res = _execute_git(["reset", "--hard", "origin/" + current_branch])
+	if reset_res.begins_with("fatal:") or reset_res.begins_with("error:"):
+		return "ERROR during reset:\n" + reset_res
+	_execute_git(["clean", "-fd"])
+	return "Success. All files downloaded fresh from origin/" + current_branch
 
 func git_get_current_branch() -> String:
 	return _execute_git(["rev-parse", "--abbrev-ref", "HEAD"]).strip_edges()

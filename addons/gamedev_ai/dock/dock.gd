@@ -63,8 +63,10 @@ var _memory_manager
 @onready var checkout_branch_btn: Button = %CheckoutBranchBtn
 @onready var undo_changes_btn: Button = %UndoChangesBtn
 @onready var force_pull_btn: Button = %ForcePullBtn
+@onready var force_push_btn: Button = %ForcePushBtn
 @onready var undo_confirm_dialog: ConfirmationDialog = %UndoConfirmDialog
 @onready var force_pull_confirm_dialog: ConfirmationDialog = %ForcePullConfirmDialog
+@onready var force_push_confirm_dialog: ConfirmationDialog = %ForcePushConfirmDialog
 
 @onready var tts_player_container: VBoxContainer = %TTSPlayerContainer
 @onready var tts_play_btn: Button = %TTSPlayBtn
@@ -131,9 +133,11 @@ func _ready():
 	checkout_branch_btn.pressed.connect(_on_checkout_branch_pressed)
 	undo_changes_btn.pressed.connect(func(): undo_confirm_dialog.popup_centered())
 	force_pull_btn.pressed.connect(func(): force_pull_confirm_dialog.popup_centered())
+	force_push_btn.pressed.connect(func(): force_push_confirm_dialog.popup_centered())
 	
 	undo_confirm_dialog.confirmed.connect(_on_undo_changes_confirmed)
 	force_pull_confirm_dialog.confirmed.connect(_on_force_pull_confirmed)
+	force_push_confirm_dialog.confirmed.connect(_on_force_push_confirmed)
 	
 	tts_play_btn.pressed.connect(_on_tts_play_pressed)
 	tts_stop_btn.pressed.connect(_on_tts_stop_pressed)
@@ -1072,10 +1076,24 @@ func _on_init_repo_pressed():
 	git_manager.git_init()
 	_update_git_status()
 
+func _set_git_busy(busy: bool):
+	pull_btn.disabled = busy
+	commit_sync_btn.disabled = busy
+	auto_generate_commit_btn.disabled = busy
+	checkout_branch_btn.disabled = busy
+	undo_changes_btn.disabled = busy
+	force_pull_btn.disabled = busy
+	force_push_btn.disabled = busy
+	if busy:
+		git_status_label.text = "[color=yellow]⏳ Working... please wait.[/color]"
+
 func _on_pull_pressed():
-	git_status_label.text = "Pulling..."
+	_set_git_busy(true)
+	git_status_label.text = "[color=yellow]⏳ Pulling from GitHub...[/color]"
+	await get_tree().process_frame
 	var res = git_manager.git_pull()
 	git_status_label.text = "Pull result:\n" + res
+	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
 
@@ -1084,24 +1102,50 @@ func _on_checkout_branch_pressed():
 	if branch_name == "":
 		return
 	
-	git_status_label.text = "Switching branch..."
+	_set_git_busy(true)
+	git_status_label.text = "[color=yellow]⏳ Switching branch...[/color]"
+	await get_tree().process_frame
 	var res = git_manager.git_checkout_branch(branch_name)
 	git_status_label.text = res
 	branch_name_input.text = ""
+	_set_git_busy(false)
 	await get_tree().create_timer(2.0).timeout
 	_update_git_status()
 
 func _on_undo_changes_confirmed():
-	git_status_label.text = "Undoing uncommitted changes..."
+	_set_git_busy(true)
+	git_status_label.text = "[color=yellow]⏳ Undoing uncommitted changes...[/color]"
+	await get_tree().process_frame
 	var res = git_manager.git_discard_changes()
-	git_status_label.text = "Modifications discarded.\n" + res
+	git_status_label.text = "[color=green]Modifications discarded.[/color]\n" + res
+	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
 	
 func _on_force_pull_confirmed():
-	git_status_label.text = "Force pulling from GitHub..."
+	_set_git_busy(true)
+	git_status_label.text = "[color=yellow]⏳ Force pulling from GitHub...[/color]"
+	await get_tree().process_frame
 	var res = git_manager.git_force_pull()
-	git_status_label.text = "Force Pull complete.\n" + res
+	git_status_label.text = "[color=green]Force Pull complete.[/color]\n" + res
+	_set_git_busy(false)
+	await get_tree().create_timer(3.0).timeout
+	_update_git_status()
+
+func _on_force_push_confirmed():
+	_set_git_busy(true)
+	git_status_label.text = "[color=yellow]⏳ Force pushing to GitHub...[/color]"
+	await get_tree().process_frame
+	git_manager.git_add_all()
+	var msg = commit_msg_input.text.strip_edges()
+	if msg != "":
+		git_manager.git_commit(msg)
+	var res = git_manager.git_force_push()
+	if res.strip_edges() == "":
+		res = "Done."
+	git_status_label.text = "[color=green]Force Push complete.[/color]\n" + res
+	commit_msg_input.text = ""
+	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
 
@@ -1110,14 +1154,17 @@ func _on_commit_sync_pressed():
 	if msg == "":
 		msg = "Updates"
 	
+	_set_git_busy(true)
+	git_status_label.text = "[color=yellow]⏳ Committing and pushing...[/color]"
+	await get_tree().process_frame
 	git_manager.git_add_all()
 	git_manager.git_commit(msg)
-	git_status_label.text = "Committing and pushing..."
 	var push_res = git_manager.git_push()
 	if push_res.strip_edges() == "":
 		push_res = "Done."
 	git_status_label.text = "Push result:\n" + push_res
 	commit_msg_input.text = ""
+	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
 
