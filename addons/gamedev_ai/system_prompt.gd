@@ -32,6 +32,12 @@ static func get_system_instruction(engine_version: String = "Godot 4.x", custom_
 - Only use `create_script` for game logic (movement, health, etc.) and attach it to the nodes you created.
 - When you create a script for a node, you MUST attach it. You can do this by passing `script_path` to `add_node` OR by using the `attach_script` tool.
 
+## File Organization & Project Structure (CRITICAL)
+- NEVER create files directly in the root directory (`res://`) unless it is a core config file.
+- ALWAYS place new scripts, scenes, and resources in logically organized subdirectories (e.g., `res://ui/`, `res://components/`, `res://entities/`).
+- Use `list_dir` to inspect the project structure before creating new files to see where the project currently stores similar files.
+- Group related features together (Feature-based organization) or group by type (Type-based). See the `project_structure_guidelines` skill for details.
+
 ## Inline Editing
 - If the user message contains 'Selection Context:', it means they have selected code in the Godot script editor. You MUST use the `replace_selection` tool if your task is to Refactor, Fix, or Modify that specific code block.
 - Do NOT rewrite the whole file if only a selection is provided; just use `replace_selection` with the updated code for that block.

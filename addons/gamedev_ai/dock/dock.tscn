@@ -5,6 +5,9 @@
 [node name="GamedevAI" type="VBoxContainer"]
 script = ExtResource("1")
 
+[node name="TTSPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+
 [node name="TabContainer" type="TabContainer" parent="."]
 layout_mode = 2
 size_flags_vertical = 3
@@ -86,6 +89,12 @@ tooltip_text = "Undo the last AI action batch"
 layout_mode = 2
 text = "Fix Console"
 tooltip_text = "Analyze latest console errors and propose fixes"
+
+[node name="TTSBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🔊 Read Aloud"
+tooltip_text = "Play AI text-to-speech narration"
 
 [node name="ExecutePlanBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
 unique_name_in_owner = true
@@ -325,6 +334,76 @@ custom_minimum_size = Vector2(0, 100)
 size_flags_vertical = 3
 placeholder_text = "e.g. Always respond in Portuguese. Focus on 2D platformer patterns..."
 wrap_mode = 1
+[node name="Git" type="VBoxContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="InitRepoBtn" type="Button" parent="TabContainer/Git"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Initialize Repository"
+
+[node name="RemoteContainer" type="HBoxContainer" parent="TabContainer/Git"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label" type="Label" parent="TabContainer/Git/RemoteContainer"]
+layout_mode = 2
+text = "GitHub URL:"
+
+[node name="RemoteUrlInput" type="LineEdit" parent="TabContainer/Git/RemoteContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "https://github.com/..."
+
+[node name="SetRemoteBtn" type="Button" parent="TabContainer/Git/RemoteContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save"
+tooltip_text = "Set Remote Origin URL"
+
+[node name="GitStatusLabel" type="RichTextLabel" parent="TabContainer/Git"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Checking Git status..."
+
+[node name="GitActionsContainer" type="HBoxContainer" parent="TabContainer/Git"]
+layout_mode = 2
+
+[node name="PullBtn" type="Button" parent="TabContainer/Git/GitActionsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Pull"
+
+[node name="RefreshGitBtn" type="Button" parent="TabContainer/Git/GitActionsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Refresh Status"
+
+[node name="CommitMsgContainer" type="VBoxContainer" parent="TabContainer/Git"]
+layout_mode = 2
+
+[node name="AutoGenerateBtn" type="Button" parent="TabContainer/Git/CommitMsgContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "✨ Auto-Generate Commit Message"
+
+[node name="CommitMsgInput" type="TextEdit" parent="TabContainer/Git/CommitMsgContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+wrap_mode = 1
+placeholder_text = "Enter commit message here..."
+
+[node name="CommitSyncBtn" type="Button" parent="TabContainer/Git"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Commit & Sync (Push)"
 
 [node name="PollTimer" type="Timer" parent="."]
 wait_time = 0.5

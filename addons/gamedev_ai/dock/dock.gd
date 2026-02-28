@@ -46,6 +46,25 @@ var _memory_manager
 @onready var _apply_diff_btn: Button = %ApplyDiffBtn
 @onready var _skip_diff_btn: Button = %SkipDiffBtn
 
+@onready var git_tab: VBoxContainer = $TabContainer/Git
+@onready var init_repo_btn: Button = %InitRepoBtn
+@onready var remote_container: HBoxContainer = %RemoteContainer
+@onready var remote_url_input: LineEdit = %RemoteUrlInput
+@onready var set_remote_btn: Button = %SetRemoteBtn
+@onready var git_status_label: RichTextLabel = %GitStatusLabel
+@onready var pull_btn: Button = %PullBtn
+@onready var refresh_git_btn: Button = %RefreshGitBtn
+@onready var auto_generate_commit_btn: Button = %AutoGenerateBtn
+@onready var commit_msg_input: TextEdit = %CommitMsgInput
+@onready var commit_sync_btn: Button = %CommitSyncBtn
+
+@onready var tts_btn: Button = %TTSBtn
+@onready var tts_player: AudioStreamPlayer = %TTSPlayer
+
+var git_manager
+var _is_generating_commit: bool = false
+var _last_ai_response_text: String = ""
+
 var _attached_images: Array[Image] = []
 var _dropped_files: Array[String] = []
 var _history_ids: Array = []
@@ -85,6 +104,7 @@ func _ready():
 	$TabContainer/Chat/ActionsContainer/ExplainBtn.pressed.connect(func(): _on_quick_action_pressed("Explain what this code does"))
 	$TabContainer/Chat/ActionsContainer/UndoBtn.pressed.connect(_on_undo_pressed)
 	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.pressed.connect(_on_fix_console_pressed)
+	tts_btn.pressed.connect(_on_tts_pressed)
 	%ExecutePlanBtn.pressed.connect(_on_execute_plan_pressed)
 	
 	send_button.pressed.connect(_on_send_pressed)
@@ -117,6 +137,18 @@ func _ready():
 	new_chat_button.pressed.connect(_on_new_chat_pressed)
 	history_button.get_popup().about_to_popup.connect(_on_history_popup_about_to_show)
 	history_button.get_popup().id_pressed.connect(_on_history_item_pressed)
+	
+	init_repo_btn.pressed.connect(_on_init_repo_pressed)
+	set_remote_btn.pressed.connect(_on_set_remote_pressed)
+	pull_btn.pressed.connect(_on_pull_pressed)
+	refresh_git_btn.pressed.connect(_update_git_status)
+	auto_generate_commit_btn.pressed.connect(_on_auto_generate_commit_pressed)
+	commit_sync_btn.pressed.connect(_on_commit_sync_pressed)
+	
+	var GitManager = preload("res://addons/gamedev_ai/git_manager.gd")
+	git_manager = GitManager.new()
+	$TabContainer.tab_changed.connect(_on_tab_changed)
+	_update_git_status()
 	
 	# Add provider options
 	provider_selector.add_item("Gemini", 0)
@@ -185,6 +217,8 @@ func _set_client(client):
 			gemini_client.tool_call_received.disconnect(_on_tool_calls)
 		if gemini_client.status_changed.is_connected(_on_status_changed):
 			gemini_client.status_changed.disconnect(_on_status_changed)
+		if gemini_client.has_signal("audio_received") and gemini_client.audio_received.is_connected(_on_audio_received):
+			gemini_client.audio_received.disconnect(_on_audio_received)
 		if gemini_client.token_usage_reported.is_connected(_on_token_usage):
 			gemini_client.token_usage_reported.disconnect(_on_token_usage)
 	
@@ -192,6 +226,7 @@ func _set_client(client):
 	
 	if gemini_client:
 		gemini_client.response_received.connect(_on_ai_response)
+		gemini_client.audio_received.connect(_on_audio_received)
 		gemini_client.error_occurred.connect(_on_ai_error)
 		gemini_client.tool_call_received.connect(_on_tool_calls)
 		gemini_client.status_changed.connect(_on_status_changed)
@@ -409,6 +444,43 @@ func _on_execute_plan_pressed():
 
 func _on_quick_action_pressed(action_text: String):
 	_process_send(action_text)
+
+func _on_tts_pressed():
+	print("TTS Button Pressed. Last response text length: ", _last_ai_response_text.length())
+	if _last_ai_response_text.is_empty():
+		return
+	if gemini_client:
+		print("Gemini client found, requesting TTS...")
+		tts_btn.disabled = true
+		tts_btn.text = "🔊 Loading..."
+		# Strip BBCode tags for TTS clarity
+		var regex = RegEx.new()
+		regex.compile("\\[.*?\\]")
+		var plain_text = regex.sub(_last_ai_response_text, "", true)
+		gemini_client.request_tts(plain_text)
+	else:
+		print("Error: gemini_client is null!")
+
+func _on_audio_received(raw_data: PackedByteArray):
+	print("Audio received! Bypassing main-thread decoding...")
+	tts_btn.disabled = false
+	tts_btn.text = "🔊 Read Aloud"
+	
+	print("Raw data decoded length: ", raw_data.size())
+	if raw_data.is_empty():
+		return
+		
+	# Gemini TTS typically returns PCM audio by default. 
+	# To play it natively in Godot 4, we configure an AudioStreamWAV.
+	var stream = AudioStreamWAV.new()
+	stream.data = raw_data
+	# Typical Gemini TTS params: 24kHz, 16-bit, Mono
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = 24000
+	stream.stereo = false
+	
+	tts_player.stream = stream
+	tts_player.play()
 
 func _stop_ai():
 	_is_stopped = true
@@ -748,6 +820,14 @@ func _get_error_logs() -> String:
 	return "\n".join(filtered_errors)
 
 func _on_ai_response(response: String):
+	if _is_generating_commit:
+		_is_generating_commit = false
+		commit_msg_input.text = response.strip_edges()
+		auto_generate_commit_btn.disabled = false
+		return
+		
+	_last_ai_response_text = response
+	
 	output_display.append_text("\n[b]Response:[/b]\n")
 	output_display.append_text(_markdown_to_bbcode(response) + "\n")
 	
@@ -755,7 +835,93 @@ func _on_ai_response(response: String):
 		execute_plan_btn.visible = true
 
 func _on_ai_error(error: String):
+	if _is_generating_commit:
+		_is_generating_commit = false
+		auto_generate_commit_btn.disabled = false
+		commit_msg_input.text = "Error generating commit message."
+		return
 	output_display.append_text("\n[color=red]Error: " + error + "[/color]\n")
+
+func _on_tab_changed(tab: int):
+	# Git tab is index 2
+	if tab == 2:
+		_update_git_status()
+
+func _update_git_status():
+	if not git_manager.is_git_repo():
+		git_status_label.text = "No Git repository found in project root."
+		init_repo_btn.visible = true
+		remote_container.visible = false
+		pull_btn.disabled = true
+		commit_sync_btn.disabled = true
+		auto_generate_commit_btn.disabled = true
+	else:
+		init_repo_btn.visible = false
+		remote_container.visible = true
+		pull_btn.disabled = false
+		commit_sync_btn.disabled = false
+		auto_generate_commit_btn.disabled = false
+		
+		var current_remote = git_manager.git_get_remote()
+		if current_remote != "":
+			remote_url_input.text = current_remote
+			
+		var status = git_manager.git_status()
+		if status.strip_edges() == "":
+			git_status_label.text = "[color=green]Working tree clean.[/color]"
+		else:
+			git_status_label.text = "Pending changes:\n" + status
+
+func _on_set_remote_pressed():
+	var url = remote_url_input.text.strip_edges()
+	if url == "":
+		return
+	git_manager.git_remote_add(url)
+	_update_git_status()
+
+func _on_init_repo_pressed():
+	git_manager.git_init()
+	_update_git_status()
+
+func _on_pull_pressed():
+	git_status_label.text = "Pulling..."
+	var res = git_manager.git_pull()
+	git_status_label.text = "Pull result:\n" + res
+	await get_tree().create_timer(3.0).timeout
+	_update_git_status()
+
+func _on_commit_sync_pressed():
+	var msg = commit_msg_input.text.strip_edges()
+	if msg == "":
+		msg = "Updates"
+	
+	git_manager.git_add_all()
+	git_manager.git_commit(msg)
+	git_status_label.text = "Committing and pushing..."
+	var push_res = git_manager.git_push()
+	if push_res.strip_edges() == "":
+		push_res = "Done."
+	git_status_label.text = "Push result:\n" + push_res
+	commit_msg_input.text = ""
+	await get_tree().create_timer(3.0).timeout
+	_update_git_status()
+
+func _on_auto_generate_commit_pressed():
+	if git_manager.git_status().strip_edges() == "":
+		commit_msg_input.text = "No changes to commit."
+		return
+	
+	if gemini_client == null or gemini_client.api_key == "":
+		commit_msg_input.text = "AI Provider not configured."
+		return
+		
+	commit_msg_input.text = "Generating..."
+	auto_generate_commit_btn.disabled = true
+	_is_generating_commit = true
+	var diff = git_manager.git_diff()
+	var prompt = "You are an expert developer. Write a clear, concise Git commit message for the following diff. Only return the commit message snippet without any markdown formatting or explanations:\n\n" + diff
+	
+	gemini_client.send_prompt(prompt, "", [], [])
 
 func _log_user_message(msg: String, token_count: int = -1):
 	var header = "\n[b]You:[/b] "

@@ -45,6 +45,7 @@ const _TOOL_REQUIRED_ARGS = {
 	"delete_memory": ["id"],
 	"search_in_files": ["pattern"],
 	"read_skill": ["skill_name"],
+	"move_files_batch": ["moves"],
 }
 
 func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
@@ -632,6 +633,10 @@ func execute_tool(tool_name: String, args: Dictionary):
 			_delete_memory(args.get("id"))
 		"search_in_files":
 			_search_in_files(args.get("pattern"))
+		"move_files_batch":
+			_pending_confirm_tool = "move_files_batch"
+			_pending_confirm_args = args
+			confirmation_needed.emit("Execute the following file moves/refactors?\n\n" + _format_moves(args.get("moves", {})), tool_name, args)
 		_:
 			tool_output.emit("Error: Unknown tool '" + tool_name + "'. Available tools: " + str(_TOOL_REQUIRED_ARGS.keys()))
 
@@ -1123,7 +1128,7 @@ func _apply_replace_selection(text: String):
 	if not code_edit: return
 
 	code_edit.begin_complex_operation()
-	code_edit.insert_text_at_cursor(text)
+	code_edit.insert_text_at_caret(text)
 	code_edit.end_complex_operation()
 	
 	tool_output.emit("Success: Selected text replaced.")
@@ -1766,3 +1771,115 @@ func _delete_memory(fact_id: String):
 		tool_output.emit("Memory deleted: " + fact_id)
 	else:
 		tool_output.emit("Error: Memory not found with id '" + fact_id + "'. Use list_memories to see available memories.")
+
+# --- File Organizer Tools ---
+
+func _format_moves(moves: Dictionary) -> String:
+	var text = ""
+	for old_path in moves:
+		text += old_path + " -> " + str(moves[old_path]) + "\n"
+	return text
+
+func _move_files_batch(moves: Dictionary):
+	var moved_count = 0
+	var error_msgs = []
+	var refactored_files = 0
+	
+	if _undo_redo:
+		if _composite_action_name == "":
+			_undo_redo.create_action("Organize " + str(moves.size()) + " files", UndoRedo.MERGE_DISABLE, self)
+			
+	for old_path in moves:
+		var new_path = str(moves[old_path])
+		if old_path == new_path:
+			continue
+			
+		if not FileAccess.file_exists(old_path):
+			error_msgs.append("Not found: " + old_path)
+			continue
+			
+		var dir_path = new_path.get_base_dir()
+		if not DirAccess.dir_exists_absolute(dir_path):
+			DirAccess.make_dir_recursive_absolute(dir_path)
+			
+		if _undo_redo:
+			_undo_redo.add_do_method(DirAccess, "rename_absolute", old_path, new_path)
+			_undo_redo.add_undo_method(DirAccess, "rename_absolute", new_path, old_path)
+			
+			if FileAccess.file_exists(old_path + ".import"):
+				_undo_redo.add_do_method(DirAccess, "rename_absolute", old_path + ".import", new_path + ".import")
+				_undo_redo.add_undo_method(DirAccess, "rename_absolute", new_path + ".import", old_path + ".import")
+			
+			moved_count += 1
+		else:
+			var err = DirAccess.rename_absolute(old_path, new_path)
+			if err != OK:
+				error_msgs.append("Failed to move " + old_path.get_file() + " (Code: " + str(err) + ")")
+				continue
+			
+			if FileAccess.file_exists(old_path + ".import"):
+				DirAccess.rename_absolute(old_path + ".import", new_path + ".import")
+			
+			moved_count += 1
+		
+	# Now refactor text paths in all .gd, .tscn, .tres
+	var files_to_check = _recursive_find("res://", ".gd")
+	files_to_check.append_array(_recursive_find("res://", ".tscn"))
+	files_to_check.append_array(_recursive_find("res://", ".tres"))
+	
+	for file_path in files_to_check:
+		# Don't check files that we just moved out of under their OLD names
+		if file_path in moves:
+			continue
+			
+		# Wait, if a file WAS moved, its current path during refactor checking is the NEW path.
+		var actual_path = file_path
+		for old_p in moves:
+			if file_path == old_p:
+				actual_path = moves[old_p]
+				break
+		
+		if not FileAccess.file_exists(actual_path):
+			continue
+			
+		var changed = false
+		var file = FileAccess.open(actual_path, FileAccess.READ)
+		if not file: continue
+		var content = file.get_as_text()
+		file.close()
+		
+		for old_p in moves:
+			var new_p = str(moves[old_p])
+			# Be careful around extensions. E.g. res://old.tscn -> res://new.tscn
+			# Standard replace is fine since Godot paths are unique.
+			if old_p in content:
+				content = content.replace(old_p, new_p)
+				changed = true
+				
+		if changed:
+			if _undo_redo:
+				# Store old state for undo
+				var old_content_file = FileAccess.open(actual_path, FileAccess.READ)
+				var old_content = old_content_file.get_as_text() if old_content_file else ""
+				if old_content_file: old_content_file.close()
+				
+				_undo_redo.add_do_method(self, "_create_file_undoable", actual_path, content)
+				_undo_redo.add_undo_method(self, "_create_file_undoable", actual_path, old_content)
+			else:
+				var out = FileAccess.open(actual_path, FileAccess.WRITE)
+				if out:
+					out.store_string(content)
+					out.close()
+			refactored_files += 1
+			
+	if _undo_redo:
+		if _composite_action_name == "":
+			_undo_redo.commit_action()
+			
+	_scan_fs()
+	
+	var final_msg = "Batch Move Complete! Moved " + str(moved_count) + " files. Refactored connections in " + str(refactored_files) + " files."
+	if not error_msgs.is_empty():
+		final_msg += "\nErrors:\n- " + "\n- ".join(error_msgs)
+		
+	tool_output.emit(final_msg)

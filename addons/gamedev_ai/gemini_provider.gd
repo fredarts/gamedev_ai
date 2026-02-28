@@ -5,13 +5,85 @@ var model_name: String = "gemini-1.5-pro"
 var _cancelled: bool = false
 var _last_tools: Array = []
 
+var tts_http_request: HTTPRequest
+var _tts_thread: Thread
+
 func setup(node: Node):
 	super.setup(node)
+	
+	tts_http_request = HTTPRequest.new()
+	node.add_child(tts_http_request)
+	tts_http_request.request_completed.connect(_on_tts_request_completed)
+	tts_http_request.use_threads = true
 	
 	# Try to load API key from environment variable
 	var env = OS.get_environment("GEMINI_API_KEY")
 	if env != "":
 		api_key = env
+
+func request_tts(text: String):
+	if api_key == "":
+		error_occurred.emit("API Key is missing for TTS.")
+		return
+		
+	var tts_model = "gemini-2.5-flash-preview-tts"
+	var url = "https://generativelanguage.googleapis.com/v1beta/models/" + tts_model + ":generateContent?key=" + api_key
+	var headers = ["Content-Type: application/json"]
+	
+	var body = {
+		"contents": [{"role": "user", "parts": [{"text": "Read aloud the following text naturally:\n" + text}]}],
+		"generationConfig": {
+			"responseModalities": ["AUDIO"],
+			"speechConfig": {
+				"voiceConfig": {
+					"prebuiltVoiceConfig": {
+						"voiceName": "Kore"
+					}
+				}
+			}
+		}
+	}
+	
+	print("Sending TTS HTTP Request (model: ", tts_model, "). Text length: ", text.length())
+	var error = tts_http_request.request(url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
+	if error != OK:
+		error_occurred.emit("Failed to send TTS request: " + str(error))
+
+func _on_tts_request_completed(_result, response_code, _headers, body):
+	print("TTS HTTP Request completed. Code: ", response_code)
+	if response_code != 200:
+		var json = JSON.parse_string(body.get_string_from_utf8())
+		print("TTS API Error payload: ", json)
+		error_occurred.emit("TTS API Error (" + str(response_code) + "): " + str(json))
+		return
+		
+	var payload = body.get_string_from_utf8()
+	
+	if _tts_thread and _tts_thread.is_started():
+		_tts_thread.wait_to_finish()
+		
+	_tts_thread = Thread.new()
+	_tts_thread.start(_process_tts_payload.bind(payload))
+
+func _process_tts_payload(payload: String):
+	var json = JSON.parse_string(payload)
+	print("TTS JSON Response Parsed in Background")
+	
+	if json and json.has("candidates"):
+		var candidate = json["candidates"][0]
+		var content = candidate.get("content", {})
+		var parts = content.get("parts", [])
+		
+		for part in parts:
+			if part.has("inlineData"):
+				var inline_data = part["inlineData"]
+				if inline_data.has("data"):
+					var base64_audio = inline_data["data"]
+					var raw_data = Marshalls.base64_to_raw(base64_audio)
+					call_deferred("emit_signal", "audio_received", raw_data)
+					return
+	
+	call_deferred("emit_signal", "error_occurred", "Failed to parse TTS response data.")
 
 func send_prompt(prompt: String, context: String = "", tools: Array = [], images: Array = []):
 	if api_key == "":

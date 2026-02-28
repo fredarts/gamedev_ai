@@ -3,6 +3,7 @@ extends RefCounted
 class_name AIProvider
 
 signal response_received(response)
+signal audio_received(audio_data: PackedByteArray)
 signal error_occurred(error_msg)
 signal tool_call_received(tool_calls)
 signal status_changed(is_requesting)
@@ -150,6 +151,9 @@ func _on_timeout():
 
 # Virtual methods to be overridden
 func send_prompt(_prompt: String, _context: String = "", _tools: Array = [], _images: Array = []):
+	pass
+
+func request_tts(_text: String):
 	pass
 
 func send_tool_responses(_responses: Array, _tools: Array = []):
