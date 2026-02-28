@@ -5,44 +5,76 @@
 </p>
 
 <p align="center">
-  Integrate AI models directly into your Godot workflow. Gamedev AI is an autonomous assistant that doesn't just provide suggestions — it interacts directly with your project. From constructing scene hierarchies to refactoring code and managing project memory, it helps you build your game both visually and logically.
+  Integrate AI models directly into your Godot workflow. Gamedev AI is an autonomous assistant that doesn't just provide suggestions — it interacts directly with your project. From constructing scene hierarchies to refactoring code, reading PDFs aloud, and managing your Git history, it helps you build your game both visually and logically.
 </p>
 
 ---
 
-![Gamedev AI Main Interface Placeholder](docs/images/main_interface.png)
-*(Drop a screenshot of the main chat UI here)*
-
 ## 🚀 Features
 
 ### 🧠 Core Agentic Capabilities
-- **🛠️ Agentic Tools**: The AI can autonomously `add_node`, `set_property`, `instance_scene`, `patch_script`, `create_scene`, `connect_signal`, `search_in_files`, and more — directly in the live editor.
+- **🛠️ Agentic Tools**: The AI can autonomously `add_node`, `set_property`, `instance_scene`, `patch_script`, `create_scene`, `connect_signal`, `search_in_files`, `move_files_batch`, and more — directly in the live editor.
 - **👁️ Context Awareness**: Automatically gathers context from your **Active Scene**, **Open Scripts**, **Project Structure**, and takes **Viewport Screenshots** for visual guidance.
 - **💾 Persistent Project Memory**: The AI remembers architectural decisions, naming conventions, and project facts across different sessions. It learns your game as you build it!
-- **📋 Plan First Mode**: For complex tasks, ask the AI to generate a step-by-step numbered plan before executing any changes. Review the plan, then click "Run Plan" to watch it work.
-  
-![Plan First Mode Placeholder](docs/images/plan_first.png)
-*(Drop a screenshot of the Plan First toggle and Run Plan button here)*
+- **📋 Plan First Mode**: For complex tasks, ask the AI to generate a step-by-step numbered plan before executing any changes. Review the plan, then click **Run Plan** to watch it work. The toggle automatically disables after execution to prevent accidental re-planning loops.
+
+### 📚 Built-in Skills Library
+The AI is powered by a comprehensive set of **GDScript skill documents** that are injected into its knowledge base, ensuring high-quality, idiomatic code generation:
+
+| Skill | Description |
+|---|---|
+| `gdscript_style_guide` | Naming conventions, formatting rules, and code organization standards |
+| `gdscript_modern_features` | GDScript 4.x features: typed arrays, lambdas, match statements |
+| `gdscript_signals_and_tweens` | Signal patterns, Tweens, AnimationPlayers, and coroutines |
+| `gdscript_recipes_and_patterns` | Common gameplay recipes: state machines, object pooling, singletons |
+| `common_architectures` | Component-based, ECS, and feature-folder project architectures |
+| `ui_ux_patterns` | Container layouts, themes, responsive UI, accessibility patterns |
+| `shaders_and_vfx` | Shader language reference, visual effects, particles, post-processing |
+| `performance_optimization` | Profiling, draw call reduction, GDScript optimization tips |
+| `gdscript_deprecated` | Deprecated APIs and their modern replacements |
+| `project_structure_guidelines` | AI-enforced folder organization rules and naming conventions |
+
+### 🔊 Text-to-Speech (Read Aloud)
+- **AI-Powered TTS**: Click the **▶ Read Aloud** button to hear the AI's last response spoken naturally using Google's Gemini TTS model.
+- **Full Audio Player**: Play/Pause toggle, Stop button, draggable seek slider, and playback speed control (1.0x, 1.25x, 1.5x, 2.0x).
+- **Smart Caching**: Once audio is generated, it's cached in memory. Pressing Play again is instant — no API call needed.
+- **Background Processing**: Audio decoding runs on a separate thread so the editor never freezes.
+
+### 📎 Universal File Attachments
+- **Beyond Images**: Attach **PDFs, text files (.txt, .md, .csv, .gd, .json), audio (.mp3, .wav, .ogg),** and images directly to your prompts.
+- **Smart Processing**: Text files are extracted and injected into the AI context. Binary files (PDFs, audio) are Base64-encoded and sent via `inlineData` for native Gemini Pro multimodal processing.
+- **Drag & Drop**: Drag files from your OS or the Godot FileSystem dock directly into the chat.
+- **Clipboard Paste**: Paste images from your clipboard with `Ctrl+V`.
 
 ### ⚡ Workflow Accelerators
 - **💡 Quick Suggestions**: At the end of every response, the AI provides clickable "Smart Actions" to instantly trigger the logical next steps in your workflow.
 - **🔍 Code Search Tool**: The AI can use Regex to search across your entire codebase (`search_in_files`) to find where variables, functions, or specific logic are used.
 - **🐞 Watch Mode & Error Auto-Fix**: Automatically monitors your console logs. When a new error appears, the AI will intercept it, read the relevant context, and propose a fix.
 - **🔄 File Watcher / Auto-Refresh**: Dropped a file into the chat for context? If you modify it externally, the plugin automatically stays in sync.
-- **🖼️ Multimodal Input & Drag-and-Drop**: Paste images directly into the chat (Ctrl+V) or Drag & Drop scripts and scenes from the FileSystem dock to instantly add them to the AI's context window.
-
-![Drag and Drop Placeholder](docs/images/drag_and_drop.png)
-*(Drop a screenshot showing dragged files in the context preview here)*
+- **📂 AI Project Organizer**: The AI can analyze your entire project structure and propose a reorganization plan. It moves files, updates all path references in scripts and scenes, handles `.import` files, and supports full Undo/Redo.
 
 ### 🛡️ Safety & Control
 - **👀 Diff Preview**: Before applying any code modifications, review a clean visual Diff of what the AI is about to change. Accept or Reject with a single click.
 - **🛑 Stop AI**: Catch the AI doing something wrong? Instantly halt its execution stream.
 - **↩️ Built-in Composite Undo**: A robust, session-aware undo system that reverts multiple AI actions (node creations, property changes, and script edits) in a single batch.
-- **⚠️ Destructive Action Confirmation**: File deletions and node removals require user confirmation before proceeding.
+- **⚠️ Destructive Action Confirmation**: File deletions, node removals, and dangerous Git operations require user confirmation before proceeding.
 - **🎮 Game State Detection**: The plugin pauses destructive agentic actions if it detects that your game is currently running to prevent file locks and data corruption.
+- **💬 Tooltips Everywhere**: Every button, toggle, and slider has an English tooltip explaining exactly what it does — beginner-friendly by design.
 
-![Diff Preview Placeholder](docs/images/diff_preview.png)
-*(Drop a screenshot of the Diff Preview panel here)*
+### 🔀 Integrated Git Version Control
+A full Git workflow built right into the plugin, designed for users who aren't Git experts:
+
+| Button | What It Does |
+|---|---|
+| **Initialize Repository** | Creates a new local Git repo in your project folder (`git init`) |
+| **GitHub URL + Save** | Connects your project to a remote GitHub repository |
+| **Pull** | Downloads and merges the latest changes from GitHub |
+| **Refresh Status** | Shows which files have been added, modified, or deleted |
+| **✨ Auto-Generate Commit Message** | Uses AI to analyze your code changes and write a commit message |
+| **Commit & Sync (Push)** | Saves your changes locally and uploads them to GitHub |
+| **Create/Switch Branch** | Create a parallel "timeline" to test features safely without breaking your main game |
+| **Undo Uncommitted Changes** | Discards all local edits that haven't been committed (with confirmation dialog) |
+| **Force Pull Overwrite** | Replaces your entire local project with the version on GitHub (panic button, with confirmation) |
 
 ### ⚙️ Customization & Providers
 - **🤖 Multi-Provider Support**: Works flawlessly with **Google Gemini** and **OpenAI / OpenRouter** APIs.
@@ -67,22 +99,37 @@
 3. Click **Edit** to configure your API Provider, Model, and Key. It will be saved securely in your local Editor Settings.
 4. You can create multiple presets and switch between them directly from the main Chat tab.
 
-![Settings UI Placeholder](docs/images/settings_ui.png)
-*(Drop a screenshot of the new pristine Settings UI with the Edit panel open here)*
-
 ---
 
 ## 🗺️ Project Structure
 
-- **`gamedev_ai.gd`**: Main plugin entry point. Manages provider initialization, dock setup, and preset coordination.
-- **`ai_provider.gd`**: Base class for AI providers. Handles timeout, retry logic, session management, and lifecycle signals.
-- **`gemini` & `openai` providers**: Implementations for respective APIs.
-- **`tool_executor.gd`**: The "hands" of the assistant. Executes scene and file manipulations using Godot's `EditorInterface` with full undo/redo support.
-- **`context_manager.gd`**: The "eyes" of the assistant. Collects scene tree data, script content, project structure, and viewport screenshots.
-- **`memory_manager.gd`**: The "hippocampus". Handles long-term persistence of project decisions across chat sessions.
-- **`system_prompt.gd`**: Defines the AI's system instructions and behavioral guidelines.
-- **`gdscript_codex.gd`**: Comprehensive GDScript 4.6.1 best practices reference injected into the system prompt.
-- **`dock/dock.tscn` & `dock/dock.gd`**: The main User Interface, event coordinator, and UI logic.
+```
+addons/gamedev_ai/
+├── gamedev_ai.gd          # Main plugin entry point
+├── ai_provider.gd         # Base class for AI providers (timeout, retry, sessions)
+├── gemini_provider.gd     # Google Gemini API implementation (+ TTS)
+├── openai_provider.gd     # OpenAI / OpenRouter API implementation
+├── tool_executor.gd       # Executes scene/file manipulations with undo/redo
+├── context_manager.gd     # Collects scene tree, scripts, project structure
+├── memory_manager.gd      # Long-term persistence of project decisions
+├── system_prompt.gd       # AI behavioral guidelines and system instructions
+├── git_manager.gd         # Git CLI wrapper (init, commit, push, branch, reset)
+├── logger.gd              # Console log monitoring for Watch Mode
+├── dock/
+│   ├── dock.tscn          # Main UI layout
+│   └── dock.gd            # UI logic and event coordination
+└── skills/                # AI knowledge base documents
+    ├── gdscript_style_guide.md
+    ├── gdscript_modern_features.md
+    ├── gdscript_signals_and_tweens.md
+    ├── gdscript_recipes_and_patterns.md
+    ├── common_architectures.md
+    ├── ui_ux_patterns.md
+    ├── shaders_and_vfx.md
+    ├── performance_optimization.md
+    ├── gdscript_deprecated.md
+    └── project_structure_guidelines.md
+```
 
 ---
 
@@ -90,8 +137,8 @@
 
 - **Streaming Responses**: Token-by-token response display for instant feedback.
 - **Context Window Management**: Smarter pruning of history to preserve core project instructions.
-- **Error Context Enhancement**: Auto-fetching full script blocks when Watch Mode detects console errors.
 - **Scene Visual Preview**: Snapshots of created scenes directly inside the chat.
+- **Voice Input**: Speak your prompts instead of typing.
 
 ---
 
