@@ -11,6 +11,7 @@ signal token_usage_reported(usage: Dictionary)
 
 var api_key: String = ""
 var custom_instructions: String = ""
+var response_language_instruction: String = ""
 var http_request: HTTPRequest
 var history: Array = [] # Stores conversation history (Technical format)
 var transcript: Array = [] # Stores user-friendly text for UI display

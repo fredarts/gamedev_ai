@@ -5,6 +5,7 @@ var gemini_client
 var context_manager
 var _tool_executor
 var _memory_manager
+var locale_manager
 
 # Scene node references (unique names from dock.tscn)
 @onready var output_display: RichTextLabel = %OutputDisplay
@@ -45,6 +46,8 @@ var _memory_manager
 @onready var _diff_display: RichTextLabel = %DiffDisplay
 @onready var _apply_diff_btn: Button = %ApplyDiffBtn
 @onready var _skip_diff_btn: Button = %SkipDiffBtn
+@onready var language_selector: OptionButton = %LanguageSelector
+@onready var language_label: Label = %LanguageSelector.get_parent().get_child(0)
 
 @onready var git_tab: VBoxContainer = $TabContainer/Git
 @onready var init_repo_btn: Button = %InitRepoBtn
@@ -87,6 +90,10 @@ var _attached_files: Array[Dictionary] = []
 var _dropped_files: Array[String] = []
 var _history_ids: Array = []
 
+var _next_block_id: int = 0
+var _block_data: Dictionary = {}
+var _chat_log_bbcode: String = ""
+
 var presets: Dictionary = {}
 var active_preset_name: String = ""
 
@@ -116,6 +123,16 @@ signal preset_changed(config)
 signal settings_updated()
 
 func _ready():
+	# Initialize locale manager FIRST before any UI updates
+	var settings = EditorInterface.get_editor_settings()
+	var LocaleMgr = preload("res://addons/gamedev_ai/locale_manager.gd")
+	locale_manager = LocaleMgr.new()
+	var saved_locale = ""
+	if settings.has_setting("gamedev_ai/language"):
+		saved_locale = settings.get_setting("gamedev_ai/language")
+	if saved_locale != "":
+		locale_manager.set_locale(saved_locale)
+	
 	# Connect scene node signals
 	$TabContainer/Chat/ActionsContainer/RefactorBtn.pressed.connect(func(): _on_quick_action_pressed("Refactor this code"))
 	$TabContainer/Chat/ActionsContainer/FixBtn.pressed.connect(func(): _on_quick_action_pressed("Fix errors in this code"))
@@ -180,6 +197,7 @@ func _ready():
 	$TabContainer/Settings/PresetBar/DelPresetBtn.pressed.connect(_on_delete_preset_pressed)
 	close_edit_btn.pressed.connect(_on_close_edit_pressed)
 	preset_name_input.text_submitted.connect(_on_rename_preset)
+	preset_name_input.focus_exited.connect(func(): _on_rename_preset(preset_name_input.text))
 	provider_selector.item_selected.connect(_on_provider_type_changed)
 	api_input.text_changed.connect(_on_config_changed)
 	model_input.text_changed.connect(_on_config_changed)
@@ -202,7 +220,6 @@ func _ready():
 	$PollTimer.timeout.connect(_on_poll_timer_timeout)
 	
 	# Load saved custom prompt
-	var settings = EditorInterface.get_editor_settings()
 	if settings.has_setting("gamedev_ai/custom_system_prompt"):
 		custom_prompt_input.text = settings.get_setting("gamedev_ai/custom_system_prompt")
 	custom_prompt_input.text_changed.connect(_on_custom_prompt_changed)
@@ -212,6 +229,14 @@ func _ready():
 		gemini_client.custom_instructions = custom_prompt_input.text
 	
 	_load_presets()
+	
+	_populate_language_selector()
+	language_selector.item_selected.connect(_on_language_changed)
+	_apply_locale()
+	
+	# Sync initial language with provider
+	if gemini_client:
+		gemini_client.response_language_instruction = locale_manager.get_ai_language_instruction()
 	
 	# Precompile regex for markdown parser
 	_regex_bold_italic = RegEx.new()
@@ -363,6 +388,7 @@ func _on_edit_preset_pressed():
 	preset_edit_panel.visible = true
 
 func _on_close_edit_pressed():
+	_on_rename_preset(preset_name_input.text)
 	preset_edit_panel.visible = false
 
 var _current_font_size: int = 14
@@ -426,11 +452,122 @@ func _on_config_changed(_text: String = ""):
 	_save_presets()
 	settings_updated.emit()
 
+func _populate_language_selector():
+	language_selector.clear()
+	var locales = locale_manager.get_available_locales()
+	var current = locale_manager.get_locale()
+	for i in range(locales.size()):
+		language_selector.add_item(locales[i]["name"], i)
+		if locales[i]["code"] == current:
+			language_selector.selected = i
+
+func _on_language_changed(index: int):
+	var locales = locale_manager.get_available_locales()
+	if index >= 0 and index < locales.size():
+		locale_manager.set_locale(locales[index]["code"])
+		var settings = EditorInterface.get_editor_settings()
+		settings.set_setting("gamedev_ai/language", locales[index]["code"])
+		_apply_locale()
+		# Update AI response language
+		if gemini_client:
+			var lang_instruction = locale_manager.get_ai_language_instruction()
+			gemini_client.response_language_instruction = lang_instruction
+
+func _apply_locale():
+	if not locale_manager:
+		return
+	var L = locale_manager
+	# Chat tab buttons
+	send_button.text = L.tr("send")
+	new_chat_button.text = L.tr("new_chat")
+	history_button.text = L.tr("history")
+	selection_status.text = L.tr("no_selection")
+	input_field.placeholder_text = L.tr("input_placeholder")
+	execute_plan_btn.text = L.tr("run_plan")
+	
+	# Action buttons
+	$TabContainer/Chat/ActionsContainer/RefactorBtn.text = L.tr("refactor")
+	$TabContainer/Chat/ActionsContainer/RefactorBtn.tooltip_text = L.tr("tt_refactor")
+	$TabContainer/Chat/ActionsContainer/FixBtn.text = L.tr("fix")
+	$TabContainer/Chat/ActionsContainer/FixBtn.tooltip_text = L.tr("tt_fix")
+	$TabContainer/Chat/ActionsContainer/ExplainBtn.text = L.tr("explain")
+	$TabContainer/Chat/ActionsContainer/ExplainBtn.tooltip_text = L.tr("tt_explain")
+	$TabContainer/Chat/ActionsContainer/UndoBtn.text = L.tr("undo_last")
+	$TabContainer/Chat/ActionsContainer/UndoBtn.tooltip_text = L.tr("tt_undo")
+	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.text = L.tr("fix_console")
+	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.tooltip_text = L.tr("tt_fix_console")
+	
+	# Toggles
+	context_toggle.text = L.tr("context")
+	context_toggle.tooltip_text = L.tr("tt_context")
+	screenshot_toggle.text = L.tr("screenshot")
+	screenshot_toggle.tooltip_text = L.tr("tt_screenshot")
+	plan_first_toggle.text = L.tr("plan_first")
+	plan_first_toggle.tooltip_text = L.tr("tt_plan_first")
+	watch_mode_toggle.text = L.tr("watch_mode")
+	watch_mode_toggle.tooltip_text = L.tr("tt_watch_mode")
+	
+	# TTS
+	if not tts_player.playing and not tts_player.stream_paused:
+		tts_play_btn.text = L.tr("tts_read_aloud")
+	
+	# Settings tab
+	$TabContainer/Settings/PresetBar/PresetLabel.text = L.tr("preset_label")
+	$TabContainer/Settings/PresetBar/AddPresetBtn.text = L.tr("add")
+	edit_preset_btn.text = L.tr("edit")
+	$TabContainer/Settings/PresetBar/DelPresetBtn.text = L.tr("delete")
+	close_edit_btn.text = L.tr("done_editing")
+	$TabContainer/Settings/PresetEditPanel/ConfigGrid/NameLabel.text = L.tr("preset_name_label")
+	$TabContainer/Settings/PresetEditPanel/ConfigGrid/ProviderLabel.text = L.tr("provider_label")
+	$TabContainer/Settings/PresetEditPanel/ConfigGrid/ApiLabel.text = L.tr("api_key_label")
+	$TabContainer/Settings/PresetEditPanel/ConfigGrid/ModelLabel.text = L.tr("model_name_label")
+	$TabContainer/Settings/PresetEditPanel/SettingsBar/UrlLabel.text = L.tr("base_url_label")
+	language_label.text = L.tr("language_label")
+	$TabContainer/Settings/CustomPromptLabel.text = L.tr("custom_instructions_label")
+	custom_prompt_input.placeholder_text = L.tr("custom_instructions_placeholder")
+	
+	# Git tab
+	init_repo_btn.text = L.tr("initialize_repo")
+	init_repo_btn.tooltip_text = L.tr("tt_init_repo")
+	$TabContainer/Git/RemoteContainer/Label.text = L.tr("github_url_label")
+	set_remote_btn.text = L.tr("save")
+	set_remote_btn.tooltip_text = L.tr("tt_set_remote")
+	pull_btn.text = L.tr("pull")
+	pull_btn.tooltip_text = L.tr("tt_pull")
+	refresh_git_btn.text = L.tr("refresh_status")
+	refresh_git_btn.tooltip_text = L.tr("tt_refresh_git")
+	auto_generate_commit_btn.text = L.tr("auto_generate_commit")
+	auto_generate_commit_btn.tooltip_text = L.tr("tt_auto_generate_commit")
+	commit_msg_input.placeholder_text = L.tr("commit_msg_placeholder")
+	commit_sync_btn.text = L.tr("commit_sync")
+	commit_sync_btn.tooltip_text = L.tr("tt_commit_sync")
+	checkout_branch_btn.text = L.tr("create_switch")
+	checkout_branch_btn.tooltip_text = L.tr("tt_checkout_branch")
+	undo_changes_btn.text = L.tr("undo_uncommitted")
+	undo_changes_btn.tooltip_text = L.tr("tt_undo_changes")
+	force_pull_btn.text = L.tr("force_pull")
+	force_pull_btn.tooltip_text = L.tr("tt_force_pull")
+	force_push_btn.text = L.tr("force_push")
+	force_push_btn.tooltip_text = L.tr("tt_force_push")
+	
+	# Diff preview
+	$TabContainer/Chat/DiffPreviewPanel/DiffLabel.text = L.tr("diff_preview_label")
+	_apply_diff_btn.text = L.tr("apply_changes")
+	_skip_diff_btn.text = L.tr("skip")
+	
+	# Confirmation dialogs
+	undo_confirm_dialog.title = L.tr("undo_confirm_title")
+	undo_confirm_dialog.dialog_text = L.tr("undo_confirm_text")
+	force_pull_confirm_dialog.title = L.tr("force_pull_confirm_title")
+	force_pull_confirm_dialog.dialog_text = L.tr("force_pull_confirm_text")
+	force_push_confirm_dialog.title = L.tr("force_push_confirm_title")
+	force_push_confirm_dialog.dialog_text = L.tr("force_push_confirm_text")
+
 func _on_new_chat_pressed():
 	if gemini_client:
 		gemini_client.new_session()
-		output_display.clear()
-		output_display.append_text("\n[color=gray]--- New Chat Started ---[/color]\n")
+		_clear_chat()
+		_add_to_chat("\n[color=gray]" + locale_manager.tr("new_chat_started") + "[/color]\n")
 		_update_ui_state(false)
 
 func _on_history_popup_about_to_show():
@@ -448,16 +585,16 @@ func _on_history_item_pressed(id: int):
 	var session = _history_ids[id]
 	if gemini_client.load_session(session.id):
 		_rebuild_chat_from_transcript()
-		output_display.append_text("\n[color=gray]--- Chat Loaded: " + session.title + " ---[/color]\n")
+		_add_to_chat("\n[color=gray]" + locale_manager.tr("chat_loaded") + session.title + " ---[/color]\n")
 
 func _rebuild_chat_from_transcript():
-	output_display.clear()
+	_clear_chat()
 	for entry in gemini_client.transcript:
 		if entry.role == "user":
 			_log_user_message(entry.text)
 		else:
-			output_display.append_text("\n[b]Response:[/b]\n")
-			output_display.append_text(_markdown_to_bbcode(entry.text) + "\n")
+			_add_to_chat("\n[b]Response:[/b]\n")
+			_add_to_chat(_markdown_to_bbcode(entry.text) + "\n")
 
 func _on_status_changed(is_requesting: bool):
 	_update_ui_state(is_requesting)
@@ -465,10 +602,10 @@ func _on_status_changed(is_requesting: bool):
 func _update_ui_state(busy: bool):
 	input_field.editable = !busy
 	if busy:
-		send_button.text = "⏹ Stop"
+		send_button.text = locale_manager.tr("stop") if locale_manager else "⏹ Stop"
 		send_button.disabled = false
 	else:
-		send_button.text = "Send"
+		send_button.text = locale_manager.tr("send") if locale_manager else "Send"
 		send_button.disabled = false
 
 func _on_send_pressed():
@@ -498,23 +635,23 @@ func _on_tts_play_pressed():
 	if _cached_tts_text == _last_ai_response_text and _cached_tts_stream != null:
 		if tts_player.playing:
 			tts_player.stream_paused = true
-			tts_play_btn.text = "▶ Play"
+			tts_play_btn.text = locale_manager.tr("tts_play") if locale_manager else "▶ Play"
 		elif tts_player.stream_paused:
 			tts_player.stream_paused = false
-			tts_play_btn.text = "⏸ Pause"
+			tts_play_btn.text = locale_manager.tr("tts_pause") if locale_manager else "⏸ Pause"
 		else:
 			# Not playing, start from slider position
 			var pos = tts_seek_slider.value
 			tts_player.stream = _cached_tts_stream
 			tts_player.play(pos)
-			tts_play_btn.text = "⏸ Pause"
+			tts_play_btn.text = locale_manager.tr("tts_pause") if locale_manager else "⏸ Pause"
 			tts_stop_btn.disabled = false
 		return
 		
 	# No cache, request from API
 	if gemini_client:
 		tts_play_btn.disabled = true
-		tts_play_btn.text = "⏳ Loading..."
+		tts_play_btn.text = locale_manager.tr("tts_loading") if locale_manager else "⏳ Loading..."
 		
 		# Strip BBCode
 		var regex = RegEx.new()
@@ -528,7 +665,7 @@ func _on_tts_play_pressed():
 
 func _on_audio_received(raw_data: PackedByteArray):
 	tts_play_btn.disabled = false
-	tts_play_btn.text = "⏸ Pause"
+	tts_play_btn.text = locale_manager.tr("tts_pause") if locale_manager else "⏸ Pause"
 	tts_stop_btn.disabled = false
 	
 	if raw_data.is_empty():
@@ -577,7 +714,7 @@ func _on_audio_received(raw_data: PackedByteArray):
 func _on_tts_stop_pressed():
 	tts_player.stop()
 	tts_player.stream_paused = false
-	tts_play_btn.text = "▶ Play"
+	tts_play_btn.text = locale_manager.tr("tts_play") if locale_manager else "▶ Play"
 	tts_seek_slider.value = 0.0
 	tts_stop_btn.disabled = true
 
@@ -589,7 +726,7 @@ func _on_tts_speed_changed(index: int):
 	tts_player.pitch_scale = speeds[index]
 
 func _on_tts_finished():
-	tts_play_btn.text = "▶ Play"
+	tts_play_btn.text = locale_manager.tr("tts_play") if locale_manager else "▶ Play"
 	tts_stop_btn.disabled = true
 	tts_seek_slider.value = 0.0
 
@@ -604,7 +741,7 @@ func _stop_ai():
 	current_tool_context = {}
 	if gemini_client:
 		gemini_client.cancel_request()
-	output_display.append_text("\n[color=orange][b]⏹ AI stopped by user.[/b][/color]\n")
+	_add_to_chat("\n[color=orange][b]" + locale_manager.tr("ai_stopped") + "[/b][/color]\n")
 	_update_ui_state(false)
 
 func _on_input_gui_input(event: InputEvent):
@@ -628,7 +765,7 @@ func _on_input_gui_input(event: InputEvent):
 					"raw_bytes": img_buffer
 				})
 				_refresh_thumbnails()
-				output_display.append_text("\n[color=green][i]Image pasted from clipboard.[/i][/color]\n")
+				_add_to_chat("\n[color=green][i]" + locale_manager.tr("image_pasted") + "[/i][/color]\n")
 
 func _on_add_file_selected(path: String):
 	var ext = path.get_extension().to_lower()
@@ -650,9 +787,9 @@ func _on_add_file_selected(path: String):
 				"raw_bytes": bytes
 			})
 			_refresh_thumbnails()
-			output_display.append_text("\n[color=green][i]Image attached from file: " + filename + "[/i][/color]\n")
+			_add_to_chat("\n[color=green][i]" + locale_manager.tr("image_attached") + filename + "[/i][/color]\n")
 		else:
-			output_display.append_text("\n[color=red]Failed to load image at: " + path + "[/color]\n")
+			_add_to_chat("\n[color=red]" + locale_manager.tr("failed_load_image") + path + "[/color]\n")
 	elif ext in ["txt", "md", "csv", "json", "gd"]:
 		var file = FileAccess.open(path, FileAccess.READ)
 		if file:
@@ -663,7 +800,7 @@ func _on_add_file_selected(path: String):
 				"text_content": content
 			})
 			_refresh_thumbnails()
-			output_display.append_text("\n[color=green][i]Text file attached: " + filename + "[/i][/color]\n")
+			_add_to_chat("\n[color=green][i]" + locale_manager.tr("text_file_attached") + filename + "[/i][/color]\n")
 	elif ext in ["pdf", "mp3", "wav", "ogg"]:
 		var file = FileAccess.open(path, FileAccess.READ)
 		if file:
@@ -676,7 +813,7 @@ func _on_add_file_selected(path: String):
 				"raw_bytes": bytes
 			})
 			_refresh_thumbnails()
-			output_display.append_text("\n[color=green][i]File attached: " + filename + "[/i][/color]\n")
+			_add_to_chat("\n[color=green][i]" + locale_manager.tr("file_attached") + filename + "[/i][/color]\n")
 
 func _refresh_thumbnails():
 	for child in _thumbnail_list.get_children():
@@ -746,14 +883,14 @@ func _remove_attached_file(index: int):
 	if index >= 0 and index < _attached_files.size():
 		_attached_files.remove_at(index)
 		_refresh_thumbnails()
-		output_display.append_text("[i]Attachment removed.[/i]\n")
+		_add_to_chat("[i]" + locale_manager.tr("attachment_removed") + "[/i]\n")
 
 func _is_game_running() -> bool:
 	return EditorInterface.is_playing_scene()
 
 func _process_send(prompt_text: String, is_execute_plan: bool = false):
 	if _is_game_running():
-		output_display.append_text("\n[color=orange][b]Game is running![/b] Close the game before sending commands to the AI, as files may be locked for editing.[/color]\n")
+		output_display.append_text("\n[color=orange][b]" + locale_manager.tr("game_running_warning") + "[/color]\n")
 		return
 	_is_stopped = false
 	_watch_fix_count = 0  # Reset watch mode counter on manual user message
@@ -763,7 +900,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 		_log_user_message(prompt_text, est_tokens)
 		input_field.text = ""
 	else:
-		output_display.append_text("\n[color=cyan][b]Executing Plan...[/b][/color]\n")
+		_add_to_chat("\n[color=cyan][b]" + locale_manager.tr("executing_plan") + "[/b][/color]\n")
 	
 	var selection = {}
 	if context_manager:
@@ -772,7 +909,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 	var final_prompt = prompt_text
 	if not selection.is_empty() and not is_execute_plan:
 		final_prompt = "Selection Context (File: " + selection.path + "):\n```gdscript\n" + selection.text + "\n```\n\nCommand: " + prompt_text
-		output_display.append_text("[i]Using selection from " + selection.path.get_file() + "...[/i]\n")
+		_add_to_chat("[i]Using selection from " + selection.path.get_file() + "...[/i]\n")
 
 	if plan_first_toggle.button_pressed and not is_execute_plan:
 		final_prompt += "\n\nCRITICAL INSTRUCTION: The user has enabled 'Plan First' mode. Do NOT output any tool calls to modify files yet. Instead, output a detailed, numbered step-by-step plan explaining exactly what tools you will use and what you will do. This is your planning phase."
@@ -815,13 +952,15 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 			elif file["type"] == "image":
 				var encoded = _encode_image(file["image_obj"])
 				files_data.append(encoded)
+				if file.has("path"):
+					context += "\n--- Image File: " + file["path"] + " ---\n"
 			elif file["type"] == "binary":
 				var base64 = Marshalls.raw_to_base64(file["raw_bytes"])
 				files_data.append({
 					"mime_type": file["mime_type"],
 					"data": base64
 				})
-		output_display.append_text("[i]Sending attachments...[/i]\n")
+		_add_to_chat("[i]" + locale_manager.tr("sending_attachments") + "[/i]\n")
 		_attached_files.clear()
 		_refresh_thumbnails()
 		
@@ -830,7 +969,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 		var scr = context_manager.get_editor_screenshot()
 		if not scr.is_empty():
 			files_data.append(scr)
-			output_display.append_text("[i]Capturing screenshot...[/i]\n")
+			_add_to_chat("[i]" + locale_manager.tr("capturing_screenshot") + "[/i]\n")
 
 	var tools = []
 	if _tool_executor:
@@ -838,7 +977,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 	
 	if gemini_client:
 		gemini_client.send_prompt(final_prompt, context, tools, files_data)
-		output_display.append_text("\n[i]Thinking...[/i]\n")
+		output_display.append_text("\n[i]" + locale_manager.tr("thinking") + "[/i]\n")
 		_on_clear_dropped_files()
 
 func _encode_image(image: Image) -> Dictionary:
@@ -859,10 +998,10 @@ func _on_poll_timer_timeout():
 	if context_manager:
 		var selection = context_manager.get_selection_info()
 		if not selection.is_empty():
-			selection_status.text = "Selection: " + selection.path.get_file()
+			selection_status.text = locale_manager.tr("selection_prefix") + selection.path.get_file()
 			selection_status.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2)) # Green
 		else:
-			selection_status.text = "No selection"
+			selection_status.text = locale_manager.tr("no_selection")
 			selection_status.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5)) # Gray
 			
 	# 2. Watch Mode Logic
@@ -896,7 +1035,7 @@ func _check_for_new_errors():
 			if gemini_client and not gemini_client.is_requesting:
 				# Rate limiting: max fixes and cooldown
 				if _watch_fix_count >= _WATCH_MAX_FIXES:
-					output_display.append_text("\n[color=orange][b]Watch Mode:[/b] Reached max auto-fix limit (" + str(_WATCH_MAX_FIXES) + "). Pausing auto-fix to avoid loops. Send a manual message to reset.[/color]\n")
+					_add_to_chat("\n[color=orange][b]" + locale_manager.tr("watch_max_limit").replace("{max}", str(_WATCH_MAX_FIXES)) + "[/b][/color]\n")
 					return
 				
 				var now = Time.get_unix_time_from_system()
@@ -905,7 +1044,7 @@ func _check_for_new_errors():
 				
 				_watch_fix_count += 1
 				_watch_cooldown_until = now + _WATCH_COOLDOWN_SECS
-				output_display.append_text("\n[color=orange][b]Watch Mode:[/b] New error detected! Auto-fixing (" + str(_watch_fix_count) + "/" + str(_WATCH_MAX_FIXES) + ")...[/color]\n")
+				_add_to_chat("\n[color=orange][b]" + locale_manager.tr("watch_error_detected").replace("{current}", str(_watch_fix_count)).replace("{max}", str(_WATCH_MAX_FIXES)) + "[/b][/color]\n")
 				_process_send("I noticed a new error in the console:\n" + new_content + "\n\nPlease analyze and fix it.")
 
 func _on_tool_calls(tool_calls: Array):
@@ -935,13 +1074,22 @@ func _process_next_batch_item():
 	
 	var step = _batch_total - batch_queue.size()
 	var progress = "[" + str(step) + "/" + str(_batch_total) + "] " if _batch_total > 1 else ""
-	output_display.append_text("\n[color=yellow]" + progress + "Tool Call: " + tool_name + " " + str(args) + "[/color]\n")
+	
+	var arg_str = str(args)
+	if arg_str.length() > 100:
+		_append_collapsible_block(progress + "Tool Call: " + tool_name, arg_str, "yellow", false)
+	else:
+		_add_to_chat("\n[color=yellow]" + progress + "Tool Call: " + tool_name + " " + arg_str + "[/color]\n")
+		
 	_tool_executor.execute_tool(tool_name, args)
 
 func _on_tool_output(output: String):
 	if _is_stopped:
 		return
-	output_display.append_text("\n[color=green]Tool Output: " + output + "[/color]\n")
+		
+	var line_count = output.count("\n") + 1
+	var label = "Tool Output " + ("(" + str(line_count) + " lines)" if line_count > 1 else "")
+	_append_collapsible_block(label, output, "green", false)
 	
 	if not current_tool_context.is_empty():
 		var tool_id = current_tool_context.get("id", "")
@@ -954,7 +1102,7 @@ func _on_tool_output(output: String):
 		_process_next_batch_item()
 	else:
 		if gemini_client and not batch_results.is_empty():
-			output_display.append_text("\n[i]Sending batch results back to AI...[/i]\n")
+			_add_to_chat("\n[i]" + locale_manager.tr("sending_batch_results") + "[/i]\n")
 			var tools = []
 			if _tool_executor:
 				tools = _tool_executor.get_tool_definitions()
@@ -967,12 +1115,12 @@ func _on_tool_output(output: String):
 func _on_undo_pressed():
 	if _tool_executor and _tool_executor.has_method("undo"):
 		_tool_executor.undo()
-		output_display.append_text("\n[i]Undoing last action...[/i]\n")
+		_add_to_chat("\n[i]" + locale_manager.tr("undoing_last") + "[/i]\n")
 
 func _on_fix_console_pressed():
 	var errors = _get_error_logs()
 	if errors.is_empty():
-		output_display.append_text("\n[i]No recent errors found in the console logs.[/i]\n")
+		_add_to_chat("\n[i]" + locale_manager.tr("no_errors_found") + "[/i]\n")
 		return
 		
 	var prompt = "Here are the errors from the current Godot session. Please analyze and fix them:\n\n" + errors
@@ -1018,8 +1166,8 @@ func _on_ai_response(response: String):
 		
 	_last_ai_response_text = response
 	
-	output_display.append_text("\n[b]Response:[/b]\n")
-	output_display.append_text(_markdown_to_bbcode(response) + "\n")
+	_add_to_chat("\n[b]" + locale_manager.tr("response_label") + "[/b]\n")
+	_add_to_chat(_markdown_to_bbcode(response) + "\n")
 	
 	if _plan_pending:
 		execute_plan_btn.visible = true
@@ -1030,7 +1178,7 @@ func _on_ai_error(error: String):
 		auto_generate_commit_btn.disabled = false
 		commit_msg_input.text = "Error generating commit message."
 		return
-	output_display.append_text("\n[color=red]Error: " + error + "[/color]\n")
+	_add_to_chat("\n[color=red]Error: " + error + "[/color]\n")
 
 func _on_tab_changed(tab: int):
 	# Git tab is index 2
@@ -1039,7 +1187,7 @@ func _on_tab_changed(tab: int):
 
 func _update_git_status():
 	if not git_manager.is_git_repo():
-		git_status_label.text = "No Git repository found in project root."
+		git_status_label.text = locale_manager.tr("no_git_repo")
 		init_repo_btn.visible = true
 		remote_container.visible = false
 		pull_btn.disabled = true
@@ -1057,13 +1205,13 @@ func _update_git_status():
 			remote_url_input.text = current_remote
 			
 		var branch = git_manager.git_get_current_branch()
-		branch_label.text = "Current Branch: [b]" + branch + "[/b]"
+		branch_label.text = locale_manager.tr("current_branch") + "[b]" + branch + "[/b]"
 			
 		var status = git_manager.git_status()
 		if status.strip_edges() == "":
-			git_status_label.text = "[color=green]Working tree clean.[/color]"
+			git_status_label.text = "[color=green]" + locale_manager.tr("working_tree_clean") + "[/color]"
 		else:
-			git_status_label.text = "Pending changes:\n" + status
+			git_status_label.text = locale_manager.tr("pending_changes") + "\n" + status
 
 func _on_set_remote_pressed():
 	var url = remote_url_input.text.strip_edges()
@@ -1085,14 +1233,14 @@ func _set_git_busy(busy: bool):
 	force_pull_btn.disabled = busy
 	force_push_btn.disabled = busy
 	if busy:
-		git_status_label.text = "[color=yellow]⏳ Working... please wait.[/color]"
+		git_status_label.text = "[color=yellow]" + locale_manager.tr("working_please_wait") + "[/color]"
 
 func _on_pull_pressed():
 	_set_git_busy(true)
-	git_status_label.text = "[color=yellow]⏳ Pulling from GitHub...[/color]"
+	git_status_label.text = "[color=yellow]" + locale_manager.tr("pulling_from_github") + "[/color]"
 	await get_tree().process_frame
 	var res = git_manager.git_pull()
-	git_status_label.text = "Pull result:\n" + res
+	git_status_label.text = locale_manager.tr("pull_result") + "\n" + res
 	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
@@ -1103,7 +1251,7 @@ func _on_checkout_branch_pressed():
 		return
 	
 	_set_git_busy(true)
-	git_status_label.text = "[color=yellow]⏳ Switching branch...[/color]"
+	git_status_label.text = "[color=yellow]" + locale_manager.tr("switching_branch") + "[/color]"
 	await get_tree().process_frame
 	var res = git_manager.git_checkout_branch(branch_name)
 	git_status_label.text = res
@@ -1114,27 +1262,27 @@ func _on_checkout_branch_pressed():
 
 func _on_undo_changes_confirmed():
 	_set_git_busy(true)
-	git_status_label.text = "[color=yellow]⏳ Undoing uncommitted changes...[/color]"
+	git_status_label.text = "[color=yellow]" + locale_manager.tr("undoing_uncommitted") + "[/color]"
 	await get_tree().process_frame
 	var res = git_manager.git_discard_changes()
-	git_status_label.text = "[color=green]Modifications discarded.[/color]\n" + res
+	git_status_label.text = "[color=green]" + locale_manager.tr("modifications_discarded") + "[/color]\n" + res
 	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
 	
 func _on_force_pull_confirmed():
 	_set_git_busy(true)
-	git_status_label.text = "[color=yellow]⏳ Force pulling from GitHub...[/color]"
+	git_status_label.text = "[color=yellow]" + locale_manager.tr("force_pulling") + "[/color]"
 	await get_tree().process_frame
 	var res = git_manager.git_force_pull()
-	git_status_label.text = "[color=green]Force Pull complete.[/color]\n" + res
+	git_status_label.text = "[color=green]" + locale_manager.tr("force_pull_complete") + "[/color]\n" + res
 	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
 	_update_git_status()
 
 func _on_force_push_confirmed():
 	_set_git_busy(true)
-	git_status_label.text = "[color=yellow]⏳ Force pushing to GitHub...[/color]"
+	git_status_label.text = "[color=yellow]" + locale_manager.tr("force_pushing") + "[/color]"
 	await get_tree().process_frame
 	git_manager.git_add_all()
 	var msg = commit_msg_input.text.strip_edges()
@@ -1143,7 +1291,7 @@ func _on_force_push_confirmed():
 	var res = git_manager.git_force_push()
 	if res.strip_edges() == "":
 		res = "Done."
-	git_status_label.text = "[color=green]Force Push complete.[/color]\n" + res
+	git_status_label.text = "[color=green]" + locale_manager.tr("force_push_complete") + "[/color]\n" + res
 	commit_msg_input.text = ""
 	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
@@ -1155,14 +1303,14 @@ func _on_commit_sync_pressed():
 		msg = "Updates"
 	
 	_set_git_busy(true)
-	git_status_label.text = "[color=yellow]⏳ Committing and pushing...[/color]"
+	git_status_label.text = "[color=yellow]" + locale_manager.tr("committing_pushing") + "[/color]"
 	await get_tree().process_frame
 	git_manager.git_add_all()
 	git_manager.git_commit(msg)
 	var push_res = git_manager.git_push()
 	if push_res.strip_edges() == "":
 		push_res = "Done."
-	git_status_label.text = "Push result:\n" + push_res
+	git_status_label.text = locale_manager.tr("push_result") + "\n" + push_res
 	commit_msg_input.text = ""
 	_set_git_busy(false)
 	await get_tree().create_timer(3.0).timeout
@@ -1170,14 +1318,14 @@ func _on_commit_sync_pressed():
 
 func _on_auto_generate_commit_pressed():
 	if git_manager.git_status().strip_edges() == "":
-		commit_msg_input.text = "No changes to commit."
+		commit_msg_input.text = locale_manager.tr("no_changes_to_commit")
 		return
 	
 	if gemini_client == null or gemini_client.api_key == "":
-		commit_msg_input.text = "AI Provider not configured."
+		commit_msg_input.text = locale_manager.tr("ai_not_configured")
 		return
 		
-	commit_msg_input.text = "Generating..."
+	commit_msg_input.text = locale_manager.tr("generating")
 	auto_generate_commit_btn.disabled = true
 	_is_generating_commit = true
 	var diff = git_manager.git_diff()
@@ -1186,10 +1334,10 @@ func _on_auto_generate_commit_pressed():
 	gemini_client.send_prompt(prompt, "", [], [])
 
 func _log_user_message(msg: String, token_count: int = -1):
-	var header = "\n[b]You:[/b] "
+	var header = "\n[b]" + locale_manager.tr("you_label") + "[/b] "
 	if token_count != -1:
 		header += "[i][color=gray](Est. Tokens: ~" + str(token_count) + ")[/color][/i] "
-	output_display.append_text(header + msg + "\n")
+	_add_to_chat(header + msg + "\n")
 
 func _on_log_entry(entry: Dictionary):
 	var color = "red" if entry.type == "error" else "gray"
@@ -1197,7 +1345,7 @@ func _on_log_entry(entry: Dictionary):
 	if entry.has("source") and entry.source.file:
 		msg += " (" + entry.source.file.get_file() + ":" + str(entry.source.line) + ")"
 	msg += "[/color]\n"
-	output_display.append_text(msg)
+	_add_to_chat(msg)
 
 func _markdown_to_bbcode(text: String) -> String:
 	var result = ""
@@ -1238,6 +1386,7 @@ func _markdown_to_bbcode(text: String) -> String:
 		line = _regex_bold.sub(line, "[b]$1[/b]", true)
 		line = _regex_italic.sub(line, "[i]$1[/i]", true)
 		line = _regex_code.sub(line, "[code]$1[/code]", true)
+		line = _regex_suggest.sub(line, "[url=suggest:$1][b][color=#50fa7b] 💡 $1 [/color][/b][/url]", true)
 		
 		result += line + "\n"
 	
@@ -1247,7 +1396,7 @@ func _markdown_to_bbcode(text: String) -> String:
 	return result
 
 func _on_confirmation_needed(message: String, _tool_name: String, _args: Dictionary):
-	_confirm_dialog.dialog_text = "⚠️ " + message + "\n\nThis action cannot be undone."
+	_confirm_dialog.dialog_text = "⚠️ " + message + "\n\n" + locale_manager.tr("cannot_be_undone")
 	_confirm_dialog.popup_centered()
 
 func _on_destructive_confirmed():
@@ -1262,7 +1411,7 @@ func _on_token_usage(usage: Dictionary):
 	var prompt = usage.get("prompt_tokens", 0)
 	var completion = usage.get("completion_tokens", 0)
 	var total = usage.get("total_tokens", 0)
-	output_display.append_text("[color=gray][i]Tokens — Prompt: " + str(prompt) + " | Completion: " + str(completion) + " | Total: " + str(total) + "[/i][/color]\n")
+	_add_to_chat("[color=gray][i]Tokens — Prompt: " + str(prompt) + " | Completion: " + str(completion) + " | Total: " + str(total) + "[/i][/color]\n")
 
 func _on_custom_prompt_changed():
 	var settings = EditorInterface.get_editor_settings()
@@ -1338,6 +1487,7 @@ func _drop_data(_at_pos: Vector2, data: Variant):
 					_attached_files.append({
 						"type": "image",
 						"filename": f.get_file(),
+						"path": f,
 						"mime_type": mime,
 						"image_obj": img,
 						"raw_bytes": bytes
@@ -1412,5 +1562,56 @@ func _on_meta_clicked(meta):
 		var suggestion = meta_str.substr(8)
 		input_field.text = suggestion
 		_on_send_pressed()
+	elif meta_str.begins_with("toggle_block:"):
+		var block_id = meta_str.substr(13).to_int()
+		_toggle_block(block_id)
 	else:
 		OS.shell_open(meta_str)
+
+func _append_collapsible_block(label: String, content: String, color: String, expanded: bool):
+	var id = _next_block_id
+	_next_block_id += 1
+	
+	_block_data[id] = {
+		"label": label,
+		"content": content,
+		"color": color,
+		"expanded": expanded
+	}
+	
+	_add_to_chat(_get_block_bbcode(id))
+
+func _get_block_bbcode(id: int) -> String:
+	var data = _block_data[id]
+	var icon = "📂 " if not data.expanded else "📖 "
+	var action = "[Expand]" if not data.expanded else "[Collapse]"
+	var bb = "\n[color=" + data.color + "]" + icon + data.label + " [/color]"
+	bb += "[url=toggle_block:" + str(id) + "][i][color=gray]" + action + "[/color][/i][/url]\n"
+	
+	if data.expanded:
+		bb += "[indent][i]" + data.content + "[/i][/indent]\n"
+	
+	return bb
+
+func _toggle_block(id: int):
+	if not _block_data.has(id): return
+	
+	var data = _block_data[id]
+	var old_bb = _get_block_bbcode(id)
+	data.expanded = !data.expanded
+	var new_bb = _get_block_bbcode(id)
+	
+	_chat_log_bbcode = _chat_log_bbcode.replace(old_bb, new_bb)
+	output_display.text = _chat_log_bbcode
+	
+	# Scroll to bottom after refresh
+	await get_tree().process_frame
+	output_display.scroll_to_line(output_display.get_line_count())
+
+func _add_to_chat(bbcode: String):
+	_chat_log_bbcode += bbcode
+	output_display.append_text(bbcode)
+
+func _clear_chat():
+	_chat_log_bbcode = ""
+	output_display.clear()

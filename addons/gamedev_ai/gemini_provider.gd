@@ -109,6 +109,9 @@ func send_prompt(prompt: String, context: String = "", tools: Array = [], files:
 		"parts": parts
 	}
 	
+	# Protective check: Gemini requires the last message to NOT be from 'function' if we aren't sending tool results.
+	# But here we are sending a NEW 'user' prompt, which is always allowed.
+	
 	transcript.append({"role": "user", "text": prompt})
 	if current_session_id == "":
 		current_session_id = str(Time.get_unix_time_from_system()).replace(".", "_")
@@ -143,6 +146,12 @@ func send_tool_responses(responses: Array, tools: Array = []):
 		"parts": parts
 	}
 	
+	# Protective check: If history is empty (e.g. session cleared), we can't send tool responses 
+	# because Gemini expects a previous model 'functionCall'.
+	if history.is_empty():
+		error_occurred.emit("Cannot send tool response: history is empty (did you start a new chat while the tool was running?)")
+		return
+
 	_append_to_history(response_content)
 	_send_request(tools)
 
@@ -161,14 +170,16 @@ func cancel_request():
 	super.cancel_request()
 
 func _send_request(tools: Array = []):
-	_cancelled = false
-	_last_tools = tools
 	var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent?key=" + api_key
 	var headers = ["Content-Type: application/json"]
-	
 	var body = {
 		"contents": history
 	}
+	
+	if history.is_empty():
+		is_requesting = false
+		error_occurred.emit("Empty history. Cannot send request.")
+		return
 	
 	_inject_full_system_instruction(body)
 
@@ -190,10 +201,10 @@ func _inject_full_system_instruction(body: Dictionary):
 	var status = info.get("status", "")
 	if status != "":
 		version_str += " (" + status + ")"
-	body["system_instruction"] = {
-		"parts": {
-			"text": SysPrompt.get_system_instruction(version_str, custom_instructions)
-		}
+	body["systemInstruction"] = {
+		"parts": [
+			{ "text": SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction) }
+		]
 	}
 
 func _on_request_completed(_result, response_code, _headers, body):

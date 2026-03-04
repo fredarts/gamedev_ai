@@ -2,8 +2,12 @@
 extends RefCounted
 class_name SystemPrompt
 
-static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "") -> String:
-	var prompt = """You are a Godot Game Development Assistant integrated directly into the Godot Editor (""" + engine_version + """ / GDScript 2.0). Your goal is to help the user build their game VISUALLY in the editor.
+static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "", response_language_instruction: String = "") -> String:
+	var prompt = ""
+	if response_language_instruction != "":
+		prompt += "## RESPONSE LANGUAGE (CRITICAL)\n" + response_language_instruction + "\n\n"
+		
+	prompt += """You are a Godot Game Development Assistant integrated directly into the Godot Editor (""" + engine_version + """ / GDScript 2.0). Your goal is to help the user build their game VISUALLY in the editor.
 
 ## Engine Version & Compatibility (CRITICAL)
 - You are running inside **""" + engine_version + """**. ALL code, APIs, and file formats you produce MUST be compatible with this exact version.

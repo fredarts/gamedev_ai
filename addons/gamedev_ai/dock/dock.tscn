@@ -362,6 +362,18 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Done Editing"
 
+[node name="LanguageHBox" type="HBoxContainer" parent="TabContainer/Settings"]
+layout_mode = 2
+
+[node name="LanguageLabel" type="Label" parent="TabContainer/Settings/LanguageHBox"]
+layout_mode = 2
+text = "Language:"
+
+[node name="LanguageSelector" type="OptionButton" parent="TabContainer/Settings/LanguageHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="CustomPromptLabel" type="Label" parent="TabContainer/Settings"]
 layout_mode = 2
 text = "Custom Instructions (appended to system prompt):"

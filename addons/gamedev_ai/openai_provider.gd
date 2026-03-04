@@ -56,7 +56,7 @@ func _get_system_instruction() -> String:
 	var status = info.get("status", "")
 	if status != "":
 		version_str += " (" + status + ")"
-	return SysPrompt.get_system_instruction(version_str, custom_instructions)
+	return SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction)
 
 func generate_tool_response(_tool_name: String, output: String, tool_call_id: String = "") -> Dictionary:
 	return {
