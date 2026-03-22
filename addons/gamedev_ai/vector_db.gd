@@ -6,12 +6,20 @@ signal db_output(output: String)
 var http_request: HTTPRequest
 var parent_node: Node
 var db_path = "res://gamedev_ai_vector_db.json"
-var embeddings_db = [] # Array of {"path": str, "chunk_name": str, "text": str, "embedding": Array}
+var embeddings_db = [] # Array of {"path": str, "chunk_name": str, "text": str, "embedding": Array, "hash": str}
 
 var _indexing_queue: Array = []
 var _is_indexing: bool = false
 var _search_pending_query: String = ""
 var _is_searching: bool = false
+
+# Incremental indexing state
+var _old_db_by_path: Dictionary = {}
+var _old_db_by_hash: Dictionary = {}
+var _new_db: Array = []
+var _stats_retained: int = 0
+var _stats_moved: int = 0
+var _stats_queued: int = 0
 
 func setup(node: Node):
 	parent_node = node
@@ -111,13 +119,33 @@ func index_project():
 		
 	_is_indexing = true
 	_indexing_queue.clear()
-	embeddings_db.clear()
+	_new_db.clear()
+	_old_db_by_path.clear()
+	_old_db_by_hash.clear()
+	_stats_retained = 0
+	_stats_moved = 0
+	_stats_queued = 0
+	
+	# Build lookup maps from the existing database
+	for entry in embeddings_db:
+		var p = entry.get("path", "")
+		var h = entry.get("hash", "")
+		if p != "":
+			_old_db_by_path[p] = entry
+		if h != "":
+			_old_db_by_hash[h] = entry
 	
 	_scan_dir_for_indexing("res://")
 	
+	var total_scanned = _stats_retained + _stats_moved + _indexing_queue.size()
+	call_deferred("emit_signal", "db_output", "Scan complete: %d files found. %d retained, %d moved/renamed, %d to embed." % [total_scanned, _stats_retained, _stats_moved, _indexing_queue.size()])
+	
 	if _indexing_queue.is_empty():
+		# Nothing new to embed; finalize immediately
+		embeddings_db = _new_db
+		_save_db()
 		_is_indexing = false
-		call_deferred("emit_signal", "db_output", "No script files found to index.")
+		call_deferred("emit_signal", "db_output", "Incremental index complete! No new embeddings needed.")
 		return
 		
 	_process_next_index_queue()
@@ -138,26 +166,45 @@ func _scan_dir_for_indexing(dir_path: String):
 			file_name = dir.get_next()
 
 func _chunk_and_queue_script(path: String):
+	var file_hash = FileAccess.get_md5(path)
+	if file_hash == "": return
+	
 	var file = FileAccess.open(path, FileAccess.READ)
 	if not file: return
 	var content = file.get_as_text()
-	
-	# Simple chunking: whole script if small, or just chunk it as a whole to save limits for now.
-	# For production we'd split by `func `. We'll chunk the whole file if < 4000 chars, else just note it.
-	# If it's too big, Gemini API might complain but usually limit is 10k+ chars for embeddings.
 	if content.strip_edges() == "": return
 	
+	# --- Incremental check ---
+	# 1) Same path + same hash => file unchanged, retain it
+	if _old_db_by_path.has(path):
+		var old_entry = _old_db_by_path[path]
+		if old_entry.get("hash", "") == file_hash:
+			_new_db.append(old_entry)
+			_stats_retained += 1
+			return
+	
+	# 2) Different path but same hash => file was moved or renamed
+	if _old_db_by_hash.has(file_hash):
+		var old_entry = _old_db_by_hash[file_hash].duplicate()
+		old_entry["path"] = path # Update to new path
+		_new_db.append(old_entry)
+		_stats_moved += 1
+		return
+	
+	# 3) Truly new or modified => queue for embedding
 	_indexing_queue.append({
 		"path": path,
 		"chunk_name": "Full Script",
-		"text": content.substr(0, 8000) # Safety limit
+		"text": content.substr(0, 8000), # Safety limit
+		"hash": file_hash
 	})
 
 func _process_next_index_queue():
 	if _indexing_queue.is_empty():
+		embeddings_db = _new_db
 		_is_indexing = false
 		_save_db()
-		call_deferred("emit_signal", "db_output", "Codebase indexing complete! " + str(embeddings_db.size()) + " files embedded.")
+		call_deferred("emit_signal", "db_output", "Incremental index complete! %d retained, %d moved, %d newly embedded. Total: %d files." % [_stats_retained, _stats_moved, _stats_queued, embeddings_db.size()])
 		return
 		
 	var item = _indexing_queue[0]
@@ -207,7 +254,8 @@ func _on_http_request_completed(_result, response_code, _headers, body):
 		var item = _indexing_queue.pop_front()
 		if not vector.is_empty():
 			item["embedding"] = vector
-			embeddings_db.append(item)
+			_new_db.append(item)
+			_stats_queued += 1
 			
 		# Small delay to prevent hitting RPM limits on free tiers
 		var timer = Engine.get_main_loop().create_timer(1.0)
