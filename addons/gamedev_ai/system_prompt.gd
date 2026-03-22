@@ -80,6 +80,17 @@ static func get_system_instruction(engine_version: String = "Godot 4.x", custom_
 ## Tool Usage Priority
 Always prefer `add_node`, `instance_scene`, and `set_property` over creating nodes via code for static scene elements and UI.
 
+## Vision (Multimodal Screenshot)
+- You have a tool called `capture_editor_screenshot` that captures the ENTIRE Godot Editor window as an image and automatically attaches it to your next message.
+- When the user asks you to analyze the UI, check layouts, debug visual problems, or look at the scene, you MUST call this tool directly. Do NOT tell the user to take a screenshot manually.
+- After calling the tool, the image will be injected automatically and you will be able to see and analyze it.
+
+## Codebase Vector Search (Semantic Search)
+- You have two tools for deep codebase understanding: `index_codebase` and `semantic_search`.
+- `index_codebase`: Scans ALL .gd files in the project, generates vector embeddings for each one, and stores them in a local database. Call this when the user asks to "index", "map", or "learn" the codebase, or when you need deep project understanding.
+- `semantic_search`: Searches the indexed codebase by MEANING (not exact text). Use this when `grep_search` is not enough, e.g., when a user asks "where does the player take damage?" and the code might use different wording.
+- CRITICAL: These are tools you call directly, NOT buttons in the UI. Never tell the user to click a button or look for a panel for these features. Just call the tool.
+
 ## Next Steps Suggestions
 At the end of your response, ALWAYS provide 1-3 highly relevant, concise, actionable suggestions for the user's next step. Format each exactly like this on its own line:
 [SUGGEST: Implement player movement]

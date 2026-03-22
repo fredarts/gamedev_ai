@@ -4,11 +4,13 @@ extends RefCounted
 signal tool_output(output)
 signal confirmation_needed(message: String, tool_name: String, args: Dictionary)
 signal diff_preview_requested(path: String, old_content: String, new_content: String, tool_name: String, args: Dictionary)
+signal image_captured(image_path: String)
 
 var _undo_redo: EditorUndoRedoManager
 var memory_manager
 var _composite_action_name: String = ""
 var _pending_confirm_tool: String = ""
+var vector_db
 var _pending_confirm_args: Dictionary = {}
 
 var use_diff_preview: bool = true
@@ -46,6 +48,9 @@ const _TOOL_REQUIRED_ARGS = {
 	"search_in_files": ["pattern"],
 	"read_skill": ["skill_name"],
 	"move_files_batch": ["moves"],
+	"capture_editor_screenshot": [],
+	"index_codebase": [],
+	"semantic_search": ["query"],
 }
 
 func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
@@ -83,6 +88,12 @@ func _init():
 
 func setup(undo_redo: EditorUndoRedoManager):
 	_undo_redo = undo_redo
+
+func init_vector_db(node: Node):
+	var VectorDB = preload("res://addons/gamedev_ai/vector_db.gd")
+	vector_db = VectorDB.new()
+	vector_db.setup(node)
+	vector_db.db_output.connect(func(out): tool_output.emit(out))
 
 func start_composite_action(name: String):
 	if _undo_redo and _composite_action_name == "":
@@ -579,11 +590,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "list_memories",
-			"description": "Lists all persistent project memory facts stored for this project.",
-			"parameters": {
-				"type": "OBJECT",
-				"properties": {}
-			}
+			"description": "Lists all persistent project memory facts stored for this project."
 		},
 		{
 			"name": "delete_memory",
@@ -616,6 +623,25 @@ func get_tool_definitions() -> Array:
 					"skill_name": {"type": "STRING", "description": "The exact name of the skill file to read (e.g. 'gdscript_style_guide.md', 'gdscript_signals_and_tweens.md')."}
 				},
 				"required": ["skill_name"]
+			}
+		},
+		{
+			"name": "capture_editor_screenshot",
+			"description": "Takes a screenshot of the entire Godot Editor window and automatically attaches it to your next prompt so you can analyze the UI, layout, or scene visually."
+		},
+		{
+			"name": "index_codebase",
+			"description": "Indexes the entire Godot project (.gd files) into a local Vector Database for semantic search. Run this when you need deep codebase context. MUST NOT have any arguments."
+		},
+		{
+			"name": "semantic_search",
+			"description": "Performs a semantic vector search across the indexed codebase to find highly relevant code snippets based on meaning, rather than exact text matches. Run index_codebase first if the project is not indexed.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"query": {"type": "STRING", "description": "The concept or feature to search for (e.g. 'Player jumping logic')."}
+				},
+				"required": ["query"]
 			}
 		}
 	]
@@ -727,8 +753,45 @@ func execute_tool(tool_name: String, args: Dictionary):
 			_pending_confirm_tool = "move_files_batch"
 			_pending_confirm_args = args
 			confirmation_needed.emit("Execute the following file moves/refactors?\n\n" + _format_moves(args.get("moves", {})), tool_name, args)
+		"capture_editor_screenshot":
+			_capture_editor_screenshot()
+		"index_codebase":
+			if vector_db: vector_db.index_project()
+			else: tool_output.emit("Error: VectorDB not initialized.")
+		"semantic_search":
+			if vector_db: vector_db.search(args.get("query", ""))
+			else: tool_output.emit("Error: VectorDB not initialized.")
 		_:
 			tool_output.emit("Error: Unknown tool '" + tool_name + "'. Available tools: " + str(_TOOL_REQUIRED_ARGS.keys()))
+
+func _capture_editor_screenshot():
+	var base_control = EditorInterface.get_base_control()
+	if not base_control:
+		tool_output.emit("Error: Editor base control not found.")
+		return
+		
+	var viewport = base_control.get_viewport()
+	if not viewport:
+		tool_output.emit("Error: Editor viewport not found.")
+		return
+		
+	var tex = viewport.get_texture()
+	if not tex:
+		tool_output.emit("Error: Viewport texture empty.")
+		return
+		
+	var img = tex.get_image()
+	if not img or img.is_empty():
+		tool_output.emit("Error: Failed to capture editor screenshot. Image is empty.")
+		return
+		
+	var user_dir = "user://temp_ai_screenshot.png"
+	var err = img.save_png(user_dir)
+	if err == OK:
+		tool_output.emit("Screenshot saved to " + user_dir + ". It will be attached in the next conversational turn automatically.")
+		image_captured.emit(user_dir)
+	else:
+		tool_output.emit("Error: Failed to save screenshot. Code: " + str(err))
 
 func _create_script(path: String, content: String):
 	# Security check

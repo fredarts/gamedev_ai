@@ -271,6 +271,8 @@ func setup(client, manager, executor):
 	_tool_executor.tool_output.connect(_on_tool_output)
 	_tool_executor.confirmation_needed.connect(_on_confirmation_needed)
 	_tool_executor.diff_preview_requested.connect(_on_diff_preview_requested)
+	_tool_executor.image_captured.connect(_on_image_captured)
+	_tool_executor.init_vector_db(self)
 	
 	# Create destructive action confirmation dialog
 	_confirm_dialog = ConfirmationDialog.new()
@@ -833,6 +835,28 @@ func _on_add_file_selected(path: String):
 			_refresh_thumbnails()
 			_add_to_chat("\n[color=green][i]" + locale_manager.tr("file_attached") + filename + "[/i][/color]\n")
 
+func _on_image_captured(path: String):
+	if FileAccess.file_exists(path):
+		var img = Image.new()
+		var err = img.load(path)
+		if err == OK:
+			var file = FileAccess.open(path, FileAccess.READ)
+			var bytes = file.get_buffer(file.get_length())
+			var filename = path.get_file()
+			
+			_attached_files.append({
+				"type": "image",
+				"filename": filename,
+				"mime_type": "image/png",
+				"image_obj": img,
+				"raw_bytes": bytes
+			})
+			_refresh_thumbnails()
+			var tr_text = locale_manager.tr("image_attached") if locale_manager else "Attached image: "
+			_add_to_chat("\n[color=green][i]" + tr_text + filename + "[/i][/color]\n")
+			
+			_process_send("I have captured the screenshot of the editor. Please analyze it as per my previous request.", true)
+
 func _refresh_thumbnails():
 	for child in _thumbnail_list.get_children():
 		child.queue_free()
@@ -1184,11 +1208,70 @@ func _on_ai_response(response: String):
 		
 	_last_ai_response_text = response
 	
+	# --- Fallback: detect tool calls embedded as text ---
+	var extracted_calls = _extract_text_tool_calls(response)
+	if not extracted_calls.is_empty():
+		# Strip tool call text from the visible response
+		var clean_response = _strip_tool_call_text(response)
+		if clean_response.strip_edges() != "":
+			_add_to_chat("\n[b]" + locale_manager.tr("response_label") + "[/b]\n")
+			_add_to_chat(_markdown_to_bbcode(clean_response) + "\n")
+		_on_tool_calls(extracted_calls)
+		return
+	
 	_add_to_chat("\n[b]" + locale_manager.tr("response_label") + "[/b]\n")
 	_add_to_chat(_markdown_to_bbcode(response) + "\n")
 	
 	if _plan_pending:
 		execute_plan_btn.visible = true
+
+func _extract_text_tool_calls(text: String) -> Array:
+	var calls = []
+	
+	# Pattern 1: <tool_call>{"arguments": {}, "name": "tool_name"}</tool_call>
+	var regex1 = RegEx.new()
+	regex1.compile("<tool_call>\\s*([\\s\\S]*?)\\s*</tool_call>")
+	var matches1 = regex1.search_all(text)
+	for m in matches1:
+		var json_str = m.get_string(1).strip_edges()
+		var parsed = JSON.parse_string(json_str)
+		if parsed and typeof(parsed) == TYPE_DICTIONARY:
+			var call_data = {
+				"name": parsed.get("name", ""),
+				"args": parsed.get("arguments", parsed.get("args", {}))
+			}
+			if call_data["name"] != "":
+				calls.append(call_data)
+	
+	# Pattern 2: ```json\n{"name": "...", "arguments": {...}}\n```
+	if calls.is_empty():
+		var regex2 = RegEx.new()
+		regex2.compile("```(?:json)?\\s*\\n\\s*(\\{[\\s\\S]*?\"name\"[\\s\\S]*?\\})\\s*\\n\\s*```")
+		var matches2 = regex2.search_all(text)
+		for m in matches2:
+			var json_str = m.get_string(1).strip_edges()
+			var parsed = JSON.parse_string(json_str)
+			if parsed and typeof(parsed) == TYPE_DICTIONARY and parsed.has("name"):
+				var call_data = {
+					"name": parsed.get("name", ""),
+					"args": parsed.get("arguments", parsed.get("args", {}))
+				}
+				if call_data["name"] != "":
+					calls.append(call_data)
+	
+	return calls
+
+func _strip_tool_call_text(text: String) -> String:
+	var result = text
+	# Strip <tool_call>...</tool_call>
+	var regex1 = RegEx.new()
+	regex1.compile("<tool_call>[\\s\\S]*?</tool_call>")
+	result = regex1.sub(result, "", true)
+	# Strip ```json tool blocks
+	var regex2 = RegEx.new()
+	regex2.compile("```(?:json)?\\s*\\n\\s*\\{[\\s\\S]*?\"name\"[\\s\\S]*?\\}\\s*\\n\\s*```")
+	result = regex2.sub(result, "", true)
+	return result
 
 func _on_ai_error(error: String):
 	if _is_generating_commit:
