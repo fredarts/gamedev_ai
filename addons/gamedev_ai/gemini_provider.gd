@@ -1,7 +1,7 @@
 @tool
 extends "res://addons/gamedev_ai/ai_provider.gd"
 
-var model_name: String = "gemini-1.5-pro"
+var model_name: String = "gemini-3.1-pro-preview"
 var _cancelled: bool = false
 var _last_tools: Array = []
 
@@ -170,7 +170,7 @@ func cancel_request():
 	super.cancel_request()
 
 func _send_request(tools: Array = []):
-	var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent?key=" + api_key
+	var url = "http://127.0.0.1:8000/v1beta/models/" + model_name + ":generateContent"
 	var headers = ["Content-Type: application/json"]
 	var body = {
 		"contents": history

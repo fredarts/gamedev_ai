@@ -50,8 +50,9 @@ tooltip_text = "Start a new chat session, clearing the current history"
 [node name="HistoryButton" type="MenuButton" parent="TabContainer/Chat/ChatHeaderHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "History"
+text = "◷ History"
 tooltip_text = "View and load past chat sessions"
+flat = false
 
 [node name="OutputDisplay" type="RichTextLabel" parent="TabContainer/Chat"]
 unique_name_in_owner = true
@@ -61,6 +62,41 @@ bbcode_enabled = true
 fit_content = false
 scroll_following = true
 selection_enabled = true
+
+[node name="DiffPreviewPanel" type="VBoxContainer" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DiffLabel" type="Label" parent="TabContainer/Chat/DiffPreviewPanel"]
+layout_mode = 2
+text = "Script Diff Preview:"
+
+[node name="DiffDisplay" type="RichTextLabel" parent="TabContainer/Chat/DiffPreviewPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+fit_content = false
+scroll_following = true
+
+[node name="DiffButtons" type="HBoxContainer" parent="TabContainer/Chat/DiffPreviewPanel"]
+layout_mode = 2
+
+[node name="ApplyDiffBtn" type="Button" parent="TabContainer/Chat/DiffPreviewPanel/DiffButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Apply Changes"
+tooltip_text = "Accept these AI modifications and apply them to the file"
+
+[node name="SkipDiffBtn" type="Button" parent="TabContainer/Chat/DiffPreviewPanel/DiffButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Skip"
+tooltip_text = "Discard these suggested changes"
 
 [node name="SelectionStatus" type="Label" parent="TabContainer/Chat"]
 unique_name_in_owner = true
@@ -136,44 +172,9 @@ layout_mode = 2
 text = "Run Plan"
 tooltip_text = "Execute the AI proposed plan step-by-step"
 
-[node name="DiffPreviewPanel" type="VBoxContainer" parent="TabContainer/Chat"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="DiffLabel" type="Label" parent="TabContainer/Chat/DiffPreviewPanel"]
-layout_mode = 2
-text = "Script Diff Preview:"
-
-[node name="DiffDisplay" type="RichTextLabel" parent="TabContainer/Chat/DiffPreviewPanel"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-fit_content = false
-scroll_following = true
-
-[node name="DiffButtons" type="HBoxContainer" parent="TabContainer/Chat/DiffPreviewPanel"]
-layout_mode = 2
-
-[node name="ApplyDiffBtn" type="Button" parent="TabContainer/Chat/DiffPreviewPanel/DiffButtons"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Apply Changes"
-tooltip_text = "Accept these AI modifications and apply them to the file"
-
-[node name="SkipDiffBtn" type="Button" parent="TabContainer/Chat/DiffPreviewPanel/DiffButtons"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Skip"
-tooltip_text = "Discard these suggested changes"
-
 [node name="InputHBox" type="HBoxContainer" parent="TabContainer/Chat"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(0, 115)
 
 [node name="InputField" type="TextEdit" parent="TabContainer/Chat/InputHBox"]
 unique_name_in_owner = true
@@ -182,16 +183,22 @@ size_flags_horizontal = 3
 placeholder_text = "Ask Gamedev AI... (Shift+Enter to send)"
 wrap_mode = 1
 
-[node name="AddFileBtn" type="Button" parent="TabContainer/Chat/InputHBox"]
+[node name="InputButtonsVBox" type="VBoxContainer" parent="TabContainer/Chat/InputHBox"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="AddFileBtn" type="Button" parent="TabContainer/Chat/InputHBox/InputButtonsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "📎"
+size_flags_vertical = 3
+text = "📎 Attach"
 tooltip_text = "Attach an image, document, or audio file to your message"
 
-[node name="SendButton" type="Button" parent="TabContainer/Chat/InputHBox"]
+[node name="SendButton" type="Button" parent="TabContainer/Chat/InputHBox/InputButtonsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Send"
+size_flags_vertical = 3
+text = "➢ Send"
 tooltip_text = "Send your message to the AI"
 
 [node name="ImagePreviewScroll" type="ScrollContainer" parent="TabContainer/Chat"]
@@ -372,7 +379,8 @@ text = "Language:"
 [node name="LanguageSelector" type="OptionButton" parent="TabContainer/Settings/LanguageHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
+custom_minimum_size = Vector2(150, 0)
+size_flags_horizontal = 0
 
 [node name="CustomPromptLabel" type="Label" parent="TabContainer/Settings"]
 layout_mode = 2
@@ -445,7 +453,7 @@ layout_mode = 2
 [node name="AutoGenerateBtn" type="Button" parent="TabContainer/Git/CommitMsgContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "✨ Auto-Generate Commit Message"
+text = "✧ Auto-Generate Commit Message"
 tooltip_text = "Use AI to analyze your changes and write a commit message automatically"
 
 [node name="CommitMsgInput" type="TextEdit" parent="TabContainer/Git/CommitMsgContainer"]

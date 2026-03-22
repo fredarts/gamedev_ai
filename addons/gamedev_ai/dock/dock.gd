@@ -119,6 +119,9 @@ var _regex_italic: RegEx
 var _regex_code: RegEx
 var _regex_suggest: RegEx
 
+var _copy_popup: PopupMenu
+var _floating_copy_btn: Button
+
 signal preset_changed(config)
 signal settings_updated()
 
@@ -255,6 +258,11 @@ func _ready():
 	var fs = EditorInterface.get_resource_filesystem()
 	if fs and not fs.filesystem_changed.is_connected(_on_filesystem_changed):
 		fs.filesystem_changed.connect(_on_filesystem_changed)
+	
+	# Apply custom visual theme
+	_apply_custom_theme()
+
+	_setup_copy_features()
 
 
 func setup(client, manager, executor):
@@ -478,9 +486,10 @@ func _apply_locale():
 		return
 	var L = locale_manager
 	# Chat tab buttons
-	send_button.text = L.tr("send")
-	new_chat_button.text = L.tr("new_chat")
-	history_button.text = L.tr("history")
+	send_button.text = "➢ " + L.tr("send")
+	add_file_btn.text = "📎 Anexar"
+	new_chat_button.text = "＋ " + L.tr("new_chat")
+	history_button.text = "◷ " + L.tr("history")
 	selection_status.text = L.tr("no_selection")
 	input_field.placeholder_text = L.tr("input_placeholder")
 	execute_plan_btn.text = L.tr("run_plan")
@@ -602,11 +611,13 @@ func _on_status_changed(is_requesting: bool):
 func _update_ui_state(busy: bool):
 	input_field.editable = !busy
 	if busy:
-		send_button.text = locale_manager.tr("stop") if locale_manager else "⏹ Stop"
+		send_button.text = "⏹ " + (locale_manager.tr("stop") if locale_manager else "Parar")
 		send_button.disabled = false
+		_style_danger_button(send_button, 12)
 	else:
-		send_button.text = locale_manager.tr("send") if locale_manager else "Send"
+		send_button.text = "➢ " + (locale_manager.tr("send") if locale_manager else "Enviar")
 		send_button.disabled = false
+		_style_solid_button(send_button, Color(0.15, 0.6, 0.35))
 
 func _on_send_pressed():
 	if gemini_client and gemini_client.is_requesting:
@@ -741,6 +752,13 @@ func _stop_ai():
 	current_tool_context = {}
 	if gemini_client:
 		gemini_client.cancel_request()
+		
+	if _diff_preview_panel and _diff_preview_panel.visible:
+		_diff_preview_panel.visible = false
+		output_display.visible = true
+		if _tool_executor and _tool_executor.has_method("cancel_pending_action"):
+			_tool_executor.cancel_pending_action()
+			
 	_add_to_chat("\n[color=orange][b]" + locale_manager.tr("ai_stopped") + "[/b][/color]\n")
 	_update_ui_state(false)
 
@@ -1513,7 +1531,9 @@ func _on_clear_dropped_files():
 	_update_dropped_files_ui()
 
 func _on_diff_preview_requested(path: String, old_content: String, new_content: String, tool_name: String, _args: Dictionary):
+	output_display.visible = false
 	_diff_preview_panel.visible = true
+	_diff_display.scroll_following = false
 	_diff_display.clear()
 	_diff_display.append_text("[b]Modifying: " + path + "[/b] (" + tool_name + ")\n")
 	
@@ -1536,13 +1556,20 @@ func _on_diff_preview_requested(path: String, old_content: String, new_content: 
 			_diff_display.append_text("[i]New content preview:[/i]\n")
 			_diff_display.append_text(_markdown_to_bbcode(new_content))
 
+	await get_tree().process_frame
+	var v_scroll = _diff_display.get_v_scroll_bar()
+	if v_scroll:
+		v_scroll.value = 0
+
 func _on_apply_diff_pressed():
 	_diff_preview_panel.visible = false
+	output_display.visible = true
 	if _tool_executor:
 		_tool_executor.confirm_pending_action()
 
 func _on_skip_diff_pressed():
 	_diff_preview_panel.visible = false
+	output_display.visible = true
 	if _tool_executor:
 		_tool_executor.cancel_pending_action()
 
@@ -1615,3 +1642,217 @@ func _add_to_chat(bbcode: String):
 func _clear_chat():
 	_chat_log_bbcode = ""
 	output_display.clear()
+
+# ═══════════════════════════════════════════════════════════════
+# GLASSMORPHISM THEME SYSTEM V3 (RICH NEON & MARGINS)
+# ═══════════════════════════════════════════════════════════════
+
+func _apply_custom_theme():
+	# Keep only the margins that were requested by the user
+	
+	# Tab padding and spacing
+	var tabbar_bg = StyleBoxFlat.new()
+	tabbar_bg.bg_color = Color(0.08, 0.09, 0.12) # Dark background for the tab bar
+	tabbar_bg.content_margin_top = 10 # Spacing above tabs
+	$TabContainer.add_theme_stylebox_override("tabbar_background", tabbar_bg)
+	
+	# Remove custom tab colors so it uses editor default colors
+	if $TabContainer.has_theme_stylebox_override("tab_unselected"):
+		$TabContainer.remove_theme_stylebox_override("tab_unselected")
+	if $TabContainer.has_theme_stylebox_override("tab_selected"):
+		$TabContainer.remove_theme_stylebox_override("tab_selected")
+
+	var tab_panel = StyleBoxEmpty.new()
+	tab_panel.content_margin_left = 16
+	tab_panel.content_margin_right = 16
+	tab_panel.content_margin_top = 16
+	tab_panel.content_margin_bottom = 16
+	$TabContainer.add_theme_stylebox_override("panel", tab_panel)
+	
+	# Margins for chat actions
+	var chat_container = $TabContainer/Chat
+	chat_container.add_theme_constant_override("separation", 12)
+	
+	# Chat output display padding
+	var output_style = StyleBoxFlat.new()
+	output_style.bg_color = Color(0, 0, 0, 0.15) # subtle dark background for readability
+	output_style.corner_radius_top_left = 8
+	output_style.corner_radius_top_right = 8
+	output_style.corner_radius_bottom_right = 8
+	output_style.corner_radius_bottom_left = 8
+	output_style.content_margin_left = 16
+	output_style.content_margin_top = 16
+	output_style.content_margin_right = 16
+	output_style.content_margin_bottom = 16
+	output_display.add_theme_stylebox_override("normal", output_style)
+	
+	# Input field padding
+	var input_style = StyleBoxFlat.new()
+	input_style.bg_color = Color(0, 0, 0, 0.2)
+	input_style.corner_radius_top_left = 8
+	input_style.corner_radius_top_right = 8
+	input_style.corner_radius_bottom_right = 8
+	input_style.corner_radius_bottom_left = 8
+	input_style.content_margin_left = 16
+	input_style.content_margin_right = 16
+	input_style.content_margin_top = 8
+	input_style.content_margin_bottom = 8
+	
+	input_field.add_theme_stylebox_override("normal", input_style)
+	input_field.add_theme_stylebox_override("focus", input_style)
+	custom_prompt_input.add_theme_stylebox_override("normal", input_style)
+	commit_msg_input.add_theme_stylebox_override("normal", input_style)
+	
+	# Align buttons to same size
+	if is_instance_valid(send_button) and is_instance_valid(add_file_btn):
+		send_button.custom_minimum_size = Vector2(120, 0)
+		add_file_btn.custom_minimum_size = Vector2(120, 0)
+	
+	# Apply beautiful colors to buttons (simple solid colors)
+	var action_btns = [
+		$TabContainer/Chat/ActionsContainer/FixBtn,
+		$TabContainer/Chat/ActionsContainer/ExplainBtn,
+		$TabContainer/Chat/ActionsContainer/UndoBtn,
+		$TabContainer/Chat/ActionsContainer/FixConsoleBtn,
+	]
+	
+	for btn in action_btns:
+		if is_instance_valid(btn):
+			_style_solid_button(btn, Color(0.25, 0.35, 0.5)) # Nice slate blue
+	
+	_style_solid_button($TabContainer/Chat/ActionsContainer/RefactorBtn, Color(0.4, 0.3, 0.6)) # Purple
+	_style_solid_button(send_button, Color(0.15, 0.6, 0.35)) # Beautiful green
+	_style_solid_button(add_file_btn, Color(0.2, 0.5, 0.8)) # Beautiful blue
+	_style_solid_button(execute_plan_btn, Color(0.2, 0.6, 0.3))
+	_style_solid_button(_apply_diff_btn, Color(0.2, 0.6, 0.3))
+	
+	_style_solid_button(_skip_diff_btn, Color(0.4, 0.4, 0.45))
+	_style_solid_button(tts_play_btn, Color(0.3, 0.4, 0.5))
+	if is_instance_valid(tts_stop_btn):
+		_style_solid_button(tts_stop_btn, Color(0.5, 0.3, 0.3))
+	_style_solid_button(_file_clear_btn, Color(0.5, 0.3, 0.3))
+	
+	_style_solid_button(font_size_minus_btn, Color(0.3, 0.35, 0.4))
+	_style_solid_button(font_size_plus_btn, Color(0.3, 0.35, 0.4))
+	_style_solid_button(new_chat_button, Color(0.3, 0.35, 0.4))
+	_style_solid_button(history_button, Color(0.3, 0.35, 0.4))
+	
+	# Git Buttons Colors
+	_style_solid_button(init_repo_btn, Color(0.2, 0.6, 0.3))
+	_style_solid_button(set_remote_btn, Color(0.25, 0.35, 0.5))
+	_style_solid_button(pull_btn, Color(0.25, 0.35, 0.5))
+	_style_solid_button(refresh_git_btn, Color(0.3, 0.4, 0.5))
+	_style_solid_button(auto_generate_commit_btn, Color(0.4, 0.3, 0.6))
+	_style_solid_button(commit_sync_btn, Color(0.2, 0.6, 0.3))
+	_style_solid_button(checkout_branch_btn, Color(0.25, 0.35, 0.5))
+	
+	_style_danger_button(undo_changes_btn)
+	_style_danger_button(force_pull_btn)
+	_style_danger_button(force_push_btn)
+	
+	_add_action_icons()
+
+func _style_solid_button(btn: Control, bg_color: Color):
+	if not is_instance_valid(btn):
+		return
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = bg_color
+	normal.corner_radius_top_left = 6
+	normal.corner_radius_top_right = 6
+	normal.corner_radius_bottom_right = 6
+	normal.corner_radius_bottom_left = 6
+	normal.content_margin_left = 12
+	normal.content_margin_right = 12
+	normal.content_margin_top = 6
+	normal.content_margin_bottom = 6
+	
+	var hover = normal.duplicate()
+	hover.bg_color = bg_color.lightened(0.2)
+	
+	var pressed = normal.duplicate()
+	pressed.bg_color = bg_color.darkened(0.2)
+	
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
+	btn.add_theme_stylebox_override("focus", hover)
+	btn.add_theme_color_override("font_color", Color.WHITE)
+
+func _style_danger_button(btn: Control, corner: int = 6):
+	_style_solid_button(btn, Color(0.7, 0.2, 0.2))
+
+func _add_action_icons():
+	var btn_map = {
+		$TabContainer/Chat/ActionsContainer/RefactorBtn: "✧ ",
+		$TabContainer/Chat/ActionsContainer/FixBtn: "� ",
+		$TabContainer/Chat/ActionsContainer/ExplainBtn: "💡 ",
+		$TabContainer/Chat/ActionsContainer/UndoBtn: "↶ ",
+		$TabContainer/Chat/ActionsContainer/FixConsoleBtn: "⌨ ",
+	}
+	for btn in btn_map.keys():
+		var icon_prefix = btn_map[btn]
+		if not btn.text.begins_with(icon_prefix.left(1)):
+			btn.text = icon_prefix + btn.text
+
+# --- Copy functionality ---
+func _setup_copy_features():
+	_copy_popup = PopupMenu.new()
+	var copy_text = "Copiar"
+	if locale_manager and locale_manager.tr("copy") != "copy":
+		copy_text = locale_manager.tr("copy")
+	_copy_popup.add_item("📋 " + copy_text, 0)
+	_copy_popup.id_pressed.connect(_on_copy_popup_id_pressed)
+	add_child(_copy_popup)
+	
+	_floating_copy_btn = Button.new()
+	_floating_copy_btn.text = "📋 " + copy_text
+	_floating_copy_btn.visible = false
+	_floating_copy_btn.mouse_filter = Control.MOUSE_FILTER_PASS
+	_floating_copy_btn.connect("pressed", Callable(self, "_on_floating_copy_pressed"))
+	_style_solid_button(_floating_copy_btn, Color(0.2, 0.2, 0.2, 0.9))
+	_floating_copy_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	output_display.add_child(_floating_copy_btn)
+	
+	output_display.gui_input.connect(_on_output_display_gui_input)
+
+func _on_output_display_gui_input(event: InputEvent):
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if output_display.get_selected_text() != "":
+				_copy_popup.position = get_viewport().get_mouse_position()
+				_copy_popup.popup()
+		elif event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+			get_tree().create_timer(0.05).timeout.connect(_check_floating_copy_btn)
+
+func _check_floating_copy_btn():
+	if output_display.get_selected_text() != "":
+		var mouse_pos = output_display.get_local_mouse_position()
+		_floating_copy_btn.position = mouse_pos + Vector2(10, -30)
+		_floating_copy_btn.visible = true
+	else:
+		_floating_copy_btn.visible = false
+
+func _on_copy_popup_id_pressed(id: int):
+	if id == 0:
+		_perform_copy()
+
+func _on_floating_copy_pressed():
+	_perform_copy()
+
+func _perform_copy():
+	var text = output_display.get_selected_text()
+	if text != "":
+		DisplayServer.clipboard_set(text)
+		var copied_text = "Copiado"
+		if locale_manager and locale_manager.tr("copied") != "copied":
+			copied_text = locale_manager.tr("copied")
+		_floating_copy_btn.text = "✔️ " + copied_text
+		get_tree().create_timer(1.0).timeout.connect(func():
+			var copy_text = "Copiar"
+			if locale_manager and locale_manager.tr("copy") != "copy":
+				copy_text = locale_manager.tr("copy")
+			_floating_copy_btn.text = "📋 " + copy_text
+			_floating_copy_btn.visible = false
+			output_display.deselect()
+		)
+

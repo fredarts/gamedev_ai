@@ -169,8 +169,16 @@ func _create_file_undoable(path: String, content: String):
 	if not DirAccess.dir_exists_absolute(dir_path):
 		DirAccess.make_dir_recursive_absolute(dir_path)
 
+	# Special handling for project.godot: use ProjectSettings API to avoid "reload from disk" popup
+	if path == "res://project.godot":
+		_apply_project_settings_from_content(content)
+		return
+
 	# 1. Try to find if the script is already loaded in memory (open in editor or used by a node)
-	var script = load(path) if FileAccess.file_exists(path) else null
+	# Only do this for script files to prevent loader errors for configs like project.godot
+	var script = null
+	if path.ends_with(".gd") and FileAccess.file_exists(path):
+		script = load(path)
 	
 	if script and script is Script:
 		# Update the source code in memory
@@ -190,9 +198,91 @@ func _create_file_undoable(path: String, content: String):
 			file.close()
 		else:
 			tool_output.emit("Error: Could not open file for write: " + path)
+		# Auto-dismiss any "reload" dialogs for non-script config files
+		if path.ends_with(".cfg") or path.ends_with(".godot"):
+			_auto_dismiss_reload_dialog.call_deferred()
 
 	# 3. Always scan to ensure the filesystem is up to date
 	_scan_fs()
+
+func _apply_project_settings_from_content(content: String):
+	# Parse .godot/.cfg INI-like format and apply via ProjectSettings API
+	var current_section := ""
+	var lines = content.split("\n")
+	
+	for line in lines:
+		line = line.strip_edges()
+		if line.is_empty() or line.begins_with(";"):
+			continue
+		
+		# Section headers like [application], [display], [rendering], etc.
+		if line.begins_with("[") and line.ends_with("]"):
+			current_section = line.substr(1, line.length() - 2)
+			continue
+		
+		# Skip non-setting sections (metadata headers)
+		if current_section in ["godot", "gd_resource"]:
+			continue
+		
+		# Parse key=value pairs
+		var eq_pos = line.find("=")
+		if eq_pos == -1:
+			continue
+		
+		var key = line.substr(0, eq_pos).strip_edges()
+		var value_str = line.substr(eq_pos + 1).strip_edges()
+		
+		# Build the full setting path: section/key
+		var setting_path = key
+		if current_section != "":
+			setting_path = current_section + "/" + key
+		
+		# Parse the value using Godot's expression evaluator
+		var value = _parse_setting_value(value_str)
+		if value != null:
+			ProjectSettings.set_setting(setting_path, value)
+	
+	# Let Godot save it natively — no "reload from disk" popup
+	var err = ProjectSettings.save()
+	if err != OK:
+		tool_output.emit("Warning: ProjectSettings.save() returned error: " + str(err))
+
+func _parse_setting_value(value_str: String):
+	# Try to evaluate the value string as a GDScript expression
+	var expr = Expression.new()
+	var error = expr.parse(value_str)
+	if error == OK:
+		var result = expr.execute()
+		if not expr.has_execute_failed():
+			return result
+	
+	# Fallback: return as raw string (strip surrounding quotes if present)
+	if value_str.begins_with("\"") and value_str.ends_with("\""):
+		return value_str.substr(1, value_str.length() - 2)
+	
+	return value_str
+
+func _auto_dismiss_reload_dialog():
+	# Search the editor's UI tree for any "reload" confirmation dialog and accept it
+	var base = EditorInterface.get_base_control()
+	if not base:
+		return
+	_find_and_accept_reload_dialogs(base)
+
+func _find_and_accept_reload_dialogs(node: Node):
+	if node is AcceptDialog and node.visible:
+		var dialog_text = ""
+		if node is ConfirmationDialog:
+			dialog_text = node.dialog_text
+		elif node.has_method("get_text"):
+			dialog_text = node.get_text()
+		# Detect reload/revert dialogs by common keywords
+		if "reload" in dialog_text.to_lower() or "revert" in dialog_text.to_lower() or "modified" in dialog_text.to_lower() or "changed" in dialog_text.to_lower():
+			node.get_ok_button().emit_signal("pressed")
+			node.hide()
+			return
+	for child in node.get_children():
+		_find_and_accept_reload_dialogs(child)
 
 func _delete_file_undoable(path: String):
 	if FileAccess.file_exists(path):
