@@ -1,6 +1,6 @@
 # Chat, Anexos e Contexto (O Pulmão do Plugin)
 
-O Chat é mais do que um chat do ChatGPT embutido na janela direita do editor. Ele é o verdadeiro "sistema respiratório" entre a sua Scene Tree (Arquivos do Jogo) e a Mente da IA.
+O Chat é mais do que um chat do ChatGPT embutido na janela direita do editor. Ele é o verdadeiro "sistema respiratório" entre a seus **Arquivos do Jogo** e a **Mente da IA**.
 
 ## A Importância do "Context" (Ler seu código atual)
 
@@ -21,7 +21,6 @@ Ao lado do toggle de Contexto, existe o toggle **Captura de Tela**. Essa funcion
 
 ### Quando Usar
 - **UI quebrada:** Sua interface do jogo está desalinhada mas você não sabe qual Label ou Container é o culpado? Ative a captura, mande um "O que está errado com esse layout?" e a IA analisará visualmente os nós.
-- **Bugs visuais:** Um shader está renderizando errado, uma animação está pulando frames ou uma colisão parece invisível? A screenshot mostra exatamente o que você vê.
 - **Scene Tree complexa:** Quer que a IA entenda como está organizada a hierarquia de nós sem descrever cada um manualmente.
 
 ::: tip Dica
@@ -31,7 +30,7 @@ A IA também possui a ferramenta `capture_editor_screenshot` que ela mesma pode 
 ## Botão Planejar Antes (Plan First)
 
 É muito comum errarmos ao pedir para a IA criar, de primeira, toda a lógica de um RPG gigante. O plugin permite frear a impulsividade robótica ativando o **Planejar Antes**.
-* **Marcado:** O plugin mandará uma diretiva estrita. *A IA não codará*. Ela responderá exclusivamente com uma lista Markdown numerada enumerando o projeto (Classes, Nomes e Funções Base) a serem alterados.
+* **Marcado:** O plugin mandará uma diretiva estrita. *A IA não criará código*. Ela responderá exclusivamente com uma lista Markdown numerada enumerando o projeto (Classes, Nomes e Funções Base) a serem alterados.
 * Após você revisar e aprovar, clique no botão **"Executar Plano"** que surgirá automaticamente. A IA então começará a implementar tudo que planejou.
 
 ## Anexos e Nós Arrastáveis

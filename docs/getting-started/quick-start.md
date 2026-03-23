@@ -8,7 +8,7 @@ Tudo configurado? Agora vamos usar o assistente inteligente na prática.
 2. O Gamedev AI é treinado essencialmente para *Entender Códigos* e *Modificar Nós*. Para conversar naturalmente, basta digitar o que quer no campo inferior do painel e apertar `Shift + Enter` (ou dar clique em **Enviar**).
 3. Escreva: *"Olá, quem é você e o que consegue criar neste projeto pra mim?"*
 
-A IA irá se agrupar e responder em instantes com textos estilizados, emojis ou até mesmo sugerindo blocos de código práticos.
+A IA irá responder em instantes com textos estilizados, emojis ou até mesmo sugerindo blocos de código práticos.
 
 ## Menu Flutuante e Snippets In-Line
 

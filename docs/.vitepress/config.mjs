@@ -10,6 +10,9 @@ export default defineConfig({
   ],
   
   themeConfig: {
+    logo: '/images/gamedevAi_logo.png',
+    siteTitle: false,
+
     nav: [
       { text: 'Início', link: '/' },
       { text: 'Guia de Uso', link: '/getting-started/installation' }

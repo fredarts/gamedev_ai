@@ -16,7 +16,7 @@ O plugin possui **3 abas** no topo do painel:
 ### Barra Superior
 | Botão | Função |
 |-------|--------|
-| **Seletor de Preset** | Dropdown para trocar rapidamente entre diferentes configurações de provedor/modelo (ex: "Gemini 3.1 Free", "GPT-4o"). |
+| **Seletor de Preset** | Dropdown para trocar rapidamente entre diferentes configurações de provedor/modelo (ex: "Gemini 3.1", "GPT-4o"). |
 | **A-** / **A+** | Diminui ou aumenta o tamanho da fonte do chat. |
 | **+ Novo Chat** | Limpa a conversa atual e inicia uma sessão completamente nova. |
 | **⊙ Histórico** | Menu dropdown que lista todas as conversas passadas. Clique em uma para restaurar o contexto completo daquela sessão. |
@@ -108,17 +108,17 @@ Uma caixa de texto grande onde você pode inserir regras fixas que a IA sempre s
 ### Configuração Inicial
 | Elemento | Função |
 |----------|--------|
-| **Initialize Repository** | Inicializa um repositório Git na pasta do projeto (se ainda não existir). |
+| **Inicializar Repositório** | Inicializa um repositório Git na pasta do projeto (se ainda não existir). |
 | **Remote URL** | Campo para colar a URL do repositório GitHub (ex: `https://github.com/user/repo.git`). |
 | **Set Remote** | Define a URL remota do repositório. |
 
 ### Operações Principais
 | Botão | Função |
 |-------|--------|
-| **🔃 Refresh** | Atualiza o status do Git mostrando arquivos modificados, não rastreados e o branch atual. |
-| **⬇️ Pull** | Baixa as alterações mais recentes do repositório remoto. |
-| **✨ Auto-Generate Commit Message** | A IA analisa todos os arquivos modificados (diff) e gera automaticamente uma mensagem de commit profissional e descritiva. |
-| **Commit & Sync (Push)** | Faz commit de todas as mudanças com a mensagem digitada/gerada e envia (push) para o GitHub. |
+| **🔃 Atualizar Status** | Atualiza o status do Git mostrando arquivos modificados, não rastreados e o branch atual. |
+| **⬇️ Puxar** | Baixa as alterações mais recentes do repositório remoto. |
+| **✨ Gerar Mensagem de Commit** | A IA analisa todos os arquivos modificados (diff) e gera automaticamente uma mensagem de commit profissional e descritiva. |
+| **Commit e Sincronizar (Push)** | Faz commit de todas as mudanças com a mensagem digitada/gerada e envia (push) para o GitHub. |
 
 ### Branches
 | Elemento | Função |
@@ -130,9 +130,9 @@ Uma caixa de texto grande onde você pode inserir regras fixas que a IA sempre s
 ### Ações de Emergência
 | Botão | Função |
 |-------|--------|
-| **⚠️ Undo Uncommitted Changes** | Descarta TODAS as alterações locais não commitadas, voltando ao estado do último commit. Requer confirmação. |
-| **⚠️ Force Pull** | Substitui completamente o projeto local pelo estado do repositório remoto. Requer confirmação. |
-| **⚠️ Force Push** | Força o envio do estado local para o remoto, sobrescrevendo o histórico. Requer confirmação. |
+| **⚠️ Desfazer Alterações Não Commitadas** | Descarta TODAS as alterações locais não commitadas, voltando ao estado do último commit. Requer confirmação. |
+| **⚠️ Forçar Puxar** | Substitui completamente o projeto local pelo estado do repositório remoto. Requer confirmação. |
+| **⚠️ Forçar Push** | Força o envio do estado local para o remoto, sobrescrevendo o histórico. Requer confirmação. |
 
 ---
 
@@ -141,6 +141,6 @@ Uma caixa de texto grande onde você pode inserir regras fixas que a IA sempre s
 Quando a IA gera ou modifica código, um painel de Diff aparece no chat:
 | Elemento | Função |
 |----------|--------|
-| **Diff Display** | Visualização lado-a-lado mostrando linhas removidas (vermelho) e adicionadas (verde). |
-| **Apply Changes** | Aceita as mudanças e aplica no arquivo real. A ação é registrada no Undo/Redo do Godot. |
-| **Skip** | Rejeita as mudanças. Nenhum arquivo é alterado. |
+| **Visualização de Diff** | Visualização lado-a-lado mostrando linhas removidas (vermelho) e adicionadas (verde). |
+| **Aplicar Mudanças** | Aceita as mudanças e aplica no arquivo real. A ação é registrada no Undo/Redo do Godot. |
+| **Pular** | Rejeita as mudanças. Nenhum arquivo é alterado. |

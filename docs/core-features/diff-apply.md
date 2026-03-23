@@ -15,7 +15,7 @@ O plugin Gamedev AI implementa a "Janela Diff Safe View", comparável as visuali
 
 ## Apply ou Skip (O Poder da Rejeição)
 
-Ao final do Diff (Deslize a *scroll-bar* até o topo ou analise friamente), aparecem botões decisivos de segurança:
+Ao final do Diff (Deslize a *scroll-bar* até o final ou analise friamente), aparecem botões decisivos de segurança:
 * **"Apply Changes" (Aplicar Mudanças):** O Gamedev AI usará a Proxy de Histórico Undo/Redo oficial do Godot Engine e vai modificar o script alvo real. Se você der `Ctrl + Z` no script, voltará antes da IA assumir.
 * **"Skip" (Pular / Ignorar):** Detestou a ideia engessada do LLM após o Diff? Aperte "Skip". Nenhuma linha real será alterada (nem no Cache) e não há prejuízo técnico, apenas os *tokens* foram queimados.
 

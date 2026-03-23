@@ -1,6 +1,6 @@
 # As 25 Skills Embutidas (Catálogo Completo)
 
-O Gamedev AI não é uma IA genérica que depende apenas da memória treinada na internet. Ele conta com **25 módulos de expertise** escritos especificamente para Godot 4, que são consultados automaticamente durante as conversas para garantir que o código gerado siga as melhores práticas da indústria.
+O Gamedev AI não é uma IA genérica que depende apenas da memória treinada na internet. Ele conta com **25 módulos de expertise** escritos especificamente para Godot 4.6, que são consultados automaticamente durante as conversas para garantir que o código gerado siga as melhores práticas da indústria.
 
 Abaixo, cada uma das 25 Skills é detalhada com seu propósito e exemplos de quando a IA as utiliza.
 
@@ -21,7 +21,7 @@ Abaixo, cada uma das 25 Skills é detalhada com seu propósito e exemplos de qua
 **Receitas e Padrões de GDScript.** Soluções prontas para problemas comuns: singleton pattern, object pooling, dependency injection, observer pattern e implementações idiomáticas em GDScript.
 
 ### 5. `gdscript_signals_and_tweens`
-**Signals e Tweens.** Guia aprofundado sobre o sistema de sinais do Godot 4, `SceneTreeTween`, criação de animações procedurais, encadeamento de tweens e boas práticas de desacoplamento com signals.
+**Sinais e Tweens.** Guia aprofundado sobre o sistema de sinais do Godot 4, `SceneTreeTween`, criação de animações procedurais, encadeamento de tweens e boas práticas de desacoplamento com sinais.
 
 ---
 
@@ -34,7 +34,7 @@ Abaixo, cada uma das 25 Skills é detalhada com seu propósito e exemplos de qua
 **Diretrizes de Estrutura de Projeto.** Organização ideal de pastas (`src/`, `assets/`, `ui/`, `autoloads/`), convenções de nomes de arquivos, autoloads vs. dependency injection e quando usar cada abordagem.
 
 ### 8. `state_machine_implementation`
-**Implementação de State Machines.** Padrão de máquina de estados com nós filhos, transições limpas, estados hierárquicos e integração com AnimationTree para personagens complexos.
+**Implementação de Máquinas de Estados.** Padrão de máquina de estados com nós filhos, transições limpas, estados hierárquicos e integração com AnimationTree para personagens complexos.
 
 ---
 
