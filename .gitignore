@@ -15,3 +15,10 @@ mono_crash*.log
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Web/Docs ignores
+node_modules/
+dist/
+.vitepress/dist/
+.vitepress/cache/
+
