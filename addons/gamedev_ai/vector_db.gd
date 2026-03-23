@@ -5,13 +5,16 @@ signal db_output(output: String)
 
 var http_request: HTTPRequest
 var parent_node: Node
-var db_path = "res://gamedev_ai_vector_db.json"
+var db_path = "res://.gamedev_ai/vector_db.json"
 var embeddings_db = [] # Array of {"path": str, "chunk_name": str, "text": str, "embedding": Array, "hash": str}
 
 var _indexing_queue: Array = []
 var _is_indexing: bool = false
 var _search_pending_query: String = ""
 var _is_searching: bool = false
+
+var _backoff_time: float = 5.0
+var _max_backoff: float = 60.0
 
 # Incremental indexing state
 var _old_db_by_path: Dictionary = {}
@@ -37,6 +40,10 @@ func _load_db():
 			embeddings_db = json
 
 func _save_db():
+	var dir_path = db_path.get_base_dir()
+	if not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_recursive_absolute(dir_path)
+		
 	var file = FileAccess.open(db_path, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(embeddings_db))
@@ -203,6 +210,7 @@ func index_project():
 	_stats_retained = 0
 	_stats_moved = 0
 	_stats_queued = 0
+	_backoff_time = 5.0
 	
 	# Build lookup maps from the existing database
 	for entry in embeddings_db:
@@ -323,12 +331,15 @@ func _on_http_request_completed(_result, response_code, _headers, body):
 		
 	elif _is_indexing:
 		if response_code == 429: # Rate limit
-			print("Rate limit hit during indexing. Waiting 5 seconds...")
+			print("Rate limit hit during indexing. Waiting " + str(_backoff_time) + " seconds...")
 			# DON'T pop queue, just wait and retry
-			var timer = Engine.get_main_loop().create_timer(5.0)
+			var timer = Engine.get_main_loop().create_timer(_backoff_time)
 			timer.timeout.connect(_process_next_index_queue)
+			
+			_backoff_time = min(_backoff_time * 2.0, _max_backoff)
 			return
 			
+		_backoff_time = 5.0 # Reset on success
 		var item = _indexing_queue.pop_front()
 		if not vector.is_empty():
 			item["embedding"] = vector

@@ -31,7 +31,7 @@ func _relay(entry: Dictionary):
 	new_log_entry.emit(entry)
 
 func register_logger():
-	print("Gamedev AI Logger ready.")
+	pass
 
 func unregister_logger():
 	pass

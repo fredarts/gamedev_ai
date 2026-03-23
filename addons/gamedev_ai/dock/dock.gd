@@ -15,6 +15,7 @@ var locale_manager
 @onready var screenshot_toggle: CheckButton = %ScreenshotToggle
 @onready var selection_status: Label = %SelectionStatus
 @onready var history_button: MenuButton = %HistoryButton
+@onready var summarize_btn: Button = %SummarizeBtn
 @onready var new_chat_button: Button = %NewChatButton
 @onready var watch_mode_toggle: CheckButton = %WatchModeToggle
 @onready var plan_first_toggle: CheckButton = %PlanFirstToggle
@@ -218,6 +219,7 @@ func _ready():
 	url_input.text_changed.connect(_on_config_changed)
 	
 	new_chat_button.pressed.connect(_on_new_chat_pressed)
+	summarize_btn.pressed.connect(_on_summarize_pressed)
 	history_button.get_popup().about_to_popup.connect(_on_history_popup_about_to_show)
 	history_button.get_popup().id_pressed.connect(_on_history_item_pressed)
 	
@@ -510,6 +512,8 @@ func _apply_locale():
 	send_button.text = "➢ " + L.tr("send")
 	add_file_btn.text = "📎 Anexar"
 	new_chat_button.text = "＋ " + L.tr("new_chat")
+	summarize_btn.text = "💾 " + (L.tr("summarize_memory") if L.has_method("has_message") and L.has_message("summarize_memory") else "Summarize to Memory")
+	summarize_btn.tooltip_text = L.tr("tt_summarize_memory") if L.has_method("has_message") and L.has_message("tt_summarize_memory") else "Send a designated prompt to save key architectural decisions into the project memory json."
 	history_button.text = "◷ " + L.tr("history")
 	selection_status.text = L.tr("no_selection")
 	input_field.placeholder_text = L.tr("input_placeholder")
@@ -599,6 +603,9 @@ func _on_new_chat_pressed():
 		_clear_chat()
 		_add_to_chat("\n[color=gray]" + locale_manager.tr("new_chat_started") + "[/color]\n")
 		_update_ui_state(false)
+
+func _on_summarize_pressed():
+	_process_send("Por favor, analise as decisões arquiteturais que tomamos nesta conversa e use a ferramenta save_memory para armazenar os pontos-chave.")
 
 func _on_history_popup_about_to_show():
 	_refresh_history_list()

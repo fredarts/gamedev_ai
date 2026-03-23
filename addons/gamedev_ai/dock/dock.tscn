@@ -54,6 +54,12 @@ text = "◷ History"
 tooltip_text = "View and load past chat sessions"
 flat = false
 
+[node name="SummarizeBtn" type="Button" parent="TabContainer/Chat/ChatHeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "💾 Summarize"
+tooltip_text = "Ask AI to summarize the current chat and save it to project memory"
+
 [node name="OutputDisplay" type="RichTextLabel" parent="TabContainer/Chat"]
 unique_name_in_owner = true
 layout_mode = 2
