@@ -92,6 +92,84 @@ func _prepare_request(text: String) -> Dictionary:
 		
 	return {"url": url, "headers": headers, "body": body, "provider": provider}
 
+# ----------------- DRY-RUN SCAN (no API calls) -----------------
+func scan_changes() -> Dictionary:
+	var old_by_path: Dictionary = {}
+	var old_by_hash: Dictionary = {}
+	for entry in embeddings_db:
+		var p = entry.get("path", "")
+		var h = entry.get("hash", "")
+		if p != "": old_by_path[p] = entry
+		if h != "": old_by_hash[h] = entry
+	
+	var retained: Array = []
+	var moved: Array = [] # Array of {"old": old_path, "new": new_path}
+	var new_or_modified: Array = []
+	var all_current_paths: Dictionary = {}
+	
+	_scan_changes_dir("res://", old_by_path, old_by_hash, retained, moved, new_or_modified, all_current_paths)
+	
+	# Detect deleted files (in old DB but not found on disk)
+	var deleted: Array = []
+	for old_path in old_by_path.keys():
+		if not all_current_paths.has(old_path):
+			# Check if it was detected as a move (old path consumed)
+			var dominated = false
+			for m in moved:
+				if m["old"] == old_path:
+					dominated = true
+					break
+			if not dominated:
+				deleted.append(old_path)
+	
+	return {
+		"retained": retained,
+		"moved": moved,
+		"new_or_modified": new_or_modified,
+		"deleted": deleted
+	}
+
+func _scan_changes_dir(dir_path: String, old_by_path: Dictionary, old_by_hash: Dictionary, retained: Array, moved: Array, new_or_modified: Array, all_current_paths: Dictionary):
+	var dir = DirAccess.open(dir_path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.begins_with("."):
+				pass
+			elif dir.current_is_dir() and not file_name in ["addons", ".godot", "export"]:
+				_scan_changes_dir(dir_path + "/" + file_name if dir_path != "res://" else dir_path + file_name, old_by_path, old_by_hash, retained, moved, new_or_modified, all_current_paths)
+			elif file_name.ends_with(".gd"):
+				var full_path = dir_path + "/" + file_name if dir_path != "res://" else dir_path + file_name
+				_classify_file(full_path, old_by_path, old_by_hash, retained, moved, new_or_modified, all_current_paths)
+			file_name = dir.get_next()
+
+func _classify_file(path: String, old_by_path: Dictionary, old_by_hash: Dictionary, retained: Array, moved: Array, new_or_modified: Array, all_current_paths: Dictionary):
+	var file_hash = FileAccess.get_md5(path)
+	if file_hash == "": return
+	
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file: return
+	var content = file.get_as_text()
+	if content.strip_edges() == "": return
+	
+	all_current_paths[path] = true
+	
+	# 1) Same path + same hash => retained
+	if old_by_path.has(path):
+		if old_by_path[path].get("hash", "") == file_hash:
+			retained.append(path)
+			return
+	
+	# 2) Different path, same hash => moved/renamed
+	if old_by_hash.has(file_hash):
+		var old_entry = old_by_hash[file_hash]
+		moved.append({"old": old_entry.get("path", ""), "new": path})
+		return
+	
+	# 3) New or modified
+	new_or_modified.append(path)
+
 # ----------------- SEARCH -----------------
 func search(query: String, top_k: int = 5):
 	if _is_searching or _is_indexing:

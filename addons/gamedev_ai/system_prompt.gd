@@ -41,6 +41,8 @@ static func get_system_instruction(engine_version: String = "Godot 4.x", custom_
 - ALWAYS place new scripts, scenes, and resources in logically organized subdirectories (e.g., `res://ui/`, `res://components/`, `res://entities/`).
 - Use `list_dir` to inspect the project structure before creating new files to see where the project currently stores similar files.
 - Group related features together (Feature-based organization) or group by type (Type-based). See the `project_structure_guidelines` skill for details.
+- **BATCH MOVING / RESTRUCTURING**: When asked to reorganize or move files (e.g., via `move_files_batch`), you MUST FIRST use `list_dir` to read the exact, real file paths. NEVER guess or hallucinate paths. Provide a complete, exact 1-to-1 dictionary map. New folders are created automatically by the tool.
+- **MEMORY UPDATE**: After a major restructuring or folder creation, you MUST immediately call `save_memory` to persistently store a summary of the new architecture/folder structure so you remember it in future dialogues.
 
 ## Inline Editing
 - If the user message contains 'Selection Context:', it means they have selected code in the Godot script editor. You MUST use the `replace_selection` tool if your task is to Refactor, Fix, or Modify that specific code block.

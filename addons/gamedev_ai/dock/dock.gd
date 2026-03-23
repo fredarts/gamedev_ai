@@ -71,6 +71,15 @@ var locale_manager
 @onready var force_pull_confirm_dialog: ConfirmationDialog = %ForcePullConfirmDialog
 @onready var force_push_confirm_dialog: ConfirmationDialog = %ForcePushConfirmDialog
 
+@onready var vector_db_file_list: RichTextLabel = %VectorDBFileList
+@onready var scan_changes_btn: Button = %ScanChangesBtn
+@onready var index_codebase_btn: Button = %IndexCodebaseBtn
+@onready var index_confirm_dialog: ConfirmationDialog = %IndexConfirmDialog
+@onready var index_result_dialog: AcceptDialog = %IndexResultDialog
+@onready var enhance_prompt_btn: Button = %EnhancePromptBtn
+@onready var enhance_preview_dialog: ConfirmationDialog = %EnhancePreviewDialog
+@onready var enhance_preview_label: RichTextLabel = %EnhancePreviewLabel
+
 @onready var tts_player_container: VBoxContainer = %TTSPlayerContainer
 @onready var tts_play_btn: Button = %TTSPlayBtn
 @onready var tts_stop_btn: Button = %TTSStopBtn
@@ -85,6 +94,8 @@ var git_manager
 var _is_generating_commit: bool = false
 var _last_ai_response_text: String = ""
 var _is_dragging_tts_slider: bool = false
+var _enhance_http: HTTPRequest
+var _enhanced_text: String = ""
 
 var _attached_files: Array[Dictionary] = []
 var _dropped_files: Array[String] = []
@@ -227,6 +238,13 @@ func _ready():
 		custom_prompt_input.text = settings.get_setting("gamedev_ai/custom_system_prompt")
 	custom_prompt_input.text_changed.connect(_on_custom_prompt_changed)
 	
+	# Vector DB UI
+	scan_changes_btn.pressed.connect(_on_scan_changes_pressed)
+	index_codebase_btn.pressed.connect(_on_index_codebase_pressed)
+	index_confirm_dialog.confirmed.connect(_on_index_confirmed)
+	enhance_prompt_btn.pressed.connect(_on_enhance_prompt_pressed)
+	enhance_preview_dialog.confirmed.connect(_on_enhance_accepted)
+	
 	# Initial sync of instructions if client is already set
 	if gemini_client:
 		gemini_client.custom_instructions = custom_prompt_input.text
@@ -273,6 +291,7 @@ func setup(client, manager, executor):
 	_tool_executor.diff_preview_requested.connect(_on_diff_preview_requested)
 	_tool_executor.image_captured.connect(_on_image_captured)
 	_tool_executor.init_vector_db(self)
+	_tool_executor.vector_db.db_output.connect(_on_vector_db_output)
 	
 	# Create destructive action confirmation dialog
 	_confirm_dialog = ConfirmationDialog.new()
@@ -1939,3 +1958,180 @@ func _perform_copy():
 			output_display.deselect()
 		)
 
+# ===================== VECTOR DB UI =====================
+func _on_scan_changes_pressed():
+	if not _tool_executor or not _tool_executor.vector_db:
+		vector_db_file_list.text = "[color=red]Error: VectorDB not initialized.[/color]"
+		return
+	
+	scan_changes_btn.disabled = true
+	scan_changes_btn.text = "⏳ Scanning..."
+	
+	var result = _tool_executor.vector_db.scan_changes()
+	var bbcode = ""
+	
+	# New or modified (yellow)
+	for path in result["new_or_modified"]:
+		bbcode += "[color=yellow]● NEW/MOD [/color] " + path + "\n"
+	
+	# Moved/renamed (blue)
+	for m in result["moved"]:
+		bbcode += "[color=dodgerblue]➜ MOVED  [/color] " + m["old"] + " → " + m["new"] + "\n"
+	
+	# Deleted (red)
+	for path in result["deleted"]:
+		bbcode += "[color=red]✖ DELETED[/color] " + path + "\n"
+	
+	# Retained (green) - show count only to avoid clutter
+	var retained_count = result["retained"].size()
+	if retained_count > 0:
+		bbcode += "[color=green]✔ " + str(retained_count) + " file(s) unchanged (retained)[/color]\n"
+	
+	if bbcode == "":
+		bbcode = "[color=gray]No script files found in the project.[/color]"
+	
+	# Summary line
+	var total = result["retained"].size() + result["moved"].size() + result["new_or_modified"].size() + result["deleted"].size()
+	bbcode += "\n[b]Total: " + str(total) + " files[/b] | "
+	bbcode += "[color=yellow]" + str(result["new_or_modified"].size()) + " to embed[/color] | "
+	bbcode += "[color=dodgerblue]" + str(result["moved"].size()) + " moved[/color] | "
+	bbcode += "[color=red]" + str(result["deleted"].size()) + " deleted[/color]"
+	
+	vector_db_file_list.text = bbcode
+	scan_changes_btn.disabled = false
+	scan_changes_btn.text = "🔍 Scan Changes"
+
+func _on_index_codebase_pressed():
+	index_confirm_dialog.popup_centered()
+
+func _on_index_confirmed():
+	if not _tool_executor or not _tool_executor.vector_db:
+		return
+	index_codebase_btn.disabled = true
+	index_codebase_btn.text = "⏳ Indexing..."
+	scan_changes_btn.disabled = true
+	_tool_executor.vector_db.index_project()
+
+var _vdb_messages: Array = []
+
+func _on_vector_db_output(text: String):
+	_vdb_messages.append(text)
+	# The final message contains "complete" — show the result popup
+	if "complete" in text.to_lower():
+		var full_msg = "\n".join(_vdb_messages)
+		_vdb_messages.clear()
+		index_result_dialog.dialog_text = full_msg
+		index_result_dialog.popup_centered()
+		index_codebase_btn.disabled = false
+		index_codebase_btn.text = "⚡ Index Codebase"
+		scan_changes_btn.disabled = false
+
+# ===================== ENHANCE INSTRUCTIONS =====================
+func _on_enhance_prompt_pressed():
+	var raw_text = custom_prompt_input.text.strip_edges()
+	if raw_text == "":
+		_show_enhance_error("Please write some instructions first before enhancing.")
+		return
+	
+	enhance_prompt_btn.disabled = true
+	enhance_prompt_btn.text = "⏳ Enhancing..."
+	
+	# Create a one-shot HTTPRequest if not already created
+	if not _enhance_http:
+		_enhance_http = HTTPRequest.new()
+		_enhance_http.use_threads = true
+		_enhance_http.timeout = 360.0
+		add_child(_enhance_http)
+		_enhance_http.request_completed.connect(_on_enhance_request_completed)
+	
+	# Build the one-shot request using the active preset
+	var preset = presets.get(active_preset_name, {})
+	var provider = preset.get("provider", 0)
+	var api_key = preset.get("api_key", "")
+	var base_url = preset.get("base_url", "")
+	var model = preset.get("model_name", "")
+	
+	var enhance_prompt = "You are an expert at writing system prompt instructions for AI coding assistants specialized in Godot 4 game development. The user has written the following custom instructions but they may not be well structured or clear enough. Your job is to rewrite and enhance these instructions to be clearer, more specific, and more effective, while preserving the user's original intent. Keep the same language the user wrote in. Output ONLY the enhanced instructions text, no explanations or markdown formatting.\n\nOriginal instructions:\n" + raw_text
+	
+	var url = ""
+	var headers = ["Content-Type: application/json"]
+	var body = ""
+	
+	if provider == 0: # Gemini / Vertex
+		var m = model if model != "" else "gemini-3.1-pro-preview"
+		if base_url != "":
+			url = base_url
+			if not url.ends_with("/"): url += "/"
+			url += "v1beta/models/" + m + ":generateContent"
+		else:
+			url = "http://127.0.0.1:8000/v1beta/models/" + m + ":generateContent"
+		body = JSON.stringify({
+			"contents": [{"role": "user", "parts": [{"text": enhance_prompt}]}]
+		})
+	else: # OpenAI / OpenRouter
+		var m = model if model != "" else "gpt-4o"
+		if base_url != "":
+			url = base_url
+			if not url.ends_with("/"): url += "/"
+			url += "v1/chat/completions"
+		else:
+			url = "https://api.openai.com/v1/chat/completions"
+		if api_key != "":
+			headers.append("Authorization: Bearer " + api_key)
+		body = JSON.stringify({
+			"model": m,
+			"messages": [{"role": "user", "content": enhance_prompt}]
+		})
+	
+	var err = _enhance_http.request(url, headers, HTTPClient.METHOD_POST, body)
+	if err != OK:
+		_show_enhance_error("Failed to send enhance request: " + str(err))
+		_reset_enhance_btn()
+
+func _on_enhance_request_completed(_result, response_code, _headers, body):
+	if response_code != 200:
+		var payload = body.get_string_from_utf8()
+		_show_enhance_error("API Error (" + str(response_code) + "): " + payload.substr(0, 300))
+		_reset_enhance_btn()
+		return
+	
+	var json = JSON.parse_string(body.get_string_from_utf8())
+	var text = ""
+	
+	# Parse Gemini response
+	if json and json.has("candidates"):
+		var parts = json["candidates"][0].get("content", {}).get("parts", [])
+		for part in parts:
+			if part.has("text"):
+				text += part["text"]
+	# Parse OpenAI response
+	elif json and json.has("choices"):
+		text = json["choices"][0].get("message", {}).get("content", "")
+	
+	if text.strip_edges() == "":
+		_show_enhance_error("AI returned an empty response.")
+		_reset_enhance_btn()
+		return
+	
+	_enhanced_text = text.strip_edges()
+	enhance_preview_label.text = _enhanced_text
+	enhance_preview_dialog.popup_centered()
+	_reset_enhance_btn()
+
+func _on_enhance_accepted():
+	if _enhanced_text != "":
+		custom_prompt_input.text = _enhanced_text
+		# Save to editor settings
+		var settings = EditorInterface.get_editor_settings()
+		settings.set_setting("gamedev_ai/custom_system_prompt", _enhanced_text)
+		if gemini_client:
+			gemini_client.custom_instructions = _enhanced_text
+		_enhanced_text = ""
+
+func _reset_enhance_btn():
+	enhance_prompt_btn.disabled = false
+	enhance_prompt_btn.text = "✨ Enhance Instructions with AI"
+
+func _show_enhance_error(msg: String):
+	enhance_preview_label.text = "[color=red]" + msg + "[/color]"
+	enhance_preview_dialog.popup_centered()

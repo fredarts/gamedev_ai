@@ -643,6 +643,20 @@ func get_tool_definitions() -> Array:
 				},
 				"required": ["query"]
 			}
+		},
+		{
+			"name": "move_files_batch",
+			"description": "Moves or renames multiple files/directories in a single batch operation. It safely updates all internal Godot resource dependencies (like .tscn and .tres references) to prevent corruption. Use this to reorganize project structures.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"moves": {
+						"type": "OBJECT",
+						"description": "A dictionary mapping old paths to new paths. e.g. {'res://old/file.gd': 'res://new/file.gd', 'res://old_dir/': 'res://new_dir/'}"
+					}
+				},
+				"required": ["moves"]
+			}
 		}
 	]
 	

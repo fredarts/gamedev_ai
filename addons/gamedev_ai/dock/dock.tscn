@@ -393,6 +393,81 @@ custom_minimum_size = Vector2(0, 100)
 size_flags_vertical = 3
 placeholder_text = "e.g. Always respond in Portuguese. Focus on 2D platformer patterns..."
 wrap_mode = 1
+
+[node name="EnhancePromptBtn" type="Button" parent="TabContainer/Settings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "✨ Enhance Instructions with AI"
+tooltip_text = "Use AI to analyze and improve your custom instructions for better results."
+
+[node name="EnhancePreviewDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Enhanced Instructions Preview"
+size = Vector2i(600, 400)
+ok_button_text = "Accept"
+cancel_button_text = "Cancel"
+
+[node name="EnhancePreviewScroll" type="ScrollContainer" parent="EnhancePreviewDialog"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -49.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EnhancePreviewLabel" type="RichTextLabel" parent="EnhancePreviewDialog/EnhancePreviewScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+fit_content = true
+selection_enabled = true
+
+[node name="VectorDBSeparator" type="HSeparator" parent="TabContainer/Settings"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="VectorDBLabel" type="Label" parent="TabContainer/Settings"]
+layout_mode = 2
+text = "🗄️ Vector Database"
+
+[node name="VectorDBScroll" type="ScrollContainer" parent="TabContainer/Settings"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VectorDBFileList" type="RichTextLabel" parent="TabContainer/Settings/VectorDBScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[color=gray]Click 'Scan Changes' to preview file statuses.[/color]"
+fit_content = true
+selection_enabled = true
+
+[node name="VectorDBActionsHBox" type="HBoxContainer" parent="TabContainer/Settings"]
+layout_mode = 2
+
+[node name="ScanChangesBtn" type="Button" parent="TabContainer/Settings/VectorDBActionsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🔍 Scan Changes"
+tooltip_text = "Preview which files have been added, modified, moved, or deleted since the last index."
+
+[node name="IndexCodebaseBtn" type="Button" parent="TabContainer/Settings/VectorDBActionsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "⚡ Index Codebase"
+tooltip_text = "Run incremental indexing to embed new and modified files into the vector database."
+
 [node name="Git" type="VBoxContainer" parent="TabContainer"]
 visible = false
 layout_mode = 2
@@ -539,6 +614,17 @@ dialog_text = "WARNING: Are you sure? This will ignore your local edits and forc
 unique_name_in_owner = true
 title = "Force Push to GitHub"
 dialog_text = "WARNING: This will overwrite the version on GitHub with your current local project. Any commits on GitHub that you don't have locally will be permanently lost. Continue?"
+
+[node name="IndexConfirmDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Index Codebase"
+size = Vector2i(450, 200)
+dialog_text = "This action will send new/modified files to the embedding API, which may take a few minutes depending on the project size and consume API tokens. Do you want to proceed?"
+
+[node name="IndexResultDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+title = "Indexing Result"
+size = Vector2i(500, 250)
 
 [node name="AddFileDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true

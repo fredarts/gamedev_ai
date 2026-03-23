@@ -22,7 +22,7 @@ var _retry_count: int = 0
 
 const MAX_HISTORY_TURNS = 100 
 const HISTORY_DIR = "res://.gamedev_ai/history/"
-const REQUEST_TIMEOUT_SECS = 120.0
+const REQUEST_TIMEOUT_SECS = 360.0
 const MAX_RETRIES = 2
 
 func setup(node: Node):
