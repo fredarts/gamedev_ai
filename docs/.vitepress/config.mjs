@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Gamedev AI",
   description: "A IA Autônoma que mora no coração do Godot 4.",
-  base: '/Gamedev-Ai/',
+  base: '/gamedev_ai/',
   
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }]
