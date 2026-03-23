@@ -39,14 +39,16 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Index Codebase (Vector DB)', link: '/memory/vector-db' },
-          { text: 'O Sistema de Skills', link: '/memory/skills' },
+          { text: 'As 25 Skills (Catálogo)', link: '/memory/skills' },
           { text: 'Memória Persistente', link: '/memory/persistent' }
         ]
       },
       {
-        text: '🚀 Ferramentas Exclusivas',
+        text: '🚀 Ferramentas & Referência',
         collapsed: false,
         items: [
+          { text: 'Guia Completo da Interface', link: '/advanced/ui-guide' },
+          { text: 'Todas as 27 Tools da IA', link: '/advanced/tools-reference' },
           { text: 'Aba Git & GitHub', link: '/advanced/git-github' },
           { text: 'Custom System Prompt', link: '/advanced/custom-prompts' }
         ]
