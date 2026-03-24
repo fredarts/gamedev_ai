@@ -4,7 +4,7 @@ export default defineConfig({
   title: "Gamedev AI",
   description: "A IA Autônoma que mora no coração do Godot 4.",
   base: '/gamedev_ai/',
-  
+
   head: [
     ['link', { rel: 'icon', type: 'image/x-icon', href: '/gamedev_ai/favicon.ico' }],
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/gamedev_ai/favicon-32x32.png' }],
@@ -12,9 +12,9 @@ export default defineConfig({
     ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/gamedev_ai/apple-touch-icon.png' }],
     ['link', { rel: 'manifest', href: '/gamedev_ai/site.webmanifest' }]
   ],
-  
+
   themeConfig: {
-    logo: '/images/gamedevAi_logo.png',
+    logo: '/gamedev_ai/images/gamedevAi_logo.png',
     siteTitle: false,
 
     nav: [
@@ -63,9 +63,9 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/fredericoBSS/Gamedev-Ai' }
+      { icon: 'github', link: 'https://github.com/fredarts/gamedev_ai' }
     ],
-    
+
     search: {
       provider: 'local',
       options: {
@@ -90,17 +90,17 @@ export default defineConfig({
         }
       }
     },
-    
+
     footer: {
       message: 'Lançado sob a Licença MIT.',
-      copyright: 'Copyright © 2023-presente Gamedev AI Contributors'
+      copyright: 'Copyright © 2026 - Gamedev AI'
     },
-    
+
     outline: {
       label: 'Nesta Página',
       level: [2, 3]
     },
-    
+
     docFooter: {
       prev: 'Página Anterior',
       next: 'Próxima Página'
