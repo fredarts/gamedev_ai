@@ -7,6 +7,8 @@
 Na aba oculta **Settings**, abaixo do campo da provedor de "API Key".
 Existe a grandiosa caixa livre **Instruções Personalizadas (Adicionadas ao Prompt)**.
 
+![Painel de Settings mostrando a área de Custom Instructions](../images/settings_ui.png)
+
 Sempre que a IA "pensar" as instruções colocadas ali serão lidas como regra Número 1 universal antes dela te responder. 
 
 ### Exemplos do que colar nessa caixa:

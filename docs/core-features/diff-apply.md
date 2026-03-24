@@ -19,4 +19,6 @@ Ao final do Diff (Deslize a *scroll-bar* até o final ou analise friamente), apa
 * **"Apply Changes" (Aplicar Mudanças):** O Gamedev AI usará a Proxy de Histórico Undo/Redo oficial do Godot Engine e vai modificar o script alvo real. Se você der `Ctrl + Z` no script, voltará antes da IA assumir.
 * **"Skip" (Pular / Ignorar):** Detestou a ideia engessada do LLM após o Diff? Aperte "Skip". Nenhuma linha real será alterada (nem no Cache) e não há prejuízo técnico, apenas os *tokens* foram queimados.
 
-> _(Recomendado: Print mostrando janelão BBCode dividindo o Vermelho Apagado com o Verde Otimizado)_.
+> _(Visualize na prática como funciona o Diff:)_
+
+![Janela de Diff mostrando código removido em vermelho e adicionado em verde, com botões Apply e Skip](../images/diff_preview.png)

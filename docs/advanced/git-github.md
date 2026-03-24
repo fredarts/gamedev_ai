@@ -9,6 +9,8 @@ Por isso, o **Gamedev AI** implementa uma Guia nativa de **Git** dentro do Godot
 Na janela direita do plugin, mude da clássica aba `Chat` ou `Settings` para a aba superior **Git**.
 A lá, você dará de cara com uma versão visual simplificada e moderna do terminal:
 
+![Interface da aba Git com botões de commit, branches e operações de emergência](../images/git_tab.png)
+
 ### 1. Initialize & Connect
 Se a pasta não for versionada, existerá um botão gigante verde "Initialize Repository". Depois o painel pedirá para você colar o **GitHub URL** do Repo Nuvem que você criou lá no site do Github.
 

@@ -22,7 +22,8 @@ A forma mais popular, incrivelmente inteligente e **gratuita** de usar o plugin 
 <br>
 
 > **💡 Dica de Ouro!** 
-> _(Recomendado: Inserir Print da Aba Settings mostrando os campos API e Provider preenchidos)_
+
+![Aba Settings mostrando campos de Preset, Provedor e API Key](../images/settings_ui.png)
 
 ## Utilizando OpenRouter ou OpenAI
 

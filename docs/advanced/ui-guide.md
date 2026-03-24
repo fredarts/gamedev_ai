@@ -2,6 +2,8 @@
 
 Esta página descreve **cada botão, toggle e controle** presente na interface do Gamedev AI dentro do editor Godot.
 
+![Visão geral da interface principal do Gamedev AI no Godot](../images/main_interface.png)
+
 ## 🗂️ Abas Principais
 
 O plugin possui **3 abas** no topo do painel:
@@ -28,6 +30,9 @@ O plugin possui **3 abas** no topo do painel:
 - Botão **Copy** flutuante aparece ao selecionar texto para copiar rapidamente.
 
 ### Player TTS (Text-to-Speech)
+
+![Player TTS compacto com controles de reprodução](../images/tts_player.png)
+
 | Controle | Função |
 |----------|--------|
 | **▶ Ler em Voz Alta** | Converte a última resposta da IA em áudio e reproduz. Útil para ouvir explicações enquanto programa. |
@@ -139,6 +144,9 @@ Uma caixa de texto grande onde você pode inserir regras fixas que a IA sempre s
 ## 📋 Painel de Diff (Revisão de Código)
 
 Quando a IA gera ou modifica código, um painel de Diff aparece no chat:
+
+![Painel de Diff mostrando código removido (vermelho) e adicionado (verde)](../images/diff_preview.png)
+
 | Elemento | Função |
 |----------|--------|
 | **Visualização de Diff** | Visualização lado-a-lado mostrando linhas removidas (vermelho) e adicionadas (verde). |

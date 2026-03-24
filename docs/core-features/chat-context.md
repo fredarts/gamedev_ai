@@ -30,6 +30,9 @@ A IA também possui a ferramenta `capture_editor_screenshot` que ela mesma pode 
 ## Botão Planejar Antes (Plan First)
 
 É muito comum errarmos ao pedir para a IA criar, de primeira, toda a lógica de um RPG gigante. O plugin permite frear a impulsividade robótica ativando o **Planejar Antes**.
+
+![Toggle Plan First ativado com botão Executar Plano visível](../images/plan_first.png)
+
 * **Marcado:** O plugin mandará uma diretiva estrita. *A IA não criará código*. Ela responderá exclusivamente com uma lista Markdown numerada enumerando o projeto (Classes, Nomes e Funções Base) a serem alterados.
 * Após você revisar e aprovar, clique no botão **"Executar Plano"** que surgirá automaticamente. A IA então começará a implementar tudo que planejou.
 
@@ -38,6 +41,9 @@ A IA também possui a ferramenta `capture_editor_screenshot` que ela mesma pode 
 Precisa analisar como uma Sprite2D está feita, ou o porquê da Scene `Player.tscn` não bater no RigidBody3D `Ground`? 
 
 O plugin Gamedev AI suporta arraste Drag & Drop. Você não precisa gastar tempo abrindo cada aba de Inspector que gerou curiosidade ou falha visível...
+
+![Arquivos anexados via drag and drop no campo de chat](../images/drag_and_drop.png)
+
 1. **Scene Tree:** Clique em um Nó da Scene e arraste em direção à barra de texto. A IA usará o atalho para analisar todos os Metadados do Nó (posições ocultas, instanciamentos, tags colisionadoras...) e entender porque os vetores de atrito não parecem funcionar.
 2. **Botão 📎 Anexar:** Use para inserir Imagens (`.png` do UI bugado), arquivos brutos de saves (`.json`) e capturas globais de scripts grandes (embora a indexação vetorial seja o método mais profissional).
 
@@ -46,6 +52,8 @@ O plugin Gamedev AI suporta arraste Drag & Drop. Você não precisa gastar tempo
 ## 🎙️ Ler em Voz Alta (TTS - Text-to-Speech)
 
 O Gamedev AI possui um player de **narração por voz** embutido que converte as respostas da IA em áudio. Isso permite que você ouça as explicações enquanto continua programando sem parar para ler paredes de texto.
+
+![Player TTS compacto com botão de leitura e controle de velocidade](../images/tts_player.png)
 
 ### Como Usar
 1. Após a IA responder qualquer pergunta no chat, clique no botão **"▶ Ler em Voz Alta"** (localizado logo abaixo da área de chat).
