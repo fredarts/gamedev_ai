@@ -1,0 +1,71 @@
+/* ============================================
+   HERO BANNER - Background Image + Vignette
+   ============================================ */
+
+/* Container principal do Hero */
+.VPHero {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Imagem de fundo do banner */
+.VPHero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/hero_banner.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* Efeito vinheta escura nas bordas */
+.VPHero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 30%,
+    rgba(0, 0, 0, 0.55) 70%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Garante que o conteúdo do Hero fique acima do fundo */
+.VPHero .container {
+  position: relative;
+  z-index: 2;
+}
+
+.VPHero .main {
+  position: relative;
+  z-index: 2;
+}
+
+/* Sombra suave no texto para legibilidade */
+.VPHero .name,
+.VPHero .text,
+.VPHero .tagline {
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* Hero ocupa mais altura para dar destaque ao banner */
+.VPHero .VPImage {
+  position: relative;
+  z-index: 2;
+}
+
+/* ============================================
+   Ajuste mobile - mantém o banner bonito
+   ============================================ */
+@media (max-width: 768px) {
+  .VPHero::before {
+    background-position: center center;
+    opacity: 0.3;
+  }
+}
