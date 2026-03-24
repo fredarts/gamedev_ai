@@ -805,6 +805,9 @@ export default defineConfig({
   themeConfig: {
     logo: '/images/gamedevAi_logo.png',
     siteTitle: false,
+    search: {
+      provider: 'local'
+    },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/fredarts/gamedev_ai' }
     ]
