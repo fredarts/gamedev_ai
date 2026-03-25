@@ -31,20 +31,13 @@
 .VPHero {
   position: relative;
   overflow: hidden;
+  min-height: 1072px; /* Set directly from User Request */
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
 }
 
-/* Imagem de fundo do banner */
-.VPHero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url('/images/hero_banner.png');
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  z-index: 0;
-  opacity: 0.7;
-}
+
 
 /* Efeito vinheta suave nas bordas */
 .VPHero::after {
