@@ -8,7 +8,11 @@ var _memory_manager
 var locale_manager
 
 # Scene node references (unique names from dock.tscn)
-@onready var output_display: RichTextLabel = %OutputDisplay
+@onready var chat_scroll: ScrollContainer = %ChatScrollContainer
+@onready var chat_vbox: VBoxContainer = %ChatVBox
+var _current_bubble: RichTextLabel = null
+var _current_role: String = ""
+var _bubble_map: Dictionary = {}
 @onready var input_field: TextEdit = %InputField
 @onready var send_button: Button = %SendButton
 @onready var context_toggle: CheckButton = %ContextToggle
@@ -240,7 +244,7 @@ func _ready():
 	
 	# Enable drag and drop across the main chat interface
 	input_field.set_drag_forwarding(Callable(), _can_drop_data_fw, _drop_data_fw)
-	output_display.set_drag_forwarding(Callable(), _can_drop_data_fw, _drop_data_fw)
+	chat_scroll.set_drag_forwarding(Callable(), _can_drop_data_fw, _drop_data_fw)
 	
 	chat_preset_selector.item_selected.connect(_on_chat_preset_selected)
 	font_size_minus_btn.pressed.connect(_on_font_minus_pressed)
@@ -313,7 +317,7 @@ func _ready():
 	_regex_suggest = RegEx.new()
 	_regex_suggest.compile("\\[SUGGEST:\\s*(.+?)\\]")
 	
-	output_display.meta_clicked.connect(_on_meta_clicked)
+	# meta_clicked is now connected per-bubble in _create_chat_bubble()
 	
 	var fs = EditorInterface.get_resource_filesystem()
 	if fs and not fs.filesystem_changed.is_connected(_on_filesystem_changed):
@@ -473,11 +477,18 @@ func _on_font_plus_pressed():
 	_apply_font_size()
 
 func _apply_font_size():
-	output_display.add_theme_font_size_override("normal_font_size", _current_font_size)
-	output_display.add_theme_font_size_override("bold_font_size", _current_font_size)
-	output_display.add_theme_font_size_override("italics_font_size", _current_font_size)
-	output_display.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
-	output_display.add_theme_font_size_override("mono_font_size", _current_font_size)
+	for bubble in chat_vbox.get_children():
+		_apply_font_size_recursive(bubble)
+
+func _apply_font_size_recursive(node: Node):
+	if node is RichTextLabel:
+		node.add_theme_font_size_override("normal_font_size", _current_font_size)
+		node.add_theme_font_size_override("bold_font_size", _current_font_size)
+		node.add_theme_font_size_override("italics_font_size", _current_font_size)
+		node.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
+		node.add_theme_font_size_override("mono_font_size", _current_font_size)
+	for child in node.get_children():
+		_apply_font_size_recursive(child)
 
 func _on_delete_preset_pressed():
 	if presets.size() <= 1:
@@ -823,7 +834,7 @@ func _stop_ai():
 		
 	if _diff_preview_panel and _diff_preview_panel.visible:
 		_diff_preview_panel.visible = false
-		output_display.visible = true
+		chat_scroll.visible = true
 		if _tool_executor and _tool_executor.has_method("cancel_pending_action"):
 			_tool_executor.cancel_pending_action()
 			
@@ -1074,7 +1085,7 @@ func _is_game_running() -> bool:
 
 func _process_send(prompt_text: String, is_execute_plan: bool = false):
 	if _is_game_running():
-		output_display.append_text("\n[color=orange][b]" + locale_manager.tr("game_running_warning") + "[/color]\n")
+		_add_to_chat("\n[color=orange][b]" + locale_manager.tr("game_running_warning") + "[/color]\n", "system")
 		return
 	_is_stopped = false
 	_watch_fix_count = 0  # Reset watch mode counter on manual user message
@@ -1161,7 +1172,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 	
 	if gemini_client:
 		gemini_client.send_prompt(final_prompt, context, tools, files_data)
-		output_display.append_text("\n[i]" + locale_manager.tr("thinking") + "[/i]\n")
+		_add_to_chat("\n[i]" + locale_manager.tr("thinking") + "[/i]\n", "system")
 		_on_clear_dropped_files()
 
 func _encode_image(image: Image) -> Dictionary:
@@ -1356,13 +1367,13 @@ func _on_ai_response(response: String):
 		# Strip tool call text from the visible response
 		var clean_response = _strip_tool_call_text(response)
 		if clean_response.strip_edges() != "":
-			_add_to_chat("\n[b]" + locale_manager.tr("response_label") + "[/b]\n")
-			_add_to_chat(_markdown_to_bbcode(clean_response) + "\n")
+			pass
+			_add_to_chat(_markdown_to_bbcode(clean_response) + "\n", "ai")
 		_on_tool_calls(extracted_calls)
 		return
 	
-	_add_to_chat("\n[b]" + locale_manager.tr("response_label") + "[/b]\n")
-	_add_to_chat(_markdown_to_bbcode(response) + "\n")
+	pass
+	_add_to_chat(_markdown_to_bbcode(response) + "\n", "ai")
 	
 	if _plan_pending:
 		execute_plan_btn.visible = true
@@ -1577,10 +1588,10 @@ func _on_auto_generate_commit_pressed():
 	gemini_client.send_prompt(prompt, "", [], [])
 
 func _log_user_message(msg: String, token_count: int = -1):
-	var header = "\n[b]" + locale_manager.tr("you_label") + "[/b] "
+	var header = ""
 	if token_count != -1:
-		header += "[i][color=gray](Est. Tokens: ~" + str(token_count) + ")[/color][/i] "
-	_add_to_chat(header + msg + "\n")
+		header += "\n[right][i][color=gray](Est. Tokens: ~" + str(token_count) + ")[/color][/i][/right]\n"
+	_add_to_chat(header + msg + "\n", "user")
 
 func _on_log_entry(entry: Dictionary):
 	var color = "red" if entry.type == "error" else "gray"
@@ -1756,8 +1767,11 @@ func _on_clear_dropped_files():
 	_update_dropped_files_ui()
 
 func _on_diff_preview_requested(path: String, old_content: String, new_content: String, tool_name: String, _args: Dictionary):
-	output_display.visible = false
 	_diff_preview_panel.visible = true
+	if _diff_preview_panel.get_parent() != chat_vbox:
+		_diff_preview_panel.reparent(chat_vbox)
+	chat_vbox.move_child(_diff_preview_panel, -1)
+	
 	_diff_display.scroll_following = false
 	_diff_display.clear()
 	_diff_display.append_text("[b]Modifying: " + path + "[/b] (" + tool_name + ")\n")
@@ -1788,13 +1802,11 @@ func _on_diff_preview_requested(path: String, old_content: String, new_content: 
 
 func _on_apply_diff_pressed():
 	_diff_preview_panel.visible = false
-	output_display.visible = true
 	if _tool_executor:
 		_tool_executor.confirm_pending_action()
 
 func _on_skip_diff_pressed():
 	_diff_preview_panel.visible = false
-	output_display.visible = true
 	if _tool_executor:
 		_tool_executor.cancel_pending_action()
 
@@ -1828,7 +1840,8 @@ func _append_collapsible_block(label: String, content: String, color: String, ex
 		"label": label,
 		"content": content,
 		"color": color,
-		"expanded": expanded
+		"expanded": expanded,
+		"bubble_ref": _current_bubble
 	}
 	
 	_add_to_chat(_get_block_bbcode(id))
@@ -1854,19 +1867,145 @@ func _toggle_block(id: int):
 	var new_bb = _get_block_bbcode(id)
 	
 	_chat_log_bbcode = _chat_log_bbcode.replace(old_bb, new_bb)
-	output_display.text = _chat_log_bbcode
 	
-	# Scroll to bottom after refresh
+	# Update the specific bubble if registered
+	if data.has("bubble_ref") and is_instance_valid(data.bubble_ref):
+		data.bubble_ref.text = data.bubble_ref.text.replace(old_bb, new_bb)
+	
 	await get_tree().process_frame
-	output_display.scroll_to_line(output_display.get_line_count())
+	var vbar = chat_scroll.get_v_scroll_bar()
+	if vbar: vbar.value = vbar.max_value
 
-func _add_to_chat(bbcode: String):
+func _add_to_chat(bbcode: String, role: String = "system"):
 	_chat_log_bbcode += bbcode
-	output_display.append_text(bbcode)
+	
+	if _current_bubble == null or _current_role != role:
+		_create_chat_bubble(role)
+		
+	_current_bubble.append_text(bbcode)
+	
+	# Auto-scroll
+	await get_tree().process_frame
+	var v_scroll = chat_scroll.get_v_scroll_bar()
+	if v_scroll:
+		v_scroll.value = v_scroll.max_value
+
+func _create_chat_bubble(role: String):
+	_current_role = role
+	
+	# Outer styled panel (the "bubble")
+	var panel = PanelContainer.new()
+	panel.size_flags_horizontal = SIZE_EXPAND_FILL
+	var style = StyleBoxFlat.new()
+	style.corner_radius_top_left = 12
+	style.corner_radius_top_right = 12
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", style)
+	
+	# Inner HBox: [Avatar | Text]  or  [Text | Avatar]
+	var inner_hbox = HBoxContainer.new()
+	inner_hbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	inner_hbox.add_theme_constant_override("separation", 12)
+	
+	# Avatar in round white circle
+	var avatar_holder = PanelContainer.new()
+	var avatar_style = StyleBoxFlat.new()
+	avatar_style.bg_color = Color(0.95, 0.95, 0.95)
+	avatar_style.corner_radius_top_left = 20
+	avatar_style.corner_radius_top_right = 20
+	avatar_style.corner_radius_bottom_left = 20
+	avatar_style.corner_radius_bottom_right = 20
+	avatar_style.content_margin_left = 4
+	avatar_style.content_margin_right = 4
+	avatar_style.content_margin_top = 4
+	avatar_style.content_margin_bottom = 4
+	avatar_holder.add_theme_stylebox_override("panel", avatar_style)
+	avatar_holder.custom_minimum_size = Vector2(40, 40)
+	avatar_holder.size_flags_horizontal = SIZE_SHRINK_CENTER
+	avatar_holder.size_flags_vertical = SIZE_SHRINK_BEGIN  # Align to top
+	
+	var avatar = TextureRect.new()
+	avatar.custom_minimum_size = Vector2(32, 32)
+	avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	avatar_holder.add_child(avatar)
+	
+	# Text column (label + optional copy btn)
+	var text_vbox = VBoxContainer.new()
+	text_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	
+	var label = RichTextLabel.new()
+	label.bbcode_enabled = true
+	label.fit_content = true
+	label.selection_enabled = true
+	if has_method("_on_meta_clicked"):
+		label.meta_clicked.connect(_on_meta_clicked)
+	label.size_flags_horizontal = SIZE_EXPAND_FILL
+	_current_bubble = label
+	text_vbox.add_child(label)
+	
+	# Apply current font size to the new bubble
+	if _current_font_size != 14:
+		label.add_theme_font_size_override("normal_font_size", _current_font_size)
+		label.add_theme_font_size_override("bold_font_size", _current_font_size)
+		label.add_theme_font_size_override("italics_font_size", _current_font_size)
+		label.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
+		label.add_theme_font_size_override("mono_font_size", _current_font_size)
+	
+	# "Copy" button for AI/system bubbles
+	if role == "ai" or role == "system":
+		var copy_btn = Button.new()
+		copy_btn.text = "📋 Copy"
+		copy_btn.size_flags_horizontal = SIZE_SHRINK_END
+		copy_btn.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		var empty_style = StyleBoxEmpty.new()
+		copy_btn.add_theme_stylebox_override("normal", empty_style)
+		copy_btn.add_theme_stylebox_override("hover", empty_style)
+		copy_btn.add_theme_stylebox_override("focus", empty_style)
+		copy_btn.pressed.connect(func():
+			DisplayServer.clipboard_set(label.get_parsed_text())
+			copy_btn.text = "✔️ Copied"
+			copy_btn.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
+		)
+		text_vbox.add_child(copy_btn)
+	
+	# Assemble based on role
+	if role == "user":
+		style.bg_color = Color(0.18, 0.22, 0.3)
+		style.corner_radius_bottom_left = 12
+		style.corner_radius_bottom_right = 2
+		var user_tex = load("res://addons/gamedev_ai/assets/user_icon.svg")
+		if user_tex:
+			avatar.texture = user_tex
+			avatar.modulate = Color(0.3, 0.4, 0.6)
+		inner_hbox.add_child(text_vbox)
+		inner_hbox.add_child(avatar_holder)
+	else:
+		style.bg_color = Color(0.12, 0.13, 0.16, 0.7)
+		style.corner_radius_bottom_left = 2
+		style.corner_radius_bottom_right = 12
+		var ai_tex = load("res://addons/gamedev_ai/assets/ai_icon.png")
+		if ai_tex:
+			avatar.texture = ai_tex
+		inner_hbox.add_child(avatar_holder)
+		inner_hbox.add_child(text_vbox)
+	
+	panel.add_child(inner_hbox)
+	
+	# Appearance animation
+	panel.modulate.a = 0.0
+	chat_vbox.add_child(panel)
+	var tween = chat_vbox.create_tween()
+	tween.tween_property(panel, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE)
 
 func _clear_chat():
 	_chat_log_bbcode = ""
-	output_display.clear()
+	_current_bubble = null
+	for child in chat_vbox.get_children():
+		child.queue_free()
 
 # ═══════════════════════════════════════════════════════════════
 # GLASSMORPHISM THEME SYSTEM V3 (RICH NEON & MARGINS)
@@ -1909,7 +2048,7 @@ func _apply_custom_theme():
 	output_style.content_margin_top = 16
 	output_style.content_margin_right = 16
 	output_style.content_margin_bottom = 16
-	output_display.add_theme_stylebox_override("normal", output_style)
+	chat_scroll.add_theme_stylebox_override("panel", output_style)
 	
 	# Input field padding
 	var input_style = StyleBoxFlat.new()
@@ -2019,67 +2158,24 @@ func _add_action_icons():
 		if not btn.text.begins_with(icon_prefix.left(1)):
 			btn.text = icon_prefix + btn.text
 
-# --- Copy functionality ---
+# --- Copy functionality (legacy stubs - copy is now per-bubble) ---
 func _setup_copy_features():
-	_copy_popup = PopupMenu.new()
-	var copy_text = "Copiar"
-	if locale_manager and locale_manager.tr("copy") != "copy":
-		copy_text = locale_manager.tr("copy")
-	_copy_popup.add_item("📋 " + copy_text, 0)
-	_copy_popup.id_pressed.connect(_on_copy_popup_id_pressed)
-	add_child(_copy_popup)
-	
-	_floating_copy_btn = Button.new()
-	_floating_copy_btn.text = "📋 " + copy_text
-	_floating_copy_btn.visible = false
-	_floating_copy_btn.mouse_filter = Control.MOUSE_FILTER_PASS
-	_floating_copy_btn.connect("pressed", Callable(self, "_on_floating_copy_pressed"))
-	_style_solid_button(_floating_copy_btn, Color(0.2, 0.2, 0.2, 0.9))
-	_floating_copy_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	output_display.add_child(_floating_copy_btn)
-	
-	output_display.gui_input.connect(_on_output_display_gui_input)
+	pass
 
-func _on_output_display_gui_input(event: InputEvent):
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			if output_display.get_selected_text() != "":
-				_copy_popup.position = get_viewport().get_mouse_position()
-				_copy_popup.popup()
-		elif event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-			get_tree().create_timer(0.05).timeout.connect(_check_floating_copy_btn)
+func _on_output_display_gui_input(_event: InputEvent):
+	pass
 
 func _check_floating_copy_btn():
-	if output_display.get_selected_text() != "":
-		var mouse_pos = output_display.get_local_mouse_position()
-		_floating_copy_btn.position = mouse_pos + Vector2(10, -30)
-		_floating_copy_btn.visible = true
-	else:
-		_floating_copy_btn.visible = false
+	pass
 
-func _on_copy_popup_id_pressed(id: int):
-	if id == 0:
-		_perform_copy()
+func _on_copy_popup_id_pressed(_id: int):
+	pass
 
 func _on_floating_copy_pressed():
-	_perform_copy()
+	pass
 
 func _perform_copy():
-	var text = output_display.get_selected_text()
-	if text != "":
-		DisplayServer.clipboard_set(text)
-		var copied_text = "Copiado"
-		if locale_manager and locale_manager.tr("copied") != "copied":
-			copied_text = locale_manager.tr("copied")
-		_floating_copy_btn.text = "✔️ " + copied_text
-		get_tree().create_timer(1.0).timeout.connect(func():
-			var copy_text = "Copiar"
-			if locale_manager and locale_manager.tr("copy") != "copy":
-				copy_text = locale_manager.tr("copy")
-			_floating_copy_btn.text = "📋 " + copy_text
-			_floating_copy_btn.visible = false
-			output_display.deselect()
-		)
+	pass
 
 # ===================== VECTOR DB UI =====================
 func _on_scan_changes_pressed():

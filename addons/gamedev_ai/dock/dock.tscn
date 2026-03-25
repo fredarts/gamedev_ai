@@ -60,14 +60,18 @@ layout_mode = 2
 text = "💾 Summarize"
 tooltip_text = "Ask AI to summarize the current chat and save it to project memory"
 
-[node name="OutputDisplay" type="RichTextLabel" parent="TabContainer/Chat"]
+[node name="ChatScrollContainer" type="ScrollContainer" parent="TabContainer/Chat"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-bbcode_enabled = true
-fit_content = false
-scroll_following = true
-selection_enabled = true
+horizontal_scroll_mode = 0
+
+[node name="ChatVBox" type="VBoxContainer" parent="TabContainer/Chat/ChatScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
 
 [node name="DiffPreviewPanel" type="VBoxContainer" parent="TabContainer/Chat"]
 unique_name_in_owner = true
