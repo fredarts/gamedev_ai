@@ -1,13 +1,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { withBase } from 'vitepress'
 
 const images = [
-  '/images/Banner_01.jpg',
-  '/images/Banner_02.jpg',
-  '/images/Banner_03.jpg',
-  '/images/Banner_04.jpg',
-  '/images/Banner_05.jpg',
-  '/images/Banner_06.jpg'
+  withBase('/images/Banner_01.jpg'),
+  withBase('/images/Banner_02.jpg'),
+  withBase('/images/Banner_03.jpg'),
+  withBase('/images/Banner_04.jpg'),
+  withBase('/images/Banner_05.jpg'),
+  withBase('/images/Banner_06.jpg')
 ]
 
 const currentIndex = ref(0)
