@@ -148,67 +148,90 @@ layout_mode = 2
 tooltip_text = "Adjust playback speed"
 
 [node name="ActionsContainer" type="HBoxContainer" parent="TabContainer/Chat"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 
-[node name="RefactorBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+[node name="MagicActionsBtn" type="MenuButton" parent="TabContainer/Chat"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Refactor"
-tooltip_text = "Refactor the currently selected code in the editor"
+text = "🪄 Magic Actions"
+flat = false
+item_count = 5
+popup/item_0/text = "Refactor"
+popup/item_0/id = 0
+popup/item_1/text = "Fix Selection"
+popup/item_1/id = 1
+popup/item_2/text = "Explain selection"
+popup/item_2/id = 2
+popup/item_3/text = "Undo Last"
+popup/item_3/id = 3
+popup/item_4/text = "Fix Console"
+popup/item_4/id = 4
 
-[node name="FixBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
-layout_mode = 2
-text = "Fix"
-tooltip_text = "Propose a fix for errors in the currently selected code"
-
-[node name="ExplainBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
-layout_mode = 2
-text = "Explain"
-tooltip_text = "Explain how the currently selected code works"
-
-[node name="UndoBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
-layout_mode = 2
-text = "Undo Last"
-tooltip_text = "Undo the last AI action batch"
-
-[node name="FixConsoleBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
-layout_mode = 2
-text = "Fix Console"
-tooltip_text = "Analyze latest console errors and propose fixes"
-
-[node name="ExecutePlanBtn" type="Button" parent="TabContainer/Chat/ActionsContainer"]
+[node name="ExecutePlanBtn" type="Button" parent="TabContainer/Chat"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 text = "Run Plan"
 tooltip_text = "Execute the AI proposed plan step-by-step"
 
-[node name="InputHBox" type="HBoxContainer" parent="TabContainer/Chat"]
+[node name="InputVBox" type="VBoxContainer" parent="TabContainer/Chat"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 115)
+theme_override_constants/separation = 0
 
-[node name="InputField" type="TextEdit" parent="TabContainer/Chat/InputHBox"]
+[node name="InputField" type="TextEdit" parent="TabContainer/Chat/InputVBox"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Ask Gamedev AI... (Shift+Enter to send)"
 wrap_mode = 1
 
-[node name="InputButtonsVBox" type="VBoxContainer" parent="TabContainer/Chat/InputHBox"]
+[node name="ToolbarContainer" type="MarginContainer" parent="TabContainer/Chat/InputVBox"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = -45
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
 
-[node name="AddFileBtn" type="Button" parent="TabContainer/Chat/InputHBox/InputButtonsVBox"]
+[node name="ToolbarHBox" type="HBoxContainer" parent="TabContainer/Chat/InputVBox/ToolbarContainer"]
+layout_mode = 2
+
+[node name="AddFileBtn" type="Button" parent="TabContainer/Chat/InputVBox/ToolbarContainer/ToolbarHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
-text = "📎 Attach"
 tooltip_text = "Attach an image, document, or audio file to your message"
 
-[node name="SendButton" type="Button" parent="TabContainer/Chat/InputHBox/InputButtonsVBox"]
+[node name="PromptSettingsBtn" type="MenuButton" parent="TabContainer/Chat/InputVBox/ToolbarContainer/ToolbarHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
-text = "➢ Send"
+tooltip_text = "Prompt Settings (Context, Screenshot, etc.)"
+flat = false
+item_count = 4
+popup/item_0/text = "Include Context"
+popup/item_0/checkable = 1
+popup/item_0/checked = true
+popup/item_0/id = 0
+popup/item_1/text = "Send Screenshot"
+popup/item_1/checkable = 1
+popup/item_1/id = 1
+popup/item_2/text = "Plan First"
+popup/item_2/checkable = 1
+popup/item_2/id = 2
+popup/item_3/text = "Watch Mode"
+popup/item_3/checkable = 1
+popup/item_3/id = 3
+
+[node name="ToolbarSpacer" type="Control" parent="TabContainer/Chat/InputVBox/ToolbarContainer/ToolbarHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="SendButton" type="Button" parent="TabContainer/Chat/InputVBox/ToolbarContainer/ToolbarHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
 tooltip_text = "Send your message to the AI"
 
 [node name="ImagePreviewScroll" type="ScrollContainer" parent="TabContainer/Chat"]
@@ -245,31 +268,9 @@ layout_mode = 2
 text = "X"
 tooltip_text = "Remove all attached files"
 
-[node name="ToggleContainer" type="HBoxContainer" parent="TabContainer/Chat"]
+[node name="SpacerBottom" type="Control" parent="TabContainer/Chat"]
 layout_mode = 2
-
-[node name="ContextToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-button_pressed = true
-text = "Context"
-tooltip_text = "Include the text of the currently open script in the AI prompt"
-
-[node name="ScreenshotToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Screenshot"
-tooltip_text = "Take a screenshot of the editor and send it to the AI"
-
-
-[node name="PlanFirstToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Plan First"
-tooltip_text = "Ask the AI to generate a step-by-step plan before executing."
-
-[node name="WatchModeToggle" type="CheckButton" parent="TabContainer/Chat/ToggleContainer"]
-unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 5)
 layout_mode = 2
 text = "Watch Mode"
 tooltip_text = "Monitor console for new errors and auto-prompt fix."

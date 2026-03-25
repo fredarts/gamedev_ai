@@ -15,14 +15,16 @@ var _current_role: String = ""
 var _bubble_map: Dictionary = {}
 @onready var input_field: TextEdit = %InputField
 @onready var send_button: Button = %SendButton
-@onready var context_toggle: CheckButton = %ContextToggle
-@onready var screenshot_toggle: CheckButton = %ScreenshotToggle
+@onready var magic_actions_btn: MenuButton = %MagicActionsBtn
+@onready var prompt_settings_btn: MenuButton = %PromptSettingsBtn
 @onready var selection_status: Label = %SelectionStatus
 @onready var history_button: MenuButton = %HistoryButton
 @onready var summarize_btn: Button = %SummarizeBtn
 @onready var new_chat_button: Button = %NewChatButton
-@onready var watch_mode_toggle: CheckButton = %WatchModeToggle
-@onready var plan_first_toggle: CheckButton = %PlanFirstToggle
+var watch_mode_enabled: bool = false
+var plan_first_enabled: bool = false
+var context_enabled: bool = true
+var screenshot_enabled: bool = false
 @onready var execute_plan_btn: Button = %ExecutePlanBtn
 @onready var chat_preset_selector: OptionButton = %ChatPresetSelector
 @onready var font_size_minus_btn: Button = %FontSizeMinusBtn
@@ -154,11 +156,12 @@ func _ready():
 		locale_manager.set_locale(saved_locale)
 	
 	# Connect scene node signals
-	$TabContainer/Chat/ActionsContainer/RefactorBtn.pressed.connect(func(): _on_quick_action_pressed("Refactor this code"))
-	$TabContainer/Chat/ActionsContainer/FixBtn.pressed.connect(func(): _on_quick_action_pressed("Fix errors in this code"))
-	$TabContainer/Chat/ActionsContainer/ExplainBtn.pressed.connect(func(): _on_quick_action_pressed("Explain what this code does"))
-	$TabContainer/Chat/ActionsContainer/UndoBtn.pressed.connect(_on_undo_pressed)
-	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.pressed.connect(_on_fix_console_pressed)
+	magic_actions_btn.get_popup().id_pressed.connect(_on_magic_action_id_pressed)
+	prompt_settings_btn.get_popup().id_pressed.connect(_on_prompt_setting_id_pressed)
+	
+	# Close other popups when one opens
+	magic_actions_btn.get_popup().about_to_popup.connect(func(): prompt_settings_btn.get_popup().hide())
+	prompt_settings_btn.get_popup().about_to_popup.connect(func(): magic_actions_btn.get_popup().hide())
 	
 	init_repo_btn.pressed.connect(_on_init_repo_pressed)
 	set_remote_btn.pressed.connect(_on_set_remote_pressed)
@@ -560,37 +563,29 @@ func _apply_locale():
 		return
 	var L = locale_manager
 	# Chat tab buttons
-	send_button.text = "➢ " + L.tr("send")
-	add_file_btn.text = "📎 Anexar"
-	new_chat_button.text = "＋ " + L.tr("new_chat")
-	summarize_btn.text = "💾 " + (L.tr("summarize_memory") if L.has_method("has_message") and L.has_message("summarize_memory") else "Summarize to Memory")
-	summarize_btn.tooltip_text = L.tr("tt_summarize_memory") if L.has_method("has_message") and L.has_message("tt_summarize_memory") else "Send a designated prompt to save key architectural decisions into the project memory json."
-	history_button.text = "◷ " + L.tr("history")
+	send_button.tooltip_text = L.tr("tt_send")
+	add_file_btn.text = "" # Icon only
+	add_file_btn.tooltip_text = L.tr("tt_attach")
+	new_chat_button.text = "" # Icon only
+	new_chat_button.tooltip_text = L.tr("new_chat")
+	summarize_btn.text = "" # Icon only
+	summarize_btn.tooltip_text = L.tr("tt_summarize_memory") if L.has_method("has_message") and L.has_message("tt_summarize_memory") else "Summarize to Memory"
+	history_button.text = "" # Icon only
+	history_button.tooltip_text = L.tr("history")
+	
+	magic_actions_btn.text = L.tr("magic_actions") if L.has_message("magic_actions") else "Magic Actions"
+	prompt_settings_btn.text = L.tr("prompt_settings") if L.has_message("prompt_settings") else "Prompt Settings"
+	
 	selection_status.text = L.tr("no_selection")
 	input_field.placeholder_text = L.tr("input_placeholder")
 	execute_plan_btn.text = L.tr("run_plan")
 	
-	# Action buttons
-	$TabContainer/Chat/ActionsContainer/RefactorBtn.text = L.tr("refactor")
-	$TabContainer/Chat/ActionsContainer/RefactorBtn.tooltip_text = L.tr("tt_refactor")
-	$TabContainer/Chat/ActionsContainer/FixBtn.text = L.tr("fix")
-	$TabContainer/Chat/ActionsContainer/FixBtn.tooltip_text = L.tr("tt_fix")
-	$TabContainer/Chat/ActionsContainer/ExplainBtn.text = L.tr("explain")
-	$TabContainer/Chat/ActionsContainer/ExplainBtn.tooltip_text = L.tr("tt_explain")
-	$TabContainer/Chat/ActionsContainer/UndoBtn.text = L.tr("undo_last")
-	$TabContainer/Chat/ActionsContainer/UndoBtn.tooltip_text = L.tr("tt_undo")
-	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.text = L.tr("fix_console")
-	$TabContainer/Chat/ActionsContainer/FixConsoleBtn.tooltip_text = L.tr("tt_fix_console")
-	
-	# Toggles
-	context_toggle.text = L.tr("context")
-	context_toggle.tooltip_text = L.tr("tt_context")
-	screenshot_toggle.text = L.tr("screenshot")
-	screenshot_toggle.tooltip_text = L.tr("tt_screenshot")
-	plan_first_toggle.text = L.tr("plan_first")
-	plan_first_toggle.tooltip_text = L.tr("tt_plan_first")
-	watch_mode_toggle.text = L.tr("watch_mode")
-	watch_mode_toggle.tooltip_text = L.tr("tt_watch_mode")
+	# Prompt Settings Menu items
+	var p_popup = prompt_settings_btn.get_popup()
+	p_popup.set_item_text(0, L.tr("context"))
+	p_popup.set_item_text(1, L.tr("screenshot"))
+	p_popup.set_item_text(2, L.tr("plan_first"))
+	p_popup.set_item_text(3, L.tr("watch_mode"))
 	
 	# TTS
 	if not tts_player.playing and not tts_player.stream_paused:
@@ -689,30 +684,55 @@ func _on_status_changed(is_requesting: bool):
 
 func _update_ui_state(busy: bool):
 	input_field.editable = !busy
+	var icon_path = "res://addons/gamedev_ai/assets/icons/"
 	if busy:
-		send_button.text = "⏹ " + (locale_manager.tr("stop") if locale_manager else "Parar")
-		send_button.disabled = false
-		_style_danger_button(send_button, 12)
+		send_button.text = ""
+		send_button.icon = _load_svg_icon(icon_path + "stop.svg", "ffffff")
+		send_button.tooltip_text = locale_manager.tr("stop") if locale_manager else "Stop"
+		_style_danger_button(send_button, 20)
 	else:
-		send_button.text = "➢ " + (locale_manager.tr("send") if locale_manager else "Enviar")
-		send_button.disabled = false
-		_style_solid_button(send_button, Color(0.15, 0.6, 0.35))
+		send_button.text = ""
+		send_button.icon = _load_svg_icon(icon_path + "send.svg", "ffffff")
+		send_button.tooltip_text = locale_manager.tr("tt_send") if locale_manager else "Send"
+		_style_solid_button(send_button, Color(0.15, 0.6, 0.35), 20)
 
 func _on_send_pressed():
 	if gemini_client and gemini_client.is_requesting:
 		_stop_ai()
 		return
 	var text = input_field.text.strip_edges()
-	if text.is_empty():
+	if text.is_empty() and _attached_files.is_empty():
 		return
 		
 	_process_send(text)
 
+
 func _on_execute_plan_pressed():
 	execute_plan_btn.visible = false
 	_plan_pending = false
-	plan_first_toggle.button_pressed = false # Auto-disable to avoid loop
+	plan_first_enabled = false # Auto-disable to avoid loop
+	prompt_settings_btn.get_popup().set_item_checked(2, false)
 	_process_send("Okay, the plan looks good. Please execute the proposed plan now using the appropriate tools.", true)
+
+func _on_magic_action_id_pressed(id: int):
+	var L = locale_manager
+	match id:
+		0: _on_quick_action_pressed(L.tr("refactor") if L else "Refactor this code")
+		1: _on_quick_action_pressed(L.tr("fix") if L else "Fix errors in this code")
+		2: _on_quick_action_pressed(L.tr("explain") if L else "Explain what this code does")
+		3: _on_undo_pressed()
+		4: _on_fix_console_pressed()
+
+func _on_prompt_setting_id_pressed(id: int):
+	var popup = prompt_settings_btn.get_popup()
+	var checked = !popup.is_item_checked(id)
+	popup.set_item_checked(id, checked)
+	
+	match id:
+		0: context_enabled = checked
+		1: screenshot_enabled = checked
+		2: plan_first_enabled = checked
+		3: watch_mode_enabled = checked
 
 func _on_quick_action_pressed(action_text: String):
 	_process_send(action_text)
@@ -1106,7 +1126,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 		final_prompt = "Selection Context (File: " + selection.path + "):\n```gdscript\n" + selection.text + "\n```\n\nCommand: " + prompt_text
 		_add_to_chat("[i]Using selection from " + selection.path.get_file() + "...[/i]\n")
 
-	if plan_first_toggle.button_pressed and not is_execute_plan:
+	if plan_first_enabled and not is_execute_plan:
 		final_prompt += "\n\nCRITICAL INSTRUCTION: The user has enabled 'Plan First' mode. Do NOT output any tool calls to modify files yet. Instead, output a detailed, numbered step-by-step plan explaining exactly what tools you will use and what you will do. This is your planning phase."
 		_plan_pending = true
 	else:
@@ -1114,7 +1134,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 		execute_plan_btn.visible = false
 
 	var context = ""
-	if context_toggle.button_pressed and context_manager:
+	if context_enabled and context_manager:
 		context += "Engine Info:\n" + context_manager.get_engine_version_context() + "\n"
 		context += "Project Structure:\n" + context_manager.get_project_index() + "\n"
 		context += "Project Settings:\n" + context_manager.get_project_settings_dump() + "\n"
@@ -1160,7 +1180,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false):
 		_refresh_thumbnails()
 		
 	# Fallback/append screenshot toggle
-	if screenshot_toggle.button_pressed and context_manager:
+	if screenshot_enabled and context_manager:
 		var scr = context_manager.get_editor_screenshot()
 		if not scr.is_empty():
 			files_data.append(scr)
@@ -1200,7 +1220,7 @@ func _on_poll_timer_timeout():
 			selection_status.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5)) # Gray
 			
 	# 2. Watch Mode Logic
-	if watch_mode_toggle.button_pressed:
+	if watch_mode_enabled:
 		_check_for_new_errors()
 
 func _check_for_new_errors():
@@ -1353,6 +1373,8 @@ func _get_error_logs() -> String:
 	return "\n".join(filtered_errors)
 
 func _on_ai_response(response: String):
+	if _is_stopped:
+		return
 	if _is_generating_commit:
 		_is_generating_commit = false
 		commit_msg_input.text = response.strip_edges()
@@ -2027,10 +2049,10 @@ func _apply_custom_theme():
 		$TabContainer.remove_theme_stylebox_override("tab_selected")
 
 	var tab_panel = StyleBoxEmpty.new()
-	tab_panel.content_margin_left = 16
-	tab_panel.content_margin_right = 16
-	tab_panel.content_margin_top = 16
-	tab_panel.content_margin_bottom = 16
+	tab_panel.content_margin_left = 12
+	tab_panel.content_margin_right = 12
+	tab_panel.content_margin_top = 12
+	tab_panel.content_margin_bottom = 12
 	$TabContainer.add_theme_stylebox_override("panel", tab_panel)
 	
 	# Margins for chat actions
@@ -2044,49 +2066,69 @@ func _apply_custom_theme():
 	output_style.corner_radius_top_right = 8
 	output_style.corner_radius_bottom_right = 8
 	output_style.corner_radius_bottom_left = 8
-	output_style.content_margin_left = 16
-	output_style.content_margin_top = 16
-	output_style.content_margin_right = 16
-	output_style.content_margin_bottom = 16
+	output_style.content_margin_left = 12
+	output_style.content_margin_top = 12
+	output_style.content_margin_right = 12
+	output_style.content_margin_bottom = 12
 	chat_scroll.add_theme_stylebox_override("panel", output_style)
 	
 	# Input field padding
 	var input_style = StyleBoxFlat.new()
-	input_style.bg_color = Color(0, 0, 0, 0.2)
-	input_style.corner_radius_top_left = 8
-	input_style.corner_radius_top_right = 8
-	input_style.corner_radius_bottom_right = 8
-	input_style.corner_radius_bottom_left = 8
+	input_style.bg_color = Color(0.1, 0.11, 0.14)
+	input_style.border_width_left = 1
+	input_style.border_width_top = 1
+	input_style.border_width_right = 1
+	input_style.border_width_bottom = 1
+	input_style.border_color = Color(0.25, 0.27, 0.35)
+	input_style.corner_radius_top_left = 12
+	input_style.corner_radius_top_right = 12
+	input_style.corner_radius_bottom_right = 12
+	input_style.corner_radius_bottom_left = 12
 	input_style.content_margin_left = 16
 	input_style.content_margin_right = 16
-	input_style.content_margin_top = 8
-	input_style.content_margin_bottom = 8
+	input_style.content_margin_top = 12
+	input_style.content_margin_bottom = 35 # Extra space for toolbar
 	
 	input_field.add_theme_stylebox_override("normal", input_style)
 	input_field.add_theme_stylebox_override("focus", input_style)
-	custom_prompt_input.add_theme_stylebox_override("normal", input_style)
-	commit_msg_input.add_theme_stylebox_override("normal", input_style)
 	
-	# Align buttons to same size
-	if is_instance_valid(send_button) and is_instance_valid(add_file_btn):
-		send_button.custom_minimum_size = Vector2(120, 0)
-		add_file_btn.custom_minimum_size = Vector2(120, 0)
+	# Circular Send Button Style
+	var send_style = StyleBoxFlat.new()
+	send_style.bg_color = Color(0.15, 0.6, 0.35)
+	send_style.corner_radius_top_left = 20
+	send_style.corner_radius_top_right = 20
+	send_style.corner_radius_bottom_right = 20
+	send_style.corner_radius_bottom_left = 20
+	send_style.shadow_color = Color(0, 0, 0, 0.3)
+	send_style.shadow_size = 4
+	send_style.shadow_offset = Vector2(0, 2)
 	
-	# Apply beautiful colors to buttons (simple solid colors)
-	var action_btns = [
-		$TabContainer/Chat/ActionsContainer/FixBtn,
-		$TabContainer/Chat/ActionsContainer/ExplainBtn,
-		$TabContainer/Chat/ActionsContainer/UndoBtn,
-		$TabContainer/Chat/ActionsContainer/FixConsoleBtn,
-	]
+	send_button.add_theme_stylebox_override("normal", send_style)
+	send_button.add_theme_stylebox_override("hover", send_style)
+	send_button.add_theme_stylebox_override("pressed", send_style)
 	
-	for btn in action_btns:
-		if is_instance_valid(btn):
-			_style_solid_button(btn, Color(0.25, 0.35, 0.5)) # Nice slate blue
+	# Apply SVG Icons
+	var icon_path = "res://addons/gamedev_ai/assets/icons/"
+	new_chat_button.icon = _load_svg_icon(icon_path + "plus.svg", "ffffff")
+	history_button.icon = _load_svg_icon(icon_path + "history.svg", "ffffff")
+	summarize_btn.icon = _load_svg_icon(icon_path + "settings.svg", "ffffff")
+	add_file_btn.icon = _load_svg_icon(icon_path + "attach.svg", "ffffff")
+	send_button.icon = _load_svg_icon(icon_path + "send.svg", "ffffff")
+	magic_actions_btn.icon = _load_svg_icon(icon_path + "magic.svg", "ffffff")
+	prompt_settings_btn.icon = _load_svg_icon(icon_path + "settings.svg", "ffffff")
 	
-	_style_solid_button($TabContainer/Chat/ActionsContainer/RefactorBtn, Color(0.4, 0.3, 0.6)) # Purple
-	_style_solid_button(send_button, Color(0.15, 0.6, 0.35)) # Beautiful green
-	_style_solid_button(add_file_btn, Color(0.2, 0.5, 0.8)) # Beautiful blue
+	magic_actions_btn.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	prompt_settings_btn.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	
+	# Secondary toolbar style
+	var ghost_style = StyleBoxEmpty.new()
+	ghost_style.content_margin_left = 8
+	ghost_style.content_margin_right = 8
+	
+	add_file_btn.add_theme_stylebox_override("normal", ghost_style)
+	magic_actions_btn.add_theme_stylebox_override("normal", ghost_style)
+	prompt_settings_btn.add_theme_stylebox_override("normal", ghost_style)
+	
 	_style_solid_button(execute_plan_btn, Color(0.2, 0.6, 0.3))
 	_style_solid_button(_apply_diff_btn, Color(0.2, 0.6, 0.3))
 	
@@ -2110,21 +2152,53 @@ func _apply_custom_theme():
 	_style_solid_button(commit_sync_btn, Color(0.2, 0.6, 0.3))
 	_style_solid_button(checkout_branch_btn, Color(0.25, 0.35, 0.5))
 	
-	_style_danger_button(undo_changes_btn)
-	_style_danger_button(force_pull_btn)
-	_style_danger_button(force_push_btn)
+	# Ghost danger buttons (border only, no fill)
+	_style_ghost_danger_button(undo_changes_btn)
+	_style_ghost_danger_button(force_pull_btn)
+	_style_ghost_danger_button(force_push_btn)
 	
 	_add_action_icons()
+	
+	# Force horizontal expansion for all tabs and their internals
+	$TabContainer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for child in $TabContainer.get_children():
+		if child is Control:
+			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_force_expansion_recursive(child)
+	
+	# ── Phase 2: Settings Cards ──
+	_apply_settings_cards()
+	_apply_git_zones()
 
-func _style_solid_button(btn: Control, bg_color: Color):
+func _load_svg_icon(path: String, color_hex: String) -> Texture2D:
+	if not FileAccess.file_exists(path):
+		return null
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file: return null
+	var svg_content = file.get_as_text()
+	svg_content = svg_content.replace("currentColor", "#" + color_hex)
+	var img = Image.new()
+	var err = img.load_svg_from_string(svg_content)
+	if err == OK:
+		return ImageTexture.create_from_image(img)
+	return null
+
+func _force_expansion_recursive(node: Node):
+	if node is Control:
+		if node is Container:
+			node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for child in node.get_children():
+			_force_expansion_recursive(child)
+
+func _style_solid_button(btn: Control, bg_color: Color, corner: int = 6):
 	if not is_instance_valid(btn):
 		return
 	var normal = StyleBoxFlat.new()
 	normal.bg_color = bg_color
-	normal.corner_radius_top_left = 6
-	normal.corner_radius_top_right = 6
-	normal.corner_radius_bottom_right = 6
-	normal.corner_radius_bottom_left = 6
+	normal.corner_radius_top_left = corner
+	normal.corner_radius_top_right = corner
+	normal.corner_radius_bottom_right = corner
+	normal.corner_radius_bottom_left = corner
 	normal.content_margin_left = 12
 	normal.content_margin_right = 12
 	normal.content_margin_top = 6
@@ -2143,7 +2217,157 @@ func _style_solid_button(btn: Control, bg_color: Color):
 	btn.add_theme_color_override("font_color", Color.WHITE)
 
 func _style_danger_button(btn: Control, corner: int = 6):
-	_style_solid_button(btn, Color(0.7, 0.2, 0.2))
+	_style_solid_button(btn, Color(0.7, 0.2, 0.2), corner)
+
+func _style_ghost_danger_button(btn: Control):
+	if not is_instance_valid(btn):
+		return
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = Color(0, 0, 0, 0)
+	normal.border_color = Color(0.8, 0.25, 0.25, 0.6)
+	normal.border_width_left = 1
+	normal.border_width_right = 1
+	normal.border_width_top = 1
+	normal.border_width_bottom = 1
+	normal.corner_radius_top_left = 6
+	normal.corner_radius_top_right = 6
+	normal.corner_radius_bottom_left = 6
+	normal.corner_radius_bottom_right = 6
+	normal.content_margin_left = 12
+	normal.content_margin_right = 12
+	normal.content_margin_top = 6
+	normal.content_margin_bottom = 6
+	
+	var hover = normal.duplicate()
+	hover.bg_color = Color(0.7, 0.2, 0.2, 0.15)
+	hover.border_color = Color(0.9, 0.3, 0.3, 0.8)
+	
+	var pressed = normal.duplicate()
+	pressed.bg_color = Color(0.7, 0.2, 0.2, 0.3)
+	
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
+	btn.add_theme_stylebox_override("focus", hover)
+	btn.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
+
+func _make_card_style(bg_color: Color = Color(0.14, 0.15, 0.19), border_color: Color = Color(0.25, 0.27, 0.35, 0.4)) -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_right = 1
+	style.border_width_top = 1
+	style.border_width_bottom = 1
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	return style
+
+func _wrap_in_card(parent: Control, children: Array, title: String, bg_color: Color = Color(0.14, 0.15, 0.19), border_color: Color = Color(0.25, 0.27, 0.35, 0.4)) -> PanelContainer:
+	var card = PanelContainer.new()
+	card.size_flags_horizontal = SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel", _make_card_style(bg_color, border_color))
+	
+	var vbox = VBoxContainer.new()
+	vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 8)
+	
+	# Add title label
+	if title != "":
+		var title_label = Label.new()
+		title_label.text = title
+		title_label.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85))
+		vbox.add_child(title_label)
+	
+	# Get indexes for insertion order
+	var insert_idx = -1
+	for child in children:
+		if is_instance_valid(child) and child.get_parent() == parent:
+			var idx = child.get_index()
+			if insert_idx == -1 or idx < insert_idx:
+				insert_idx = idx
+	
+	# Reparent children into the card
+	for child in children:
+		if is_instance_valid(child):
+			child.reparent(vbox)
+	
+	card.add_child(vbox)
+	if insert_idx >= 0 and insert_idx < parent.get_child_count():
+		parent.add_child(card)
+		parent.move_child(card, insert_idx)
+	else:
+		parent.add_child(card)
+	
+	return card
+
+func _apply_settings_cards():
+	var settings_tab = $TabContainer/Settings
+	settings_tab.add_theme_constant_override("separation", 12)
+	
+	# Card 1: API & Provider
+	var preset_bar = $TabContainer/Settings/PresetBar
+	var preset_edit = $TabContainer/Settings/PresetEditPanel
+	_wrap_in_card(settings_tab, [preset_bar, preset_edit], "API & Provedor")
+	
+	# Card 2: AI Behavior
+	var lang_hbox = $TabContainer/Settings/LanguageHBox
+	var prompt_label = $TabContainer/Settings/CustomPromptLabel
+	var prompt_input = custom_prompt_input
+	var enhance_btn = enhance_prompt_btn
+	# Increase Custom Instructions height
+	prompt_input.custom_minimum_size = Vector2(0, 200)
+	_wrap_in_card(settings_tab, [lang_hbox, prompt_label, prompt_input, enhance_btn], "Comportamento da IA")
+	
+	# Card 3: Vector Database
+	var vdb_sep = $TabContainer/Settings/VectorDBSeparator
+	var vdb_label = $TabContainer/Settings/VectorDBLabel
+	var vdb_scroll = $TabContainer/Settings/VectorDBScroll
+	var vdb_actions = $TabContainer/Settings/VectorDBActionsHBox
+	# Increase VectorDB list height
+	vdb_scroll.custom_minimum_size = Vector2(0, 180)
+	vdb_sep.queue_free()
+	_wrap_in_card(settings_tab, [vdb_label, vdb_scroll, vdb_actions], "Vector Database")
+
+func _apply_git_zones():
+	var git_tab = $TabContainer/Git
+	git_tab.add_theme_constant_override("separation", 12)
+	
+	# Increase Git status panel height (~20 lines)
+	git_status_label.custom_minimum_size = Vector2(0, 300)
+	
+	# Git Status Panel styling
+	var status_style = _make_card_style(Color(0.10, 0.11, 0.14), Color(0.2, 0.22, 0.3, 0.5))
+	git_status_label.add_theme_stylebox_override("normal", status_style)
+	
+	# Increase commit message height
+	commit_msg_input.custom_minimum_size = Vector2(0, 120)
+	
+	# Main Zone: Remote + Status + Actions + Commit
+	var remote = $TabContainer/Git/RemoteContainer
+	var git_actions = $TabContainer/Git/GitActionsContainer
+	var commit_container = $TabContainer/Git/CommitMsgContainer
+	var commit_btn = commit_sync_btn
+	_wrap_in_card(git_tab, [remote, git_status_label, git_actions, commit_container, commit_btn], "Commit & Sync")
+	
+	# Branch Zone
+	var branch_container = $TabContainer/Git/BranchContainer
+	_wrap_in_card(git_tab, [branch_container], "Branch")
+	
+	# Remove old separator
+	var old_sep = $TabContainer/Git/HSeparator
+	if is_instance_valid(old_sep):
+		old_sep.queue_free()
+	
+	# Danger Zone
+	var danger_hbox = $TabContainer/Git/AdvancedGitHBox
+	_wrap_in_card(git_tab, [danger_hbox], "Danger Zone", Color(0.22, 0.08, 0.08), Color(0.6, 0.2, 0.2, 0.5))
 
 func _add_action_icons():
 	var btn_map = {
