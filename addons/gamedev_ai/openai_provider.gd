@@ -56,7 +56,7 @@ func _get_system_instruction() -> String:
 	var status = info.get("status", "")
 	if status != "":
 		version_str += " (" + status + ")"
-	return SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction)
+	return SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction, transcript)
 
 func generate_tool_response(_tool_name: String, output: String, tool_call_id: String = "") -> Dictionary:
 	return {
@@ -87,6 +87,10 @@ func _send_request(tools: Array = []):
 	# Add OpenRouter specific headers if needed
 	for key in custom_headers:
 		headers.append(key + ": " + custom_headers[key])
+	
+	# Dynamically update the system instruction before sending
+	if not history.is_empty() and history[0].get("role") == "system":
+		history[0]["content"] = _get_system_instruction()
 	
 	var body = {
 		"model": model_name,

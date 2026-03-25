@@ -52,7 +52,9 @@ const _TOOL_REQUIRED_ARGS = {
 	"capture_editor_screenshot": [],
 	"index_codebase": [],
 	"semantic_search": ["query"],
-	"analyze_node_children": ["node_path"]
+	"analyze_node_children": ["node_path"],
+	"audit_scene": [],
+	"audit_script": ["path"]
 }
 
 func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
@@ -95,6 +97,7 @@ func setup(undo_redo: EditorUndoRedoManager):
 	var ProjectTools = load("res://addons/gamedev_ai/tools/project_tools.gd")
 	var MemoryTools = load("res://addons/gamedev_ai/tools/memory_tools.gd")
 	var DBTools = load("res://addons/gamedev_ai/tools/db_tools.gd")
+	var AuditTools = load("res://addons/gamedev_ai/tools/audit_tools.gd")
 	
 	_handlers.append(ScriptTools.new())
 	_handlers.append(NodeTools.new())
@@ -102,6 +105,7 @@ func setup(undo_redo: EditorUndoRedoManager):
 	_handlers.append(ProjectTools.new())
 	_handlers.append(MemoryTools.new())
 	_handlers.append(DBTools.new())
+	_handlers.append(AuditTools.new())
 	
 	for h in _handlers:
 		h.setup(self)
@@ -660,6 +664,21 @@ func get_tool_definitions() -> Array:
 					"max_depth": {"type": "INTEGER", "description": "Optional: How deep to recursively dump children (default 5)."}
 				},
 				"required": ["node_path"]
+			}
+		},
+		{
+			"name": "audit_scene",
+			"description": "Performs an architectural audit on the currently open scene, looking for orphan nodes, missing scripts, or warnings."
+		},
+		{
+			"name": "audit_script",
+			"description": "Performs a static analysis audit on a specific GDScript file to catch bad practices or syntax warnings.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"path": {"type": "STRING", "description": "The path to the script to audit (res://...)."}
+				},
+				"required": ["path"]
 			}
 		}
 	]

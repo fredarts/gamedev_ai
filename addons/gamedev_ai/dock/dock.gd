@@ -133,6 +133,7 @@ var _regex_suggest: RegEx
 
 var _copy_popup: PopupMenu
 var _floating_copy_btn: Button
+var command_popup: PopupMenu
 
 signal preset_changed(config)
 signal settings_updated()
@@ -192,6 +193,45 @@ func _ready():
 	
 	send_button.pressed.connect(_on_send_pressed)
 	input_field.gui_input.connect(_on_input_gui_input)
+	input_field.text_changed.connect(_on_input_text_changed)
+	
+	command_popup = PopupMenu.new()
+	
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.11, 0.12, 0.15, 0.98)
+	panel_style.border_width_left = 1
+	panel_style.border_width_top = 1
+	panel_style.border_width_right = 1
+	panel_style.border_width_bottom = 1
+	panel_style.border_color = Color(0.3, 0.5, 0.9, 0.6)
+	panel_style.border_blend = true
+	panel_style.corner_radius_top_left = 6
+	panel_style.corner_radius_top_right = 6
+	panel_style.corner_radius_bottom_left = 6
+	panel_style.corner_radius_bottom_right = 6
+	panel_style.shadow_color = Color(0, 0, 0, 0.5)
+	panel_style.shadow_size = 12
+	panel_style.content_margin_left = 6
+	panel_style.content_margin_right = 6
+	panel_style.content_margin_top = 6
+	panel_style.content_margin_bottom = 6
+	command_popup.add_theme_stylebox_override("panel", panel_style)
+	
+	var hover_style = StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.2, 0.3, 0.5, 0.8)
+	hover_style.corner_radius_top_left = 4
+	hover_style.corner_radius_top_right = 4
+	hover_style.corner_radius_bottom_left = 4
+	hover_style.corner_radius_bottom_right = 4
+	command_popup.add_theme_stylebox_override("hover", hover_style)
+	
+	command_popup.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
+	command_popup.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0))
+	command_popup.transparent_bg = true
+	
+	add_child(command_popup)
+	command_popup.id_pressed.connect(_on_command_selected)
+	
 	add_file_btn.pressed.connect(func(): _add_file_dialog.popup_centered())
 	_add_file_dialog.file_selected.connect(_on_add_file_selected)
 	_file_clear_btn.pressed.connect(_on_clear_dropped_files)
@@ -812,6 +852,82 @@ func _on_input_gui_input(event: InputEvent):
 				})
 				_refresh_thumbnails()
 				_add_to_chat("\n[color=green][i]" + locale_manager.tr("image_pasted") + "[/i][/color]\n")
+
+const SLASH_COMMANDS = [
+	"/brainstorm", "/plan", "/debug", "/create", "/deploy", 
+	"/enhance", "/orchestrate", "/preview", "/status", "/test"
+]
+
+func _on_input_text_changed():
+	var text = input_field.text
+	var caret_line = input_field.get_caret_line()
+	var caret_col = input_field.get_caret_column()
+	
+	var lines = text.split("\n")
+	if lines.size() <= caret_line: return
+	var line_text = lines[caret_line]
+	var text_before_caret = line_text.substr(0, caret_col)
+	
+	var last_space_idx = text_before_caret.rfind(" ")
+	var current_word = ""
+	if last_space_idx == -1:
+		current_word = text_before_caret
+	else:
+		current_word = text_before_caret.substr(last_space_idx + 1)
+	
+	if current_word.begins_with("/") and current_word.length() > 0:
+		_show_command_suggestions(current_word)
+	else:
+		command_popup.hide()
+
+func _show_command_suggestions(prefix: String):
+	command_popup.clear()
+	var matches = []
+	for cmd in SLASH_COMMANDS:
+		if cmd.begins_with(prefix):
+			matches.append(cmd)
+	
+	if matches.is_empty():
+		command_popup.hide()
+		return
+		
+	for i in range(matches.size()):
+		command_popup.add_item(matches[i], i)
+		
+	var caret_pos = input_field.get_caret_draw_pos()
+	var global_pos = input_field.global_position + caret_pos + Vector2(0, 24)
+	
+	var popup_rect = Rect2i(int(global_pos.x), int(global_pos.y), 200, matches.size() * 32)
+	command_popup.popup(popup_rect)
+
+func _on_command_selected(id: int):
+	var selected_cmd = command_popup.get_item_text(id)
+	
+	var text = input_field.text
+	var caret_line = input_field.get_caret_line()
+	var caret_col = input_field.get_caret_column()
+	
+	var lines = text.split("\n")
+	var line_text = lines[caret_line]
+	var text_before_caret = line_text.substr(0, caret_col)
+	var text_after_caret = line_text.substr(caret_col)
+	
+	var last_space_idx = text_before_caret.rfind(" ")
+	var new_line_text = ""
+	if last_space_idx == -1:
+		new_line_text = selected_cmd + " " + text_after_caret
+	else:
+		new_line_text = text_before_caret.substr(0, last_space_idx + 1) + selected_cmd + " " + text_after_caret
+		
+	lines[caret_line] = new_line_text
+	input_field.text = "\n".join(lines)
+	
+	var new_col = (last_space_idx + 1 if last_space_idx != -1 else 0) + selected_cmd.length() + 1
+	input_field.set_caret_line(caret_line)
+	input_field.set_caret_column(new_col)
+	
+	command_popup.hide()
+	input_field.grab_focus()
 
 func _on_add_file_selected(path: String):
 	var ext = path.get_extension().to_lower()

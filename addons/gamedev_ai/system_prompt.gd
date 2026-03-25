@@ -2,12 +2,34 @@
 extends RefCounted
 class_name SystemPrompt
 
-static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "", response_language_instruction: String = "") -> String:
+static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "", response_language_instruction: String = "", transcript: Array = []) -> String:
+	var active_persona = "Godot Expert"
+	var persona_instructions = "Your goal is to help the user build their game VISUALLY in the editor."
+	
+	if transcript.size() > 0:
+		var last_msg = ""
+		for t in transcript:
+			if t.get("role") == "user":
+				last_msg += t.get("text", "")
+		var lower_msg = last_msg.to_lower()
+		
+		if "ui" in lower_msg or "interface" in lower_msg or "hud" in lower_msg or "menu" in lower_msg or "design" in lower_msg:
+			active_persona = "UI/UX Designer"
+			persona_instructions = "You are currently acting as a UI/UX Designer Persona. Focus intensely on Control nodes, anchors, and responsive layout. Ignore physics and complex game logic."
+		elif "shader" in lower_msg or "vfx" in lower_msg or "particle" in lower_msg or "visual" in lower_msg:
+			active_persona = "Technical Artist"
+			persona_instructions = "You are currently acting as a Technical Artist Persona. Focus intensely on Shaders, rendering pipelines, and visual effects."
+		elif "multiplayer" in lower_msg or "network" in lower_msg or "rpc" in lower_msg or "sync" in lower_msg:
+			active_persona = "Multiplayer Engineer"
+			persona_instructions = "You are currently acting as a Multiplayer Engineer Persona. Focus on high-level multiplayer networking, RPC, and authority."
+
 	var prompt = ""
 	if response_language_instruction != "":
 		prompt += "## RESPONSE LANGUAGE (CRITICAL)\n" + response_language_instruction + "\n\n"
 		
-	prompt += """You are a Godot Game Development Assistant integrated directly into the Godot Editor (""" + engine_version + """ / GDScript 2.0). Your goal is to help the user build their game VISUALLY in the editor.
+	prompt += """You are a Godot Game Development Assistant integrated directly into the Godot Editor (""" + engine_version + """ / GDScript 2.0). 
+Your active persona is: """ + active_persona + """
+""" + persona_instructions + """
 
 ## Engine Version & Compatibility (CRITICAL)
 - You are running inside **""" + engine_version + """**. ALL code, APIs, and file formats you produce MUST be compatible with this exact version.
@@ -57,6 +79,11 @@ static func get_system_instruction(engine_version: String = "Godot 4.x", custom_
 - The 'Watch Mode' in the dock allows automatic detection of console errors. If you see a new error, analyze the error log carefully.
 - If you are unsure about properties or methods for a specific node type, use the `get_class_info` tool to inspect it.
 
+## Auto-Audit & Refinement (MANDATORY)
+- After concluding deep modifications to any script (e.g. using patch_script or edit_script), you MUST autonomously run `audit_script` on the modified file to ensure you didn't introduce syntax errors or bad practices.
+- Consider using `audit_scene` after modifying complex node hierarchies.
+- Fix any issues reported by the audit tools before you tell the user you are finished.
+
 ## Context Awareness
 - The user message might contain 'Project Structure:', which lists all classes and scenes in the project. Use this to avoid hallucinating file paths or class names.
 - The user message might contain 'Current Scene tree:', showing the active scene hierarchy with script/position info.
@@ -66,6 +93,17 @@ static func get_system_instruction(engine_version: String = "Godot 4.x", custom_
 - Before editing a script, use `view_file_outline` to understand its structure, then `read_file` to see the exact content.
 - Use `grep_search` to find all references to a function, variable, or class before renaming or refactoring.
 - If you're unsure where a file is, use `find_file` to search for it. If you need to find code that uses a specific API, use `grep_search`.
+
+## Workflows & Commands (CRITICAL)
+- The user might start their message with a slash command. You MUST change your behavior accordingly:
+  - `/brainstorm` or `/plan`: Do NOT generate code. Enter Socratic mode. Ask structural questions regarding architecture, GDD, state machines, etc. Guide the user to define the plan.
+  - `/debug`: Enter systematic debugging mode. Ask the user for specific error logs and focus ONLY on root cause analysis.
+- If the user uses these commands, ignore the standard "build visually" rule until the workflow is complete.
+
+## Socratic Gate (MANDATORY)
+- For ANY request that involves building a complex architecture, system, or large mechanic (e.g., "create an inventory", "make a multiplayer setup"), you MUST STOP.
+- DO NOT generate code blindly. You MUST ask at least 2 trade-off or edge-case questions to the user to clarify the constraints before proposing an architecture or executing tools.
+- This prevents generating massive amounts of incorrect code (Garbage In, Garbage Out).
 
 ## Project Memory (Persistent)
 - You have access to persistent project memories that survive across chat sessions. Check the "Project Memory" section in the context for existing facts.
@@ -111,7 +149,14 @@ At the end of your response, ALWAYS provide 1-3 highly relevant, concise, action
 		var file_name := skills_dir.get_next()
 		while file_name != "":
 			if not skills_dir.current_is_dir() and file_name.ends_with(".md"):
-				prompt += "\n- " + file_name.get_basename()
+				var include_skill = true
+				if active_persona == "UI/UX Designer" and not ("ui" in file_name or "interface" in file_name or "mobile" in file_name):
+					include_skill = false
+				elif active_persona == "Multiplayer Engineer" and not ("network" in file_name or "multiplayer" in file_name or "architecture" in file_name):
+					include_skill = false
+				
+				if include_skill:
+					prompt += "\n- " + file_name.get_basename()
 			file_name = skills_dir.get_next()
 	
 	return prompt
