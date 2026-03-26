@@ -15,21 +15,49 @@ hero:
 
 features:
   - title: Buat melalui Chat
+    tag: CORE
     details: "Jelaskan mekanika, lampirkan file, dan tarik node langsung dari Scene Tree ke panel chat agar AI membangun struktur sistem untuk Anda."
   - title: "Perbedaan (Diff) yang Aman dan Visual"
+    tag: SAFE
     details: "AI tidak menimpa kode Anda secara membabi buta. Plugin ini menampilkan jendela berdampingan (sebelum/sesudah) sehingga Anda hanya menerapkan baris yang Anda konfirmasi."
   - title: Watch Mode (Auto-Fix)
+    tag: ENGINE
     details: "Biarkan AI mengawasi jendela output! Jika game crash saat dijalankan, AI akan segera menyarankan solusi untuk skrip yang menyebabkan masalah."
   - title: Indeks Vektor (RAG)
+    tag: ENGINE
     details: "Indexing codebase menganalisis skrip Anda ke dalam database vektor lokal. AI akan secara otomatis menemukan kelas Anda saat memprogram."
   - title: 25 Skill Bawaan
+    tag: SMART
     details: "Asisten dilatih dalam 25 spesialisasi (Shader, Multiplayer, UI/UX, Inventaris) untuk menerapkan standar industri terbaik."
   - title: Git Tanpa Repot
+    tag: CORE
     details: "Tab asli untuk mengelola GitHub. Buat timeline alternatif (branch), simpan proyek, dan biarkan AI membaca skrip Anda untuk menghasilkan pesan commit yang jelas secara otomatis."
   - title: Persona Spesialis
+    tag: SMART
     details: "Perutean konteks cerdas (UI, Shader, Multiplayer) yang hanya memuat pengetahuan yang diperlukan untuk masalah Anda saat ini."
   - title: "Gerbang Sokrates (Stop & Ask)"
+    tag: SAFE
     details: "AI berhenti dan mengajukan pertanyaan stratégis sebelum membuat sistem yang kompleks, sehingga menghindari halusinasi dan kode yang rusak sejak awal."
   - title: Alur Kerja melalui Slash (/)
+    tag: CORE
     details: "Gunakan perintah seperti `/brainstorm`, `/plan`, dan `/debug` untuk mengubah sikap dan metodologi asisten secara instan."
+
+modern_header:
+  title: "Mengapa Gamedev AI berbeda?"
+  description: "Kami bukan sekadar chat. Kami adalah engine kecerdasan yang terintegrasi langsung ke dalam workflow Godot, berfokus pada keamanan, konteks nyata, dan otonomi yang dikendalikan pengembang."
+
+feature_showcase:
+  - title: "Otonomi Nyata"
+    tag: "Workflow"
+    description: "AI tidak hanya menyarankan, ia bertindak. Dari draf hingga implementasi akhir dengan satu klik."
+    steps: ["Menganalisis Konteks...", "Mengakses Vector DB...", "Memvalidasi Arsitektur...", "Menghasilkan Diff Aman"]
+  - title: "Engine Pengetahuan"
+    tag: "RAG / Vector DB"
+    description: "Skrip Anda diindeks secara lokal, memungkinkan AI memahami kelas dan fungsi kustom Anda tanpa halusinasi."
+  - title: "Keamanan & Peninjau"
+    tag: "Socratic Gate"
+    description: "Asisten berhenti dan mengajukan pertanyaan strategis sebelum mengubah sistem kritis, menghindari kode yang rusak."
+    question: "Tunggu, saya perhatikan Anda menggunakan singleton. Haruskah kita mengimplementasikan ini sebagai sumber daya bersama untuk mengoptimalkan memori?"
+    opt1: "Ya, ide bagus."
+    opt2: "Tidak, pertahankan singleton."
 ---

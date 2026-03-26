@@ -94,27 +94,130 @@
 }
 
 /* ============================================
-   FEATURES - Espaçamento dos cards
+   FEATURES - Efeito Glassmorphism
    ============================================ */
 
 .VPFeatures {
-  padding-top: 60px !important;
+  padding-top: 80px !important;
+  padding-bottom: 80px !important;
+  position: relative;
+  z-index: 1; /* Garante contexto de empilhamento */
 }
 
-/* Sombra e animação nos cards */
+/* Luzes radiais de fundo para refratar no vidro */
+.VPFeatures::before,
+.VPFeatures::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.VPFeatures::before {
+  top: 10%;
+  left: 5%;
+  width: 40vw;
+  height: 40vw;
+  max-width: 500px;
+  max-height: 500px;
+  background: radial-gradient(circle, rgba(0, 186, 227, 0.25) 0%, transparent 60%);
+}
+
+.VPFeatures::after {
+  bottom: 0%;
+  right: 5%;
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.2) 0%, transparent 60%);
+}
+
+/* Garante que listagem fica acima do fundo */
+.VPFeatures .container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Sombra e animação nos cards com Glassmorphism e Neomorfismo */
 .VPFeature .box {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+  background: rgba(40, 40, 44, 0.4) !important; /* Fundo semitransparente escuro */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* Borda sutil para definir o vidro (iluminação de cima) */
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  
+  /* Sombra para profundidade */
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    inset 0 0 24px rgba(255, 255, 255, 0.02) !important;
+    
+  transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), 
+              box-shadow 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+              background 0.4s ease,
+              border-color 0.4s ease !important;
 }
 
 .VPFeature .box:hover {
-  transform: translateY(-5px) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+  transform: translateY(-8px) scale(1.02) !important;
+  background: rgba(50, 50, 55, 0.55) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.25) !important;
+  
+  /* Sombra elevada e brilho sutil da marca */
+  box-shadow: 
+    0 20px 48px rgba(0, 0, 0, 0.6),
+    inset 0 0 32px rgba(255, 255, 255, 0.04),
+    0 0 32px rgba(0, 186, 227, 0.15) !important; 
+}
+
+/* Ajustes de contraste no texto do vidro */
+.VPFeature .title {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.VPFeature .details {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 
 /* ============================================
-   Ajuste mobile - mantém o banner bonito
+   ANIMATIONS - Global Scroll-Reveal
    ============================================ */
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.active-reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Garante que seções fiquem visíveis se o JS falhar ou se quiser simplificar */
+.VPHome {
+  overflow-x: hidden;
+}
+
+/* Ajuste mobile - mantém o banner bonito */
 @media (max-width: 768px) {
   .VPHero::before {
     background-position: left center;
