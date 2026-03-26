@@ -12,12 +12,21 @@ const images = [
 ]
 
 const currentIndex = ref(0)
+const previousIndex = ref(-1)
 let timer
 
+function advance() {
+  previousIndex.value = currentIndex.value
+  currentIndex.value = (currentIndex.value + 1) % images.length
+
+  // Limpa o "exiting" após a animação de saída terminar (1.5s = duração do fade)
+  setTimeout(() => {
+    previousIndex.value = -1
+  }, 1500)
+}
+
 onMounted(() => {
-  timer = setInterval(() => {
-    currentIndex.value = (currentIndex.value + 1) % images.length
-  }, 6000)
+  timer = setInterval(advance, 6000)
 
   // Mover elemento para dentro de .VPHero para ancoragem perfeita
   setTimeout(() => {
@@ -40,7 +49,10 @@ onUnmounted(() => {
       v-for="(img, index) in images" 
       :key="index"
       class="slide"
-      :class="{ active: index === currentIndex }"
+      :class="{
+        active: index === currentIndex,
+        exiting: index === previousIndex
+      }"
       :style="{ backgroundImage: `url(${img})` }"
     ></div>
   </div>
@@ -70,17 +82,31 @@ onUnmounted(() => {
   background-size: cover;
   background-position: center;
   opacity: 0;
-  transition: opacity 1.5s ease-in-out;
   transform: scale(1.0);
+  /* Sem transition aqui — tudo é controlado por @keyframes para evitar snap */
 }
 
+/* Slide entrando: zoom lento por toda a duração do intervalo */
 .slide.active {
-  opacity: 0.7; /* Mantém contraste em relação a máscara shadow do banner */
-  animation: kenBurns 12s ease-out forwards;
+  opacity: 0.7;
+  animation: kenBurnsEnter 6s ease-out forwards;
 }
 
-@keyframes kenBurns {
-  0% { transform: scale(1.0); }
-  100% { transform: scale(1.1); }
+/* Slide saindo: continua o zoom E faz fade out juntos, SEM voltar ao tamanho original */
+.slide.exiting {
+  animation: kenBurnsExit 1.5s ease-in-out forwards;
+}
+
+@keyframes kenBurnsEnter {
+  0%   { opacity: 0;   transform: scale(1.00); }
+  15%  { opacity: 0.7; }
+  100% { opacity: 0.7; transform: scale(1.10); }
+}
+
+@keyframes kenBurnsExit {
+  /* Começa de onde o slide estava (~escala entre 1.0 e 1.1 dependendo do tempo) */
+  /* Usamos scale(1.08) como ponto médio razoável pós ~75% do tempo de exibição */
+  0%   { opacity: 0.7; transform: scale(1.08); }
+  100% { opacity: 0;   transform: scale(1.13); }
 }
 </style>

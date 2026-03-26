@@ -961,52 +961,7 @@ func _on_command_selected(id: int):
 	input_field.grab_focus()
 
 func _on_add_file_selected(path: String):
-	var ext = path.get_extension().to_lower()
-	var filename = path.get_file()
-	
-	if ext in ["png", "jpg", "jpeg", "webp"]:
-		var img = Image.new()
-		var err = img.load(path)
-		if err == OK:
-			var file = FileAccess.open(path, FileAccess.READ)
-			var bytes = file.get_buffer(file.get_length())
-			var mime = "image/" + ("jpeg" if ext in ["jpg", "jpeg"] else ext)
-			
-			_attached_files.append({
-				"type": "image",
-				"filename": filename,
-				"mime_type": mime,
-				"image_obj": img,
-				"raw_bytes": bytes
-			})
-			_refresh_thumbnails()
-			_add_to_chat("\n[color=green][i]" + locale_manager.tr("image_attached") + filename + "[/i][/color]\n")
-		else:
-			_add_to_chat("\n[color=red]" + locale_manager.tr("failed_load_image") + path + "[/color]\n")
-	elif ext in ["txt", "md", "csv", "json", "gd"]:
-		var file = FileAccess.open(path, FileAccess.READ)
-		if file:
-			var content = file.get_as_text()
-			_attached_files.append({
-				"type": "text",
-				"filename": filename,
-				"text_content": content
-			})
-			_refresh_thumbnails()
-			_add_to_chat("\n[color=green][i]" + locale_manager.tr("text_file_attached") + filename + "[/i][/color]\n")
-	elif ext in ["pdf", "mp3", "wav", "ogg"]:
-		var file = FileAccess.open(path, FileAccess.READ)
-		if file:
-			var bytes = file.get_buffer(file.get_length())
-			var mime = "application/pdf" if ext == "pdf" else "audio/" + ("mpeg" if ext == "mp3" else ext)
-			_attached_files.append({
-				"type": "binary",
-				"filename": filename,
-				"mime_type": mime,
-				"raw_bytes": bytes
-			})
-			_refresh_thumbnails()
-			_add_to_chat("\n[color=green][i]" + locale_manager.tr("file_attached") + filename + "[/i][/color]\n")
+	_attach_file_from_path(path)
 
 func _on_image_captured(path: String):
 	if FileAccess.file_exists(path):
@@ -1099,6 +1054,65 @@ func _remove_attached_file(index: int):
 		_attached_files.remove_at(index)
 		_refresh_thumbnails()
 		_add_to_chat("[i]" + locale_manager.tr("attachment_removed") + "[/i]\n")
+
+
+
+func _attach_file_from_path(path: String) -> void:
+	# Resolve res:// paths to absolute for FileAccess
+	var abs_path = path
+	if path.begins_with("res://"):
+		abs_path = ProjectSettings.globalize_path(path)
+	elif path.begins_with("user://"):
+		abs_path = ProjectSettings.globalize_path(path)
+
+	var ext = path.get_extension().to_lower()
+	var filename = path.get_file()
+
+	if ext in ["png", "jpg", "jpeg", "webp"]:
+		var img = Image.new()
+		var err = img.load(abs_path)
+		if err == OK:
+			var file = FileAccess.open(abs_path, FileAccess.READ)
+			if file:
+				var bytes = file.get_buffer(file.get_length())
+				var mime = "image/" + ("jpeg" if ext in ["jpg", "jpeg"] else ext)
+				_attached_files.append({
+					"type": "image",
+					"filename": filename,
+					"mime_type": mime,
+					"image_obj": img,
+					"raw_bytes": bytes
+				})
+				_refresh_thumbnails()
+				_add_to_chat("\n[color=green][i]" + locale_manager.tr("image_attached") + filename + "[/i][/color]\n")
+		else:
+			_add_to_chat("\n[color=red]" + locale_manager.tr("failed_load_image") + path + "[/color]\n")
+	else:
+		# Treat everything else as text (GDScript, scenes, resources, configs, etc.)
+		# For binary-ish files that can't be read as text, attach metadata only
+		var file = FileAccess.open(abs_path, FileAccess.READ)
+		if file:
+			var content: String
+			if ext in ["png", "jpg", "jpeg", "webp", "mp3", "ogg", "wav", "ttf", "otf"]:
+				content = "Binary file — path: " + path + "\nSize: " + str(file.get_length()) + " bytes"
+			else:
+				content = file.get_as_text()
+			_attached_files.append({
+				"type": "text",
+				"filename": filename,
+				"text_content": content
+			})
+			_refresh_thumbnails()
+			_add_to_chat("\n[color=green][i]" + locale_manager.tr("text_file_attached") + filename + "[/i][/color]\n")
+		else:
+			# File not directly accessible — attach path as reference
+			_attached_files.append({
+				"type": "text",
+				"filename": filename,
+				"text_content": "File reference: " + path + "\n(Could not read content directly)"
+			})
+			_refresh_thumbnails()
+			_add_to_chat("\n[color=yellow][i]Attached reference: " + filename + "[/i][/color]\n")
 
 func _is_game_running() -> bool:
 	return EditorInterface.is_playing_scene()
@@ -1707,34 +1721,60 @@ func _can_drop_data(_at_pos: Vector2, data: Variant) -> bool:
 		if data.has("type"):
 			if data["type"] in ["files", "nodes", "resource", "obj"]:
 				return true
-		if data.has("files"):
+		# Also accept bare 'files' or 'nodes' keys (Godot 4 drag format)
+		if data.has("files") or data.has("nodes"):
 			return true
 	return false
 
 func _drop_data(_at_pos: Vector2, data: Variant):
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+
+	# --- Node drops (Scene Tree) ---
+	# Handle bare 'nodes' key (Godot 4 scene tree drag) as rich context
+	var node_paths_raw: Array = []
+	if data.has("nodes") and (not data.has("type") or data.get("type") == "nodes"):
+		node_paths_raw = data["nodes"]
+	elif data.get("type", "") == "nodes" and data.has("nodes"):
+		node_paths_raw = data["nodes"]
+
+	if not node_paths_raw.is_empty():
+		var editor_root = EditorInterface.get_edited_scene_root()
+		var lines: Array = []
+		for np in node_paths_raw:
+			var node = editor_root.get_node_or_null(np) if editor_root else null
+			if node:
+				var script = node.get_script()
+				var script_path = script.resource_path if (script and script.resource_path != "") else "(no script)"
+				var scene_path = node.scene_file_path if node.scene_file_path != "" else "(no scene file)"
+				lines.append("Node: " + node.name + "  |  Type: " + node.get_class() + "  |  Path: " + str(np) + "  |  Scene: " + scene_path + "  |  Script: " + script_path)
+			else:
+				lines.append("Node path: " + str(np))
+		var label = str(node_paths_raw.size()) + " node(s) from scene tree"
+		_attached_files.append({
+			"type": "text",
+			"filename": "[Nodes] " + label,
+			"text_content": "## Dragged Nodes from Scene Tree\n\n" + "\n".join(lines)
+		})
+		_refresh_thumbnails()
+		_add_to_chat("\n[color=green][i]Attached " + label + "[/i][/color]\n")
+		_update_dropped_files_ui()
+		return
+
+	# --- File / Resource drops ---
 	var paths_to_add: Array[String] = []
-	
-	if typeof(data) == TYPE_DICTIONARY:
-		if data.has("type"):
-			if data["type"] == "files" and data.has("files"):
-				paths_to_add.append_array(data["files"])
-			elif data["type"] == "nodes" and data.has("nodes"):
-				# Iterate nodes natively, trying to find script or scene
-				var editor = EditorInterface.get_edited_scene_root()
-				for np in data["nodes"]:
-					var node = editor.get_node_or_null(np) if editor else null
-					if node:
-						if node.scene_file_path != "":
-							paths_to_add.append(node.scene_file_path)
-						var script = node.get_script()
-						if script and script.resource_path != "":
-							paths_to_add.append(script.resource_path)
-			elif data["type"] == "resource" and data.has("resource"):
-				var res = data["resource"]
+
+	if data.has("type"):
+		match data["type"]:
+			"files":
+				if data.has("files"):
+					paths_to_add.append_array(data["files"])
+			"resource":
+				var res = data.get("resource")
 				if res and res.resource_path != "":
 					paths_to_add.append(res.resource_path)
-			elif data["type"] == "obj" and data.has("object"):
-				var obj = data["object"]
+			"obj":
+				var obj = data.get("object")
 				if obj is Resource and obj.resource_path != "":
 					paths_to_add.append(obj.resource_path)
 				elif obj is Node:
@@ -1743,35 +1783,15 @@ func _drop_data(_at_pos: Vector2, data: Variant):
 					var script = obj.get_script()
 					if script and script.resource_path != "":
 						paths_to_add.append(script.resource_path)
-		
-		# Fallback if just 'files' array exists and wasn't caught by above
-		if paths_to_add.is_empty() and data.has("files"):
-			paths_to_add.append_array(data["files"])
-			
+
+	# Fallback: bare 'files' key
+	if paths_to_add.is_empty() and data.has("files"):
+		paths_to_add.append_array(data["files"])
+
+	# Route ALL file types through _attach_file_from_path for full content
 	for f in paths_to_add:
-		if not _dropped_files.has(f):
-			# Support dragged images
-			var ext = f.get_extension().to_lower()
-			if ext == "png" or ext == "jpg" or ext == "jpeg" or ext == "webp":
-				var img = Image.new()
-				var err = img.load(f)
-				if err == OK:
-					var file = FileAccess.open(f, FileAccess.READ)
-					var bytes = file.get_buffer(file.get_length())
-					var mime = "image/" + ("jpeg" if ext in ["jpg", "jpeg"] else ext)
-					
-					_attached_files.append({
-						"type": "image",
-						"filename": f.get_file(),
-						"path": f,
-						"mime_type": mime,
-						"image_obj": img,
-						"raw_bytes": bytes
-					})
-					_refresh_thumbnails()
-			else:
-				_dropped_files.append(f)
-	
+		_attach_file_from_path(f)
+
 	_update_dropped_files_ui()
 
 func _update_dropped_files_ui():
