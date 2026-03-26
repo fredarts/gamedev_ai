@@ -573,8 +573,8 @@ func _apply_locale():
 	history_button.text = "" # Icon only
 	history_button.tooltip_text = L.tr("history")
 	
-	magic_actions_btn.text = L.tr("magic_actions") if L.has_message("magic_actions") else "Magic Actions"
-	prompt_settings_btn.text = L.tr("prompt_settings") if L.has_message("prompt_settings") else "Prompt Settings"
+	magic_actions_btn.text = L.tr("magic_actions") if L.has_method("has_message") and L.has_message("magic_actions") else "Magic Actions"
+	prompt_settings_btn.text = L.tr("prompt_settings") if L.has_method("has_message") and L.has_message("prompt_settings") else "Prompt Settings"
 	
 	selection_status.text = L.tr("no_selection")
 	input_field.placeholder_text = L.tr("input_placeholder")
@@ -687,12 +687,12 @@ func _update_ui_state(busy: bool):
 	var icon_path = "res://addons/gamedev_ai/assets/icons/"
 	if busy:
 		send_button.text = ""
-		send_button.icon = _load_svg_icon(icon_path + "stop.svg", "ffffff")
+		send_button.icon = _load_svg_icon(icon_path + "stop.svg", "ffffff", 0.75)
 		send_button.tooltip_text = locale_manager.tr("stop") if locale_manager else "Stop"
 		_style_danger_button(send_button, 20)
 	else:
 		send_button.text = ""
-		send_button.icon = _load_svg_icon(icon_path + "send.svg", "ffffff")
+		send_button.icon = _load_svg_icon(icon_path + "send.svg", "ffffff", 0.75)
 		send_button.tooltip_text = locale_manager.tr("tt_send") if locale_manager else "Send"
 		_style_solid_button(send_button, Color(0.15, 0.6, 0.35), 20)
 
@@ -1372,19 +1372,40 @@ func _get_error_logs() -> String:
 		content = content.substr(session_start_index)
 	
 	var lines = content.split("\n")
+	var raw_error_blocks = []
+	var capturing_error = false
+	var current_error = ""
+	
+	for line in lines:
+		if "ERROR:" in line or "SCRIPT ERROR:" in line or "USER SCRIPT ERROR:" in line:
+			if capturing_error and current_error != "":
+				raw_error_blocks.append(current_error)
+			capturing_error = true
+			current_error = line
+		elif capturing_error:
+			if line.begins_with(" ") or line.begins_with("\t") or line.begins_with("<"):
+				current_error += "\n" + line
+			else:
+				if current_error != "":
+					raw_error_blocks.append(current_error)
+				capturing_error = false
+				current_error = ""
+				
+	if capturing_error and current_error != "":
+		raw_error_blocks.append(current_error)
+		
 	var unique_errors = {}
 	var filtered_errors = []
 	
-	for line in lines:
-		if "ERROR" in line or "SCRIPT ERROR" in line or "WARNING" in line:
-			if not unique_errors.has(line):
-				unique_errors[line] = true
-				filtered_errors.append(line)
+	for err_block in raw_error_blocks:
+		if not unique_errors.has(err_block):
+			unique_errors[err_block] = true
+			filtered_errors.append(err_block)
 	
 	if filtered_errors.is_empty():
 		return ""
 		
-	return "\n".join(filtered_errors)
+	return "\n\n".join(filtered_errors)
 
 func _on_ai_response(response: String):
 	if _is_stopped:
@@ -2129,13 +2150,13 @@ func _apply_custom_theme():
 	
 	# Apply SVG Icons
 	var icon_path = "res://addons/gamedev_ai/assets/icons/"
-	new_chat_button.icon = _load_svg_icon(icon_path + "plus.svg", "ffffff")
-	history_button.icon = _load_svg_icon(icon_path + "history.svg", "ffffff")
-	summarize_btn.icon = _load_svg_icon(icon_path + "settings.svg", "ffffff")
-	add_file_btn.icon = _load_svg_icon(icon_path + "attach.svg", "ffffff")
-	send_button.icon = _load_svg_icon(icon_path + "send.svg", "ffffff")
-	magic_actions_btn.icon = _load_svg_icon(icon_path + "magic.svg", "ffffff")
-	prompt_settings_btn.icon = _load_svg_icon(icon_path + "settings.svg", "ffffff")
+	new_chat_button.icon = _load_svg_icon(icon_path + "plus.svg", "ffffff", 0.75)
+	history_button.icon = _load_svg_icon(icon_path + "history.svg", "ffffff", 0.75)
+	summarize_btn.icon = _load_svg_icon(icon_path + "save.svg", "ffffff", 0.75)
+	add_file_btn.icon = _load_svg_icon(icon_path + "attach.svg", "ffffff", 0.75)
+	send_button.icon = _load_svg_icon(icon_path + "send.svg", "ffffff", 0.75)
+	magic_actions_btn.icon = _load_svg_icon(icon_path + "magic.svg", "ffffff", 0.75)
+	prompt_settings_btn.icon = _load_svg_icon(icon_path + "settings.svg", "ffffff", 0.75)
 	
 	magic_actions_btn.size_flags_horizontal = SIZE_SHRINK_BEGIN
 	prompt_settings_btn.size_flags_horizontal = SIZE_SHRINK_BEGIN
@@ -2177,8 +2198,6 @@ func _apply_custom_theme():
 	_style_ghost_danger_button(force_pull_btn)
 	_style_ghost_danger_button(force_push_btn)
 	
-	_add_action_icons()
-	
 	# Force horizontal expansion for all tabs and their internals
 	$TabContainer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for child in $TabContainer.get_children():
@@ -2190,7 +2209,7 @@ func _apply_custom_theme():
 	_apply_settings_cards()
 	_apply_git_zones()
 
-func _load_svg_icon(path: String, color_hex: String) -> Texture2D:
+func _load_svg_icon(path: String, color_hex: String, scale: float = 1.0) -> Texture2D:
 	if not FileAccess.file_exists(path):
 		return null
 	var file = FileAccess.open(path, FileAccess.READ)
@@ -2198,7 +2217,7 @@ func _load_svg_icon(path: String, color_hex: String) -> Texture2D:
 	var svg_content = file.get_as_text()
 	svg_content = svg_content.replace("currentColor", "#" + color_hex)
 	var img = Image.new()
-	var err = img.load_svg_from_string(svg_content)
+	var err = img.load_svg_from_string(svg_content, scale)
 	if err == OK:
 		return ImageTexture.create_from_image(img)
 	return null

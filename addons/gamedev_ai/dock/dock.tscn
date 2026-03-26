@@ -77,7 +77,6 @@ theme_override_constants/separation = 16
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="DiffLabel" type="Label" parent="TabContainer/Chat/DiffPreviewPanel"]
 layout_mode = 2
@@ -86,10 +85,9 @@ text = "Script Diff Preview:"
 [node name="DiffDisplay" type="RichTextLabel" parent="TabContainer/Chat/DiffPreviewPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
 bbcode_enabled = true
-fit_content = false
-scroll_following = true
+fit_content = true
+scroll_active = false
 
 [node name="DiffButtons" type="HBoxContainer" parent="TabContainer/Chat/DiffPreviewPanel"]
 layout_mode = 2
@@ -155,7 +153,7 @@ layout_mode = 2
 [node name="MagicActionsBtn" type="MenuButton" parent="TabContainer/Chat"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "🪄 Magic Actions"
+text = "Magic Actions"
 flat = false
 item_count = 5
 popup/item_0/text = "Refactor"

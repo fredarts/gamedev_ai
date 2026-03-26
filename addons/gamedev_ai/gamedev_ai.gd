@@ -65,38 +65,21 @@ func _enter_tree():
 func _print_welcome_banner():
 	var banner = """
 [color=cyan][b]========================================================================[/b][/color]
-[color=white][b]🤖 Gamedev AI Plugin Inicializado com Sucesso![/b][/color]
+[color=white][b]🤖 Gamedev AI Plugin Initialized Successfully![/b][/color]
 
-Um assistente inteligente com [b]conhecimento profundo[/b] integrado ao coração do Godot 4!
-Especialista em GDScript, a IA possui o poder de criar jogos inteiros de forma autônoma:
-gera do zero qualquer tipo de Node, edita scripts complexos, configura propriedades 
-diretamente na Scene Tree e altera até as configurações globais do Project Settings.
+Your intelligent assistant integrated into Godot 4. Capable of autonomously 
+building systems, refactoring scripts, and debugging your game in real-time.
 
-[color=yellow][b]🛠️ WORKFLOW COMPLETO:[/b][/color]
- 1. [b]Conversa & Anexos:[/b] Peça à IA no Chat para criar ou refatorar mecânicas. Você 
-    pode [b]anexar arquivos[/b] ou arrastar Nodes da Scene Tree direto para o chat!
- 2. [b]Revisão de Código (Diff):[/b] A IA escreve código, mas você está no controle. O plugin
-    gera uma tela de Diff (Antes/Depois) para você revisar e aprovar (Apply Changes).
- 3. [b]Watch Mode:[/b] Ative essa opção para automatizar a depuração. A IA vai escutar o
-    Output quando você jogar (Play) e sugerir o conserto imadiato de erros vermelhos.
- 4. [b]Indexação:[/b] Use "Index Codebase" nas Configurações. Isso faz a IA entender toda
-    a teia de scripts do seu jogo através de busca semântica em questão de segundos.
- 5. [b]Histórico:[/b] Use o botão "History" para carregar conversas do passado, perfeito
-    para retomar o raciocínio de mecânicas complexas iniciadas no dia anterior.
+[color=yellow][b]🛠️ QUICK START:[/b][/color]
+ • [b]Chat & Build:[/b] Ask the AI to create mechanics, or drag & drop files/nodes.
+ • [b]Review Changes:[/b] Use the Diff preview to safely accept or skip AI code.
+ • [b]Watch Mode:[/b] Enable this to let AI automatically fix your console errors.
+ • [b]Index Codebase:[/b] Use settings to let the AI understand your entire project.
 
-[color=yellow][b]🚀 PODERES E FUNCIONALIDADES AVANÇADAS:[/b][/color]
- • [b]25 Skills Embutidas:[/b] O plugin foi intensamente treinado com 25 módulos de expertise
-   em Godot 4 (Inventários Avançados, Multiplayer API, Shaders, Geração Procedural, Física,
-   UI/UX, etc.) para programar sempre aplicando a arquitetura mais limpa da indústria.
- • [b]Custom System Prompt:[/b] Molde a IA ditando regras fixas (Exemplo: "Sempre use
-   tipagem estática rigorosa no GDScript e comente as funções").
- • [b]GitHub Integrado:[/b] Puxe, crie Branches (linhas do tempo) e force Commits com 
-   mensagens profissionais sendo escritas e resumidas 100% pela IA no painel Git.
- • [b]Memória Persistente:[/b] Assim como um CTO humano, a IA registra documentações
-   invisíveis e decisões arquiteturais pra si mesma dentro da pasta do PC.
-
-[color=yellow][b]📚 DÚVIDAS E ATUALIZAÇÕES:[/b][/color]
- • [url=https://github.com/fredericoBSS/Gamedev-Ai]Documentação Oficial e Repositório GitHub[/url]
+[color=yellow][b]🔗 USEFUL LINKS:[/b][/color]
+ 📖 [url=https://fredarts.github.io/gamedev_ai/]Official Documentation[/url]
+ 💻 [url=https://github.com/fredarts/gamedev_ai]GitHub Repository[/url]
+ ☕ [url=https://buymeacoffee.com/fredarts]Support the Developer (Donate)[/url]
 [color=cyan][b]========================================================================[/b][/color]
 """
 	print_rich(banner)
