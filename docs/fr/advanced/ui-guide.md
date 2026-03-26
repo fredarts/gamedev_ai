@@ -57,13 +57,15 @@ Le plugin dispose de **3 onglets** en haut du panneau :
 | **➤ Envoyer** | Envoie le message à l'IA pour traitement. |
 | **Drag & Drop** | Faites glisser des nœuds de l'Arbre de Scène ou des fichiers du FileSystem directement dans le champ de texte ou la zone de chat. L'IA recevra toutes les métadonnées. |
 
-### Interrupteurs inférieurs
-| Interrupteur | Fonction |
+### Paramètres de Prompt (Liste déroulante)
+Ces options sont regroupées sous l'icône ⚙️ à côté du bouton d'envoi.
+
+| Paramètre | Fonction |
 |--------|--------|
-| **Context** | Une fois activé, le plugin ajoute automatiquement le contenu complet du script ouvert dans l'éditeur au message envoyé. |
-| **Screenshot** | Une fois activé, il prend automatiquement une capture d'écran de la fenêtre Godot et l'envoie avec le message pour analyse visuelle par l'IA. |
-| **Plan First** | Une fois activé, l'IA n'écrira pas de code. Elle répondra par un plan Markdown détaillé. Après examen, cliquez sur le bouton "Execute Plan" qui apparaît. |
-| **Watch Mode** | Une fois activé, l'IA surveille la console de Sortie. Si elle détecte des erreurs critiques (rouges), elle propose automatiquement des correctifs. Cooldown de 30s, limite de 3 correctifs par cycle. |
+| **Inclure le Contexte** | Lorsqu'il est activé, le plugin ajoute automatiquement le contenu complet du script actuellement ouvert dans l'éditeur au message envoyé. |
+| **Envoyer une Capture** | Lorsqu'il est activé, il prend automatiquement une capture d'écran de la fenêtre Godot et l'envoie avec le message pour l'analyse visuelle de l'IA. |
+| **Planifier d'Abord** | Lorsqu'il est activé, l'IA n'écrira pas de code. Elle répondra uniquement avec un plan détaillé en Markdown. Après révision, cliquez sur le bouton "Exécuter le Plan" pour qu'elle code. |
+| **Mode Watch** | Lorsqu'il est activé, l'IA surveille le console de Godot. Si elle détecte des erreurs critiques, elle propose automatiquement des corrections. |
 
 ---
 

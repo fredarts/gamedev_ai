@@ -57,13 +57,15 @@ Plugin ini memiliki **3 tab** di bagian atas panel:
 | **➤ Send** | Mengirimkan pesan ke AI untuk diproses. |
 | **Drag & Drop** | Tarik node dari scene tree atau file dari filesystem langsung ke bidang teks atau area chat. AI akan menerima metadata lengkap. |
 
-### Sakelar Bawah (Bottom Switches)
-| Sakelar | Fungsi |
-|--------|--------|
-| **Context** | Aktif: Plugin secara otomatis melampirkan isi lengkap skrip yang terbuka di editor ke pesan yang dikirim. |
-| **Screenshot** | Aktif: Mengambil tangkapan layar jendela Godot dan mengirimkannya ke AI untuk analisis visual. |
-| **Plan First** | Aktif: AI tidak langsung menulis kode, melainkan hanya menjawab dengan rencana mendetail dalam format Markdown. Klik "Execute Plan" setelah meninjau. |
-| **Watch Mode** | Aktif: AI secara otomatis mengawasi konsol output Godot. Jika ada kesalahan kritis (merah), AI akan menyarankan perbaikan otomatis. Periode pendinginan: 30 detik, Batas: 3 perbaikan per siklus. |
+### Pengaturan Prompt (Dropdown)
+Opsi-opsi ini dikelompokkan di bawah ikon ⚙️ di sebelah tombol kirim.
+
+| Pengaturan | Fungsi |
+|-----------|--------|
+| **Sertakan Konteks (Include Context)** | Saat diaktifkan, plugin secara otomatis melampirkan seluruh isi skrip yang sedang terbuka di editor ke pesan yang dikirim. |
+| **Kirim Screenshot (Send Screenshot)** | Saat diaktifkan, plugin secara otomatis mengambil tangkapan layar jendela Godot dan mengirimkannya bersama pesan untuk analisis visual AI. |
+| **Rencanakan Terlebih Dahulu (Plan First)** | Saat diaktifkan, AI tidak akan langsung menulis kode. AI hanya akan membalas dengan rencana Markdown terperinci. Setelah diperiksa, klik tombol "Execute Plan" untuk mulai mengkode. |
+| **Watch Mode (Mode Pantau)** | Saat diaktifkan, AI secara otomatis memantau konsol output Godot. Jika mendeteksi kesalahan kritis, AI akan mengusulkan perbaikan secara otomatis. |
 
 ---
 

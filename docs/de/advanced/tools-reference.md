@@ -1,6 +1,6 @@
 # Alle KI-Tools (Tool Reference)
 
-Gamedev AI verfügt über **27 integrierte Tools**, die die KI während eines Gesprächs autonom aufrufen kann. Diese Tools sind der "mechanische Arm", der es der KI ermöglicht, direkt mit der Godot Engine zu interagieren. Jedes Tool wird im Folgenden nach Kategorien gruppiert beschrieben.
+Gamedev AI verfügt über **34 integrierte Tools**, die die KI während eines Gesprächs autonom aufrufen kann. Diese Tools sind der "mechanische Arm", der der KI die direkte Interaktion mit der Godot Engine ermöglicht. Jedes Tool ist unten nach Kategorien gruppiert beschrieben.
 
 ## 🔧 Scripts (Code-Erstellung und -Edition)
 
@@ -151,5 +151,16 @@ Führt eine semantische Vektorsuche auf der indexierten Codebasis durch, um hoch
 ## 🧪 Tests
 
 ### `run_tests`
-Führt ein Test-Script oder einen Befehl aus. Nützlich zur Prüfung von Änderungen mit GUT, GdUnit4 oder benutzerdefinierten Test-Scripts.
+Führt ein Testskript oder einen Befehl aus. Nützlich zur Überprüfung von Änderungen mit GUT, GdUnit4 oder benutzerdefinierten Testskripten.
 - **Parameter:** `test_script_path` (optional)
+
+---
+
+## 🛡️ Audit
+
+### `audit_scene`
+Führt ein architektonisches Audit der aktuell geöffneten Szene durch und sucht nach verwaisten Nodes, fehlenden Skripten oder Leistungswarnungen.
+
+### `audit_script`
+Führt ein statisches Analyse-Audit einer spezifischen GDScript-Datei durch, um schlechte Praktiken, potenzielle Bugs oder Syntaxwarnungen zu finden.
+- **Paraméter:** `path`

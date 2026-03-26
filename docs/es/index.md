@@ -26,4 +26,10 @@ features:
     details: "El asistente está entrenado con 25 áreas de especialización (Shaders, Multijugador, UI/UX, Inventarios) implementando los mejores estándares del mercado."
   - title: Git sin Complicaciones
     details: "Pestaña nativa para gestionar GitHub. Crea líneas de tiempo alternativas (Branches), rescata proyectos y deja que la IA lea tus scripts para generar mensajes de Commit claros automáticamente."
+  - title: Personas Especialistas
+    details: "Enrutamiento inteligente de contexto (UI, Shaders, Multijugador) que carga solo el conocimiento necesario para tu problema actual."
+  - title: "Puerta Socrática (Stop & Ask)"
+    details: "La IA se detiene y hace preguntas estratégicas antes de generar sistemas complejos, evitando alucinaciones y código roto desde el principio."
+  - title: Workflows vía Slash (/)
+    details: "Usa comandos como `/brainstorm`, `/plan` y `/debug` para cambiar instantáneamente la postura y la metodología del asistente."
 ---

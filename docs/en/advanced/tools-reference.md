@@ -1,6 +1,6 @@
 # All AI Tools (Tool Reference)
 
-Gamedev AI has **27 built-in tools** that the AI can call autonomously during a conversation. These tools are the "mechanical arm" that allows the AI to interact directly with the Godot Engine, and each is described below grouped by category.
+Gamedev AI has **34 built-in tools** that the AI can call autonomously during a conversation. These tools are the "mechanical arm" that allows the AI to interact directly with the Godot Engine, and each is described below grouped by category.
 
 ## 🔧 Scripts (Code Creation and Editing)
 
@@ -148,8 +148,17 @@ Performs a semantic vector search on the indexed codebase to find highly relevan
 
 ---
 
-## 🧪 Tests
-
 ### `run_tests`
 Executes a test script or command. Useful for checking changes with GUT, GdUnit4, or custom test scripts.
 - **Parameters:** `test_script_path` (optional)
+
+---
+
+## 🛡️ Auditing
+
+### `audit_scene`
+Performs an architectural audit on the currently open scene, looking for orphan nodes, missing scripts, or performance warnings.
+
+### `audit_script`
+Performs a static analysis audit on a specific GDScript file to catch bad practices, potential bugs, or syntax warnings.
+- **Parameters:** `path`

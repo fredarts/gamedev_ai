@@ -26,4 +26,10 @@ features:
     details: "L'assistant est formé avec 25 domaines d'expertise (Shaders, Multijoueur, UI/UX, Inventaires) mettant en œuvre les meilleurs standards du marché."
   - title: Git sans Tracas
     details: "Onglet natif pour gérer GitHub. Créez des chronologies alternatives (Branches), sauvez des projets et laissez l'IA lire vos scripts pour générer des messages de Commit clairs automatiquement."
+  - title: Personas Spécialisés
+    details: "Routage intelligent du contexte (UI, Shaders, Multijoueur) qui ne charge que les connaissances nécessaires à votre problème actuel."
+  - title: "Portail Socratique (Stop & Ask)"
+    details: "L'IA s'arrête et pose des questions stratégiques avant de générer des systèmes complexes, évitant ainsi les hallucinations et les codes cassés dès le départ."
+  - title: Workflows via Slash (/)
+    details: "Utilisez des commandes comme `/brainstorm`, `/plan` et `/debug` pour changer instantanément la posture et la méthodologie de l'assistant."
 ---

@@ -57,13 +57,15 @@ El complemento tiene **3 pestañas** en la parte superior del panel:
 | **➤ Enviar** | Envía el mensaje a la IA para su procesamiento. |
 | **Arrastrar y soltar** | Arrastra nodos del Scene Tree o archivos del FileSystem directamente al campo de texto o área de chat. La IA recibirá todos los metadatos del nodo/archivo arrastrado. |
 
-### Interruptores Inferiores
-| Interruptor | Función |
+### Ajustes de Prompt (Selector)
+Estas opciones están agrupadas bajo el icono ⚙️ junto al botón de enviar.
+
+| Ajuste | Función |
 |--------|--------|
-| **Contexto** | Al activarlo, el complemento añade automáticamente el contenido completo del script abierto actualmente en el editor al mensaje enviado. |
-| **Screenshot** | Al activarlo, toma automáticamente una captura de pantalla de la ventana de Godot y la envía con el mensaje para el análisis visual de la IA. |
-| **Plan First** | Al activarlo, la IA no escribirá código. Solo responderá con un plan detallado en Markdown con los cambios propuestos. Tras revisarlo, haz clic en el botón "Execute Plan" que aparece para que empiece a programar. |
-| **Watch Mode** | Al activarlo, la IA monitoriza automáticamente la consola de Salida de Godot. Si detecta errores críticos (rojos) al ejecutar el juego, propone soluciones automáticamente. Tiene un enfriamiento de 30s y un límite de 3 correcciones por ciclo. |
+| **Incluir Contexto** | Cuando está activado, el plugin adjunta automáticamente el contenido completo del script abierto en el editor al mensaje enviado. |
+| **Enviar Captura** | Cuando está activado, toma automáticamente una captura de pantalla de la ventana de Godot y la envía con el mensaje para el análisis visual de la IA. |
+| **Planificar Primero** | Cuando está activado, la IA no escribirá código. Solo responderá con un plan detallado en Markdown. Tras revisar, haz clic no botón "Ejecutar Plan" para que codifique. |
+| **Modo Vigilancia** | Cuando está activado, la IA monitoriza el console de Godot. Si detecta errores críticos, propone correcciones automáticamente. |
 
 ---
 

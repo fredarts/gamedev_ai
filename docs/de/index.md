@@ -26,4 +26,10 @@ features:
     details: "Der Assistent ist mit 25 Expertengebieten (Shader, Multiplayer, UI/UX, Inventare) geschult, die die besten Marktstandards umsetzen."
   - title: Sorgenfreies Git
     details: "Nativer Tab zur Verwaltung von GitHub. Erstellen Sie alternative Zeitlinien (Branches), speichern Sie Projekte und lassen Sie die KI Ihre Scripts lesen, um automatisch klare Commit-Nachrichten zu generieren."
+  - title: Spezialisierte Personas
+    details: "Intelligentes Kontext-Routing (UI, Shader, Multiplayer), das nur das für Ihr aktuelles Problem notwendige Wissen lädt."
+  - title: "Sokratisches Tor (Stop & Ask)"
+    details: "Die KI stoppt und stellt strategische Fragen, bevor sie komplexe Systeme generiert, um Halluzinationen und fehlerhaften Code von Anfang an zu vermeiden."
+  - title: Slash Workflows (/)
+    details: "Verwenden Sie Befehle wie `/brainstorm`, `/plan` und `/debug`, um die Haltung und Methodik des Assistenten sofort zu ändern."
 ---

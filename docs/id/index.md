@@ -26,4 +26,10 @@ features:
     details: "Asisten dilatih dalam 25 spesialisasi (Shader, Multiplayer, UI/UX, Inventaris) untuk menerapkan standar industri terbaik."
   - title: Git Tanpa Repot
     details: "Tab asli untuk mengelola GitHub. Buat timeline alternatif (branch), simpan proyek, dan biarkan AI membaca skrip Anda untuk menghasilkan pesan commit yang jelas secara otomatis."
+  - title: Persona Spesialis
+    details: "Perutean konteks cerdas (UI, Shader, Multiplayer) yang hanya memuat pengetahuan yang diperlukan untuk masalah Anda saat ini."
+  - title: "Gerbang Sokrates (Stop & Ask)"
+    details: "AI berhenti dan mengajukan pertanyaan stratégis sebelum membuat sistem yang kompleks, sehingga menghindari halusinasi dan kode yang rusak sejak awal."
+  - title: Alur Kerja melalui Slash (/)
+    details: "Gunakan perintah seperti `/brainstorm`, `/plan`, dan `/debug` untuk mengubah sikap dan metodologi asisten secara instan."
 ---

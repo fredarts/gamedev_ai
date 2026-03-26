@@ -1,6 +1,6 @@
 # Semua Alat AI (Tool Reference)
 
-Gamedev AI memiliki **27 alat terintegrasi** yang dapat dipanggil AI secara otonom selama percakapan. Alat-alat ini adalah "tangan mekanis" yang memungkinkan AI untuk berinteraksi langsung dengan Godot Engine. Di bawah ini adalah penjelasan dari setiap alat berdasarkan kategori.
+Gamedev AI memiliki **34 alat bawaan** yang dapat dipanggil oleh AI secara mandiri selama percakapan. Alat-alat ini adalah "lengan mekanis" yang memungkinkan AI berinteraksi langsung dengan Godot Engine, dan masing-masing dijelaskan di bawah ini berdasarkan kategori.
 
 ## 🔧 Skrip (Pembuatan dan Pengeditan Kode)
 
@@ -151,5 +151,16 @@ Melakukan pencarian vektor semantik pada basis data yang telah diindeks, mencari
 ## 🧪 Pengujian (Tests)
 
 ### `run_tests`
-Menjalankan skrip atau perintah pengujian. Berguna untuk memverifikasi perubahan menggunakan GUT, GdUnit4, atau skrip pengujian kustom.
+Menjalankan skrip atau perintah pengujian. Berguna untuk memeriksa perubahan dengan GUT, GdUnit4, atau skrip pengujian khusus.
 - **Parameter:** `test_script_path` (opsional)
+
+---
+
+## 🛡️ Audit (Auditing)
+
+### `audit_scene`
+Melakukan audit arsitektural pada scene yang sedang dibuka, mencari node yatim (orphan), skrip yang hilang, atau peringatan performa.
+
+### `audit_script`
+Melakukan audit analisis statis pada file GDScript tertentu untuk menangkap praktik buruk, bug potensial, atau peringatan sintaksis.
+- **Parameter:** `path`

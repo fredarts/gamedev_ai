@@ -57,13 +57,15 @@ The plugin has **3 tabs** at the top of the panel:
 | **➤ Send** | Sends the message to the AI for processing. |
 | **Drag & Drop** | Drag Scene Tree nodes or FileSystem files directly into the text field or chat area. The AI will receive the full metadata of the dragged node/file. |
 
-### Bottom Toggles
-| Toggle | Function |
+### Prompt Settings (Dropdown)
+These options are grouped under the ⚙️ icon next to the send button. 
+
+| Setting | Function |
 |--------|--------|
-| **Context** | When activated, the plugin automatically appends the full contents of the currently open script in the editor to the sent message. |
-| **Screenshot** | When activated, it automatically takes a screenshot of the Godot window and sends it with the message for the AI's visual analysis. |
+| **Include Context** | When activated, the plugin automatically appends the full contents of the currently open script in the editor to the sent message. |
+| **Send Screenshot** | When activated, it automatically takes a screenshot of the Godot window and sends it with the message for the AI's visual analysis. |
 | **Plan First** | When activated, the AI will not write code. It will only reply with a detailed Markdown plan listing proposed changes. After reviewing, click the "Execute Plan" button that appears for it to code. |
-| **Watch Mode** | When activated, the AI automatically monitors Godot's Output console. If it detects critical (red) errors when running the game, it automatically proposes fixes. It has a 30s cooldown and a limit of 3 fixes per cycle. |
+| **Watch Mode** | When activated, the AI automatically monitors Godot's Output console. If it detects critical (red) errors when running the game, it automatically proposes fixes. |
 
 ---
 

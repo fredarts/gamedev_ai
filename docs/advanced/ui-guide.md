@@ -57,13 +57,15 @@ O plugin possui **3 abas** no topo do painel:
 | **➤ Enviar** | Envia a mensagem para a IA processar. |
 | **Drag & Drop** | Arraste nós da Scene Tree ou arquivos do FileSystem diretamente para o campo de texto ou área do chat. A IA receberá os metadados completos do nó/arquivo arrastado. |
 
-### Toggles Inferiores
-| Toggle | Função |
+### Configurações de Prompt (Dropdown)
+Essas opções estão agrupadas sob o ícone ⚙️ ao lado do botão de enviar.
+
+| Configuração | Função |
 |--------|--------|
-| **Contexto** | Quando ativado, o plugin automaticamente anexa o conteúdo completo do script aberto no editor à mensagem enviada. |
-| **Captura de Tela** | Quando ativado, tira automaticamente uma screenshot da janela do Godot e a envia junto com a mensagem para análise visual pela IA. |
+| **Incluir Contexto** | Quando ativado, o plugin automaticamente anexa o conteúdo completo do script aberto no editor à mensagem enviada. |
+| **Enviar Screenshot** | Quando ativado, tira automaticamente uma screenshot da janela do Godot e a envia junto com a mensagem para análise visual pela IA. |
 | **Planejar Antes** | Quando ativado, a IA não escreverá código. Ela apenas responderá com um plano detalhado em Markdown listando as mudanças propostas. Após revisar, clique no botão "Executar Plano" que aparece para ela codar. |
-| **Modo Vigiar** | Quando ativado, a IA monitora automaticamente o console de Output do Godot. Se detectar erros críticos (vermelhos) ao rodar o jogo, ela propõe correções automaticamente. Tem cooldown de 30s e limite de 3 correções por ciclo. |
+| **Modo Vigiar** | Quando ativado, a IA monitora automaticamente o console de Output do Godot. Se detectar erros críticos (vermelhos) ao rodar o jogo, ela propõe correções automaticamente. |
 
 ---
 

@@ -1,6 +1,6 @@
 # Toutes les outils IA (Tool Reference)
 
-Gamedev AI dispose de **27 outils intégrés** que l'IA peut appeler de manière autonome lors d'une conversation. Ces outils sont le "bras mécanique" qui permet à l'IA d'interagir directement avec le moteur Godot, et chacun est décrit ci-dessous, regroupé par catégorie.
+Gamedev AI dispose de **34 outils intégrés** que l'IA peut appeler de manière autonome lors d'une conversation. Ces outils sont le "bras mécanique" qui permet à l'IA d'interagir directement avec Godot Engine, et chacun est décrit ci-dessous, regroupé par catégorie.
 
 ## 🔧 Scripts (Création et édition de code)
 
@@ -153,3 +153,14 @@ Effectue une recherche vectorielle sémantique sur la base de code indexée pour
 ### `run_tests`
 Exécute un script ou une commande de test. Utile pour vérifier les changements avec GUT, GdUnit4 ou des scripts de test personnalisés.
 - **Paramètres :** `test_script_path` (facultatif)
+
+---
+
+## 🛡️ Audit
+
+### `audit_scene`
+Effectue un audit architectural sur la scène actuellement ouverte, à la recherche de nœuds orphelins, de scripts manquants ou d'avertissements de performance.
+
+### `audit_script`
+Effectue un audit d'analyse statique sur un fichier GDScript spécifique pour détecter les mauvaises pratiques, les bugs potentiels ou les avertissements de syntaxe.
+- **Paramètres :** `path`

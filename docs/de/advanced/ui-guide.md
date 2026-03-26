@@ -57,13 +57,15 @@ Das Plugin verfügt oben im Panel über **3 Tabs**:
 | **➤ Send** | Sendet die Nachricht zur Verarbeitung an die KI. |
 | **Drag & Drop** | Ziehen Sie Scene Tree Nodes oder FileSystem-Dateien direkt in das Textfeld oder den Chat-Bereich. Die KI erhält die vollen Metadaten. |
 
-### Untere Schalter
-| Schalter | Funktion |
+### Prompt-Einstellungen (Dropdown)
+Diese Optionen sind unter dem ⚙️-Symbol neben der Senden-Schaltfläche gruppiert.
+
+| Einstellung | Funktion |
 |--------|--------|
-| **Context** | Aktiviert: Das Plugin hängt automatisch den vollen Inhalt des aktuell geöffneten Scripts im Editor an die gesendete Nachricht an. |
-| **Screenshot** | Aktiviert: Erstellt automatisch einen Screenshot des Godot-Fensters und sendet ihn zur visuellen Analyse an die KI. |
-| **Plan First** | Aktiviert: Die KI schreibt keinen Code, sondern antwortet nur mit einem detaillierten Markdown-Plan. Klicken Sie nach der Prüfung auf "Execute Plan". |
-| **Watch Mode** | Aktiviert: Die KI überwacht automatisch die Godot Output-Konsole. Bei kritischen (roten) Fehlern schlägt sie automatisch Fixes vor. Cooldown: 30s, Limit: 3 Fixes pro Zyklus. |
+| **Kontext einbeziehen** | Wenn aktiviert, fügt das Plugin automatisch den vollständigen Inhalt des aktuell im Editor geöffneten Skripts an die gesendete Nachricht an. |
+| **Screenshot senden** | Wenn aktiviert, wird automatisch ein Screenshot des Godot-Fensters aufgenommen und zur visuellen Analyse an die KI gesendet. |
+| **Zuerst planen** | Wenn aktiviert, schreibt die KI keinen Code. Sie antwortet nur mit einem detaillierten Plan. Nach der Überprüfung klicken Sie auf die Schaltfläche "Plan ausführen", damit sie programmiert. |
+| **Watch-Modus** | Wenn aktiviert, überwacht die KI automatisch die Godot-Ausgabekonsole. Wenn kritische Fehler erkannt werden, schlägt sie automatisch Korrekturen vor. |
 
 ---
 

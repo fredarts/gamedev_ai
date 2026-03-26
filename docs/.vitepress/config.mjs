@@ -56,7 +56,7 @@ export default defineConfig({
             collapsed: false,
             items: [
               { text: 'Guia Completo da Interface', link: '/advanced/ui-guide' },
-              { text: 'Todas as 27 Tools da IA', link: '/advanced/tools-reference' },
+              { text: 'Todas as 34 Tools da IA', link: '/advanced/tools-reference' },
               { text: 'Aba Git & GitHub', link: '/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/advanced/custom-prompts' }
             ]
@@ -137,7 +137,7 @@ export default defineConfig({
             collapsed: false,
             items: [
               { text: 'Full UI Guide', link: '/en/advanced/ui-guide' },
-              { text: 'All 27 AI Tools', link: '/en/advanced/tools-reference' },
+              { text: 'All 34 AI Tools', link: '/en/advanced/tools-reference' },
               { text: 'Git & GitHub Tab', link: '/en/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/en/advanced/custom-prompts' }
             ]
@@ -211,7 +211,7 @@ export default defineConfig({
             text: '🤖 Agentes e Inteligencia',
             collapsed: false,
             items: [
-              { text: 'Gate Socrático y Personas', link: '/en/core-features/agent-intelligence' }
+              { text: 'Gate Socrático y Personas', link: '/es/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -292,7 +292,7 @@ export default defineConfig({
             text: '🤖 Agents et Intelligence',
             collapsed: false,
             items: [
-              { text: 'Porte Socratique et Personas', link: '/en/core-features/agent-intelligence' }
+              { text: 'Portail Socratique et Personas', link: '/fr/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -373,7 +373,7 @@ export default defineConfig({
             text: '🤖 Agenten & Intelligenz',
             collapsed: false,
             items: [
-              { text: 'Sokratisches Tor & Personas', link: '/en/core-features/agent-intelligence' }
+              { text: 'Sokratisches Tor & Personas', link: '/de/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -454,7 +454,7 @@ export default defineConfig({
             text: '🤖 एजेंट और इंटेलिजेंस',
             collapsed: false,
             items: [
-              { text: 'सुकराती गेट और व्यक्तित्व', link: '/en/core-features/agent-intelligence' }
+              { text: 'सुकराती गेट और व्यक्तित्व', link: '/hi/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -535,7 +535,7 @@ export default defineConfig({
             text: '🤖 代理与智能',
             collapsed: false,
             items: [
-              { text: '苏格拉底门户与人格', link: '/en/core-features/agent-intelligence' }
+              { text: '苏格拉底门户与人格', link: '/zh_CN/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -616,7 +616,7 @@ export default defineConfig({
             text: '🤖 الوكلاء والذكاء',
             collapsed: false,
             items: [
-              { text: 'بوابة سقراط والشخصيات', link: '/en/core-features/agent-intelligence' }
+              { text: 'بوابة سقراط والشخصيات', link: '/ar/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -697,7 +697,7 @@ export default defineConfig({
             text: '🤖 Агенты и Интеллект',
             collapsed: false,
             items: [
-              { text: 'Сократов затвор и Персоны', link: '/en/core-features/agent-intelligence' }
+              { text: 'Сократов затвор и Персоны', link: '/ru/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -778,7 +778,7 @@ export default defineConfig({
             text: '🤖 এজেন্ট এবং ইন্টেলিজেন্স',
             collapsed: false,
             items: [
-              { text: 'সক্রেটিক গেট এবং পারসোনা', link: '/en/core-features/agent-intelligence' }
+              { text: 'সক্রেটিক গেট এবং পারসোনা', link: '/bn/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -859,7 +859,7 @@ export default defineConfig({
             text: '🤖 Agen & Inteligensi',
             collapsed: false,
             items: [
-              { text: 'Gerbang Sokrates & Persona', link: '/en/core-features/agent-intelligence' }
+              { text: 'Gerbang Sokrates & Persona', link: '/id/core-features/agent-intelligence' }
             ]
           }
         ],
