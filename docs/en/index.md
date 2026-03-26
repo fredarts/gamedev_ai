@@ -26,4 +26,10 @@ features:
     details: "The assistant is trained with 25 areas of expertise (Shaders, Multiplayer, UI/UX, Inventories) implementing the best market standards."
   - title: No-Hassle Git
     details: "Native tab to manage GitHub. Create alternative timelines (Branches), rescue projects, and let the AI read your scripts to auto-generate clear Commit messages."
+  - title: Specialist Personas
+    details: "Intelligent context routing (UI, Shaders, Multiplayer) that loads only the necessary knowledge for your current problem."
+  - title: "Socratic Gate (Stop & Ask)"
+    details: "The AI stops and asks strategic questions before generating complex systems, avoiding hallucinations and broken code from the start."
+  - title: Slash Workflows (/)
+    details: "Use commands like `/brainstorm`, `/plan`, and `/debug` to instantly change the assistant's posture and methodology."
 ---

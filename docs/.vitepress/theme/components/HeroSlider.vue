@@ -104,9 +104,8 @@ onUnmounted(() => {
 }
 
 @keyframes kenBurnsExit {
-  /* Começa de onde o slide estava (~escala entre 1.0 e 1.1 dependendo do tempo) */
-  /* Usamos scale(1.08) como ponto médio razoável pós ~75% do tempo de exibição */
-  0%   { opacity: 0.7; transform: scale(1.08); }
-  100% { opacity: 0;   transform: scale(1.13); }
+  /* Começa do fim exato da animação de enter para evitar snap */
+  0%   { opacity: 0.7; transform: scale(1.10); }
+  100% { opacity: 0;   transform: scale(1.125); }
 }
 </style>

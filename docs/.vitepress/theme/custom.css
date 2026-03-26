@@ -35,11 +35,10 @@
   display: flex !important;
   flex-direction: column;
   justify-content: center;
+  background-color: var(--vp-c-bg-soft) !important; /* Casar com a seção de Features */
 }
 
-
-
-/* Efeito vinheta suave nas bordas */
+/* Efeito vinheta suave nas bordas e blending agressivo com o fundo da seção seguinte */
 .VPHero::after {
   content: '';
   position: absolute;
@@ -51,7 +50,7 @@
       rgba(0, 0, 0, 0.2) 75%,
       rgba(0, 0, 0, 0.4) 100%
     ),
-    linear-gradient(to bottom, transparent 60%, rgba(22, 22, 24, 1) 100%);
+    linear-gradient(to bottom, transparent 55%, var(--vp-c-bg-soft) 93%, var(--vp-c-bg-soft) 100%);
   z-index: 1;
   pointer-events: none;
 }

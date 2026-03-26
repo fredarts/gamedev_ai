@@ -26,4 +26,10 @@ features:
     details: "O assistente foi treinado com 25 expertises (Shaders, Multiplayer, UI/UX, Inventários) implementando os melhores padrões de mercado."
   - title: Git Sem Complicação
     details: "Aba nativa para gerir GitHub. Crie linhas alternativas (Branches), resgate projetos e deixe a IA ler seus scripts para auto-gerar mensagens de Commit claras."
+  - title: Personas Especialistas
+    details: "Roteamento inteligente de contexto (UI, Shaders, Multiplayer) que carrega apenas o conhecimento necessário para o seu problema atual."
+  - title: "Portão Socrático (Stop & Ask)"
+    details: "A IA para e faz perguntas estratégicas antes de gerar sistemas complexos, evitando alucinações e código quebrado desde o início."
+  - title: Workflows via Slash (/)
+    details: "Use comandos como `/brainstorm`, `/plan` e `/debug` para mudar instantaneamente a postura e a metodologia do assistente."
 ---

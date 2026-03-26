@@ -20,7 +20,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Início', link: '/' },
-          { text: 'Guia de Uso', link: '/getting-started/installation' }
+          { text: 'Guia de Uso', link: '/getting-started/installation' },
+          { text: '❤️ Apoiar', link: '/support' }
         ],
         sidebar: [
           {
@@ -59,6 +60,13 @@ export default defineConfig({
               { text: 'Aba Git & GitHub', link: '/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 Agentes & Inteligência',
+            collapsed: false,
+            items: [
+              { text: 'Portão Socrático & Personas', link: '/core-features/agentes-inteligencia' }
+            ]
           }
         ],
         footer: {
@@ -93,7 +101,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },
-          { text: 'Guide', link: '/en/getting-started/installation' }
+          { text: 'Guide', link: '/en/getting-started/installation' },
+          { text: '❤️ Sponsor', link: '/en/support' }
         ],
         sidebar: [
           {
@@ -132,6 +141,13 @@ export default defineConfig({
               { text: 'Git & GitHub Tab', link: '/en/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/en/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 Agents & Intelligence',
+            collapsed: false,
+            items: [
+              { text: 'Socratic Gate & Personas', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -150,7 +166,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Inicio', link: '/es/' },
-          { text: 'Guía', link: '/es/getting-started/installation' }
+          { text: 'Guía', link: '/es/getting-started/installation' },
+          { text: '❤️ Apoyar', link: '/es/support' }
         ],
         sidebar: [
           {
@@ -189,6 +206,13 @@ export default defineConfig({
               { text: 'Pestaña Git y GitHub', link: '/es/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/es/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 Agentes e Inteligencia',
+            collapsed: false,
+            items: [
+              { text: 'Gate Socrático y Personas', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -223,7 +247,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Accueil', link: '/fr/' },
-          { text: 'Guide', link: '/fr/getting-started/installation' }
+          { text: 'Guide', link: '/fr/getting-started/installation' },
+          { text: '❤️ Soutenir', link: '/fr/support' }
         ],
         sidebar: [
           {
@@ -262,6 +287,13 @@ export default defineConfig({
               { text: 'Onglet Git et GitHub', link: '/fr/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/fr/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 Agents et Intelligence',
+            collapsed: false,
+            items: [
+              { text: 'Porte Socratique et Personas', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -296,7 +328,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Startseite', link: '/de/' },
-          { text: 'Guide', link: '/de/getting-started/installation' }
+          { text: 'Guide', link: '/de/getting-started/installation' },
+          { text: '❤️ Sponsern', link: '/de/support' }
         ],
         sidebar: [
           {
@@ -335,6 +368,13 @@ export default defineConfig({
               { text: 'Git und GitHub Tab', link: '/de/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/de/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 Agenten & Intelligenz',
+            collapsed: false,
+            items: [
+              { text: 'Sokratisches Tor & Personas', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -369,7 +409,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'मुख्य पृष्ठ', link: '/hi/' },
-          { text: 'गाइड', link: '/hi/getting-started/installation' }
+          { text: 'गाइड', link: '/hi/getting-started/installation' },
+          { text: '❤️ प्रायोजक (Sponsor)', link: '/hi/support' }
         ],
         sidebar: [
           {
@@ -408,6 +449,13 @@ export default defineConfig({
               { text: 'Git और GitHub टैब', link: '/hi/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/hi/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 एजेंट और इंटेलिजेंस',
+            collapsed: false,
+            items: [
+              { text: 'सुकराती गेट और व्यक्तित्व', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -442,7 +490,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '首页', link: '/zh_CN/' },
-          { text: '指南', link: '/zh_CN/getting-started/installation' }
+          { text: '指南', link: '/zh_CN/getting-started/installation' },
+          { text: '❤️ 赞助', link: '/zh_CN/support' }
         ],
         sidebar: [
           {
@@ -481,6 +530,13 @@ export default defineConfig({
               { text: 'Git 与 GitHub 标签', link: '/zh_CN/advanced/git-github' },
               { text: '自定义系统提示', link: '/zh_CN/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 代理与智能',
+            collapsed: false,
+            items: [
+              { text: '苏格拉底门户与人格', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -515,7 +571,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'الرئيسية', link: '/ar/' },
-          { text: 'الدليل', link: '/ar/getting-started/installation' }
+          { text: 'الدليل', link: '/ar/getting-started/installation' },
+          { text: '❤️ دعم (Sponsor)', link: '/ar/support' }
         ],
         sidebar: [
           {
@@ -554,6 +611,13 @@ export default defineConfig({
               { text: 'علامة تبويب Git و GitHub', link: '/ar/advanced/git-github' },
               { text: 'مطالبة النظام المخصصة', link: '/ar/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 الوكلاء والذكاء',
+            collapsed: false,
+            items: [
+              { text: 'بوابة سقراط والشخصيات', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -588,7 +652,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Главная', link: '/ru/' },
-          { text: 'Руководство', link: '/ru/getting-started/installation' }
+          { text: 'Руководство', link: '/ru/getting-started/installation' },
+          { text: '❤️ Поддержать', link: '/ru/support' }
         ],
         sidebar: [
           {
@@ -627,6 +692,13 @@ export default defineConfig({
               { text: 'Вкладка Git и GitHub', link: '/ru/advanced/git-github' },
               { text: 'Пользовательский системный промпт', link: '/ru/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 Агенты и Интеллект',
+            collapsed: false,
+            items: [
+              { text: 'Сократов затвор и Персоны', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -661,7 +733,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'হোম', link: '/bn/' },
-          { text: 'গাইড', link: '/bn/getting-started/installation' }
+          { text: 'গাইড', link: '/bn/getting-started/installation' },
+          { text: '❤️ স্পন্সর', link: '/bn/support' }
         ],
         sidebar: [
           {
@@ -700,6 +773,13 @@ export default defineConfig({
               { text: 'Git এবং GitHub ট্যাব', link: '/bn/advanced/git-github' },
               { text: 'কাস্টম সিস্টেম প্রম্পট', link: '/bn/advanced/custom-prompts' }
             ]
+          },
+          {
+            text: '🤖 এজেন্ট এবং ইন্টেলিজেন্স',
+            collapsed: false,
+            items: [
+              { text: 'সক্রেটিক গেট এবং পারসোনা', link: '/en/core-features/agent-intelligence' }
+            ]
           }
         ],
         footer: {
@@ -734,7 +814,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Beranda', link: '/id/' },
-          { text: 'Panduan', link: '/id/getting-started/installation' }
+          { text: 'Panduan', link: '/id/getting-started/installation' },
+          { text: '❤️ Sponsor', link: '/id/support' }
         ],
         sidebar: [
           {
@@ -772,6 +853,13 @@ export default defineConfig({
               { text: '27 Alat AI', link: '/id/advanced/tools-reference' },
               { text: 'Tab Git dan GitHub', link: '/id/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/id/advanced/custom-prompts' }
+            ]
+          },
+          {
+            text: '🤖 Agen & Inteligensi',
+            collapsed: false,
+            items: [
+              { text: 'Gerbang Sokrates & Persona', link: '/en/core-features/agent-intelligence' }
             ]
           }
         ],
