@@ -149,6 +149,12 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 		ur.add_do_reference(node)
 		ur.add_undo_method(executor, "_proxy_remove_child", parent, node)
 		
+		if _is_composite():
+			executor._proxy_add_child(parent, node)
+			executor._proxy_set_property(node, "owner", root)
+			if script:
+				executor._proxy_set_script(node, script)
+		
 		var msg = "Success: Node " + name + " (" + type + ") added to " + parent.name
 		if script:
 			msg += " with script " + script_path
@@ -194,6 +200,10 @@ func _instance_scene(parent_path: String, scene_path: String, name: String):
 		ur.add_do_method(executor, "_proxy_set_property", instance, "owner", root)
 		ur.add_do_reference(instance)
 		ur.add_undo_method(executor, "_proxy_remove_child", parent, instance)
+		
+		if _is_composite():
+			executor._proxy_add_child(parent, instance)
+			executor._proxy_set_property(instance, "owner", root)
 		
 		if not _is_composite():
 			ur.commit_action()

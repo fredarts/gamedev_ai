@@ -142,7 +142,10 @@ func undo():
 # Proxy methods to force actions into Global History (associated with this tool_executor)
 func _proxy_add_child(parent: Node, child: Node):
 	if is_instance_valid(parent) and is_instance_valid(child):
-		parent.add_child(child)
+		if child.get_parent() != parent:
+			if child.get_parent() != null:
+				child.get_parent().remove_child(child)
+			parent.add_child(child)
 
 func _proxy_remove_child(parent: Node, child: Node):
 	if is_instance_valid(parent) and is_instance_valid(child):

@@ -1899,15 +1899,19 @@ func _append_collapsible_block(label: String, content: String, color: String, ex
 	var id = _next_block_id
 	_next_block_id += 1
 	
+	# Escape brackets to prevent BBCode parsing errors from breaking the UI
+	var safe_content = content.replace("[", "[lb]")
+	
 	_block_data[id] = {
 		"label": label,
-		"content": content,
+		"content": safe_content,
 		"color": color,
 		"expanded": expanded,
-		"bubble_ref": _current_bubble
+		"bubble_ref": null
 	}
 	
 	_add_to_chat(_get_block_bbcode(id))
+	_block_data[id]["bubble_ref"] = _current_bubble
 
 func _get_block_bbcode(id: int) -> String:
 	var data = _block_data[id]
@@ -1933,7 +1937,10 @@ func _toggle_block(id: int):
 	
 	# Update the specific bubble if registered
 	if data.has("bubble_ref") and is_instance_valid(data.bubble_ref):
-		data.bubble_ref.text = data.bubble_ref.text.replace(old_bb, new_bb)
+		var current_bb = data.bubble_ref.get_meta("raw_bbcode", "")
+		var fixed_bb = current_bb.replace(old_bb, new_bb)
+		data.bubble_ref.set_meta("raw_bbcode", fixed_bb)
+		data.bubble_ref.text = fixed_bb
 	
 	await get_tree().process_frame
 	var vbar = chat_scroll.get_v_scroll_bar()
@@ -1946,6 +1953,9 @@ func _add_to_chat(bbcode: String, role: String = "system"):
 		_create_chat_bubble(role)
 		
 	_current_bubble.append_text(bbcode)
+	
+	var current_bb = _current_bubble.get_meta("raw_bbcode", "")
+	_current_bubble.set_meta("raw_bbcode", current_bb + bbcode)
 	
 	# Auto-scroll
 	await get_tree().process_frame
@@ -2068,6 +2078,9 @@ func _clear_chat():
 	_chat_log_bbcode = ""
 	_current_bubble = null
 	for child in chat_vbox.get_children():
+		if child == _diff_preview_panel:
+			child.visible = false
+			continue
 		child.queue_free()
 
 # ═══════════════════════════════════════════════════════════════
