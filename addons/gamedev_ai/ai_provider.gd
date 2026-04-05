@@ -87,20 +87,32 @@ func load_session(session_id: String) -> bool:
 		return true
 	return false
 
-func list_sessions() -> Array:
+func list_sessions(offset: int = 0, limit: int = 15) -> Array:
 	_ensure_history_dir()
-	var sessions = []
+	var files_info = []
 	var dir = DirAccess.open(HISTORY_DIR)
 	if dir:
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
 			if not dir.current_is_dir() and file_name.ends_with(".json"):
-				var session_data = _read_session_metadata(HISTORY_DIR + file_name)
-				if not session_data.is_empty():
-					sessions.append(session_data)
+				var path = HISTORY_DIR + file_name
+				var mtime = FileAccess.get_modified_time(path)
+				files_info.append({"name": file_name, "mtime": mtime})
 			file_name = dir.get_next()
-	sessions.sort_custom(func(a, b): return _datetime_to_unix(a.last_modified) > _datetime_to_unix(b.last_modified))
+			
+	files_info.sort_custom(func(a, b): return a.mtime > b.mtime)
+	
+	var sessions = []
+	var end_idx = files_info.size()
+	if limit > 0:
+		end_idx = min(offset + limit, files_info.size())
+		
+	for i in range(offset, end_idx):
+		var session_data = _read_session_metadata(HISTORY_DIR + files_info[i].name)
+		if not session_data.is_empty():
+			sessions.append(session_data)
+			
 	return sessions
 
 func _read_session_metadata(path: String) -> Dictionary:

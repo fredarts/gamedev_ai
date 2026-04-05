@@ -105,17 +105,80 @@ func _parse_value(value: Variant, expected_type: int = -1) -> Variant:
 			return Color(value[0], value[1], value[2], value[3])
 	return value
 
+func _find_scene_file_by_name(dir_path: String, target_name: String) -> String:
+	var target_lower = target_name.to_lower() + ".tscn"
+	var dir = DirAccess.open(dir_path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		var dirs_to_search = []
+		while file_name != "":
+			if dir.current_is_dir():
+				if not file_name.begins_with("."):
+					dirs_to_search.append(dir_path.path_join(file_name))
+			else:
+				if file_name.ends_with(".tscn") and file_name.to_lower() == target_lower:
+					return dir_path.path_join(file_name)
+			file_name = dir.get_next()
+		
+		for sub_dir in dirs_to_search:
+			var result = _find_scene_file_by_name(sub_dir, target_name)
+			if result != "":
+				return result
+	return ""
+
+func _ensure_node(path: String) -> Node:
+	var root = EditorInterface.get_edited_scene_root()
+		
+	if root:
+		if path == "." or path == "":
+			return root
+		
+		# Tentativa 1: Caminho exato.
+		var node = root.get_node_or_null(path)
+		if node:
+			return node
+			
+		# Tentativa 2: Busca recursiva pelo nome do nó em toda a árvore (Fallback inteligente)
+		var node_name = path.get_file()
+		if node_name != "":
+			node = root.find_child(node_name, true, false)
+			if node:
+				return node
+			
+	# Tentativa 3: Procura a cena no diretório res:// e a abre automaticamente!
+	var target_name = path.get_file()
+	if target_name != "":
+		var scene_path = _find_scene_file_by_name("res://", target_name)
+		if scene_path != "":
+			_emit_output("Auto-opening scene: " + scene_path + " mapped to " + target_name)
+			EditorInterface.open_scene_from_path(scene_path)
+			
+			# Atualiza o root após o Godot abrir a cena
+			root = EditorInterface.get_edited_scene_root()
+			if root:
+				if root.name.to_lower() == target_name.to_lower() or path == ".":
+					return root
+				
+				# Tenta achar o nó dentro da nova cena recém-aberta
+				var node = root.get_node_or_null(path)
+				if node: return node
+				
+				node = root.find_child(target_name, true, false)
+				if node: return node
+			
+	return null
+
 # --- Action Implementations ---
 
 func _add_node(parent_path: String, type: String, name: String, script_path: String = ""):
-	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
-		return
-		
-	var parent = root.get_node(parent_path) if parent_path != "." else root
+	var parent = _ensure_node(parent_path)
 	if not parent:
 		_emit_output("Error: Parent node not found: " + parent_path)
+		return
+		
+	var root = EditorInterface.get_edited_scene_root()
+	if not root:
 		return
 
 	var ur = _get_undo_redo()
@@ -169,14 +232,13 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 		_emit_output("Error: UndoRedoManager not available.")
 
 func _instance_scene(parent_path: String, scene_path: String, name: String):
-	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
-		return
-		
-	var parent = root.get_node(parent_path) if parent_path != "." else root
+	var parent = _ensure_node(parent_path)
 	if not parent:
 		_emit_output("Error: Parent node not found: " + parent_path)
+		return
+		
+	var root = EditorInterface.get_edited_scene_root()
+	if not root:
 		return
 		
 	if not FileAccess.file_exists(scene_path):
@@ -220,15 +282,12 @@ func _instance_scene(parent_path: String, scene_path: String, name: String):
 		_emit_output("Success: Scene " + scene_path + " instanced as " + name + " under " + parent.name + " (No Undo)")
 
 func _set_property(node_path: String, property: String, value: Variant):
-	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
+	var node = _ensure_node(node_path)
+	if not node:
+		_emit_output("Error: Node not found: '" + node_path + "'")
 		return
 		
-	var node = root.get_node(node_path) if node_path != "." else root
-	if not node:
-		_emit_output("Error: Node not found: '" + node_path + "'. Current scene tree: " + _get_scene_tree_brief(root))
-		return
+	var root = EditorInterface.get_edited_scene_root()
 		
 	var expected_type := _get_property_type(node, property)
 	var final_value = _parse_value(value, expected_type)
@@ -253,15 +312,12 @@ func _set_property(node_path: String, property: String, value: Variant):
 		_emit_output("Success: Set " + property + " to " + str(final_value) + " on " + node_path + " (No Undo)")
 
 func _set_theme_override(node_path: String, override_type: String, name: String, value: Variant):
-	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
-		return
-		
-	var node = root.get_node(node_path) if node_path != "." else root
+	var node = _ensure_node(node_path)
 	if not node or not node is Control:
 		_emit_output("Error: Node not found or not a Control node: " + node_path)
 		return
+		
+	var root = EditorInterface.get_edited_scene_root()
 
 	var final_value = _parse_value(value)
 	var ur = _get_undo_redo()
@@ -294,13 +350,9 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 		_emit_output("Success: Set theme override " + name + " on " + node_path)
 
 func _connect_signal(source_path: String, signal_name: String, target_path: String, method_name: String, binds: Array = [], flags: int = 0):
+	var source = _ensure_node(source_path)
+	var target = _ensure_node(target_path)
 	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
-		return
-		
-	var source = root.get_node(source_path)
-	var target = root.get_node(target_path)
 	
 	if not source:
 		_emit_output("Error: Source node not found: " + source_path)
@@ -338,13 +390,9 @@ func _connect_signal(source_path: String, signal_name: String, target_path: Stri
 		_emit_output("Success: Connected " + signal_name + " (No Undo)")
 
 func _disconnect_signal(source_path: String, signal_name: String, target_path: String, method_name: String):
+	var source = _ensure_node(source_path)
+	var target = _ensure_node(target_path)
 	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
-		return
-		
-	var source = root.get_node(source_path)
-	var target = root.get_node(target_path)
 	
 	if not source or not target:
 		_emit_output("Error: Node not found.")
@@ -375,15 +423,12 @@ func _disconnect_signal(source_path: String, signal_name: String, target_path: S
 		_emit_output("Success: Disconnected " + signal_name + " (No Undo)")
 
 func _remove_node(node_path: String):
-	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
+	var node = _ensure_node(node_path)
+	if not node:
+		_emit_output("Error: Node not found at path: '" + node_path + "'")
 		return
 		
-	var node = root.get_node(node_path)
-	if not node:
-		_emit_output("Error: Node not found at path: '" + node_path + "'. Current scene tree: " + _get_scene_tree_brief(root))
-		return
+	var root = EditorInterface.get_edited_scene_root()
 		
 	if node == root:
 		_emit_output("Error: Cannot remove the scene root node via this tool.")
@@ -412,12 +457,7 @@ func _remove_node(node_path: String):
 
 
 func _analyze_node_children(node_path: String, max_depth: int = 5):
-	var root = EditorInterface.get_edited_scene_root()
-	if not root:
-		_emit_output("Error: No scene open.")
-		return
-		
-	var node = root.get_node(node_path) if node_path != "." else root
+	var node = _ensure_node(node_path)
 	if not node:
 		_emit_output("Error: Node not found: '" + node_path + "'")
 		return

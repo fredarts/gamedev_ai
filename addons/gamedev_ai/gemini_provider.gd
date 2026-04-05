@@ -271,14 +271,40 @@ func _on_request_completed(_result, response_code, _headers, body):
 			save_session()
 			response_received.emit(text)
 		else:
-			is_requesting = false
-			error_occurred.emit("Empty response from model.")
+			if _retry_count < MAX_RETRIES:
+				_retry_count += 1
+				var wait_secs = 2.0
+				error_occurred.emit("⚠️ Empty response from model. Emitting continue prompt... (" + str(_retry_count) + "/" + str(MAX_RETRIES) + ")")
+				
+				# Record the empty model turn
+				_append_to_history({
+					"role": "model",
+					"parts": [{"text": " "}]
+				})
+				
+				# Add continue prompt
+				var continue_msg = "Your last response was empty. Please reiterate your plan and try to continue what you were doing."
+				transcript.append({"role": "user", "text": continue_msg})
+				_append_to_history({
+					"role": "user",
+					"parts": [{"text": continue_msg}]
+				})
+				
+				await http_request.get_tree().create_timer(wait_secs).timeout
+				
+				if not _cancelled:
+					_send_request(_last_tools)
+				return
+			else:
+				_retry_count = 0
+				is_requesting = false
+				error_occurred.emit("Empty response from model.")
 	else:
 		is_requesting = false
 		error_occurred.emit("Invalid response format.")
 
-func _format_api_error(code: int, json: Dictionary) -> String:
-	if json == null:
+func _format_api_error(code: int, json: Variant) -> String:
+	if json == null or not (json is Dictionary):
 		return "API Error: " + str(code) + " (Unknown response)"
 
 	var error_node = json.get("error", {})

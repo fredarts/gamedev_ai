@@ -108,6 +108,9 @@ var _attached_files: Array[Dictionary] = []
 var _dropped_files: Array[String] = []
 var _history_ids: Array = []
 
+var _pending_history_entries: Array = []
+var _load_more_btn: Button = null
+
 var _next_block_id: int = 0
 var _block_data: Dictionary = {}
 var _chat_log_bbcode: String = ""
@@ -653,31 +656,172 @@ func _on_new_chat_pressed():
 func _on_summarize_pressed():
 	_process_send("Por favor, analise as decisões arquiteturais que tomamos nesta conversa e use a ferramenta save_memory para armazenar os pontos-chave.")
 
+var _history_offset: int = 0
+const HISTORY_LIMIT: int = 15
+var _is_history_loading: bool = false
+
 func _on_history_popup_about_to_show():
+	_history_offset = 0
 	_refresh_history_list()
+	
+	var popup = history_button.get_popup()
+	for child in popup.get_children(true):
+		if child is VScrollBar:
+			if not child.value_changed.is_connected(_on_history_scroll_changed):
+				child.value_changed.connect(_on_history_scroll_changed.bind(child))
+
+func _on_history_scroll_changed(value: float, scroll: VScrollBar):
+	if _is_history_loading: return
+	if scroll.max_value > 0 and value + scroll.page >= scroll.max_value - 5.0:
+		_load_more_history()
 
 func _refresh_history_list():
 	var popup = history_button.get_popup()
 	popup.clear()
-	_history_ids = gemini_client.list_sessions()
+	_history_ids = gemini_client.list_sessions(0, HISTORY_LIMIT)
 	for i in range(_history_ids.size()):
 		var session = _history_ids[i]
 		popup.add_item(session.title, i)
+		
+	if _history_ids.size() == HISTORY_LIMIT:
+		popup.add_separator()
+		popup.add_item("🔄 Carregar mais...", 9999)
+
+func _load_more_history():
+	if _is_history_loading: return
+	_is_history_loading = true
+	_history_offset += HISTORY_LIMIT
+	var new_sessions = gemini_client.list_sessions(_history_offset, HISTORY_LIMIT)
+	
+	if new_sessions.is_empty():
+		_is_history_loading = false
+		return
+	
+	var popup = history_button.get_popup()
+	var item_cnt = popup.item_count
+	if item_cnt >= 2 and popup.get_item_id(item_cnt - 1) == 9999:
+		popup.remove_item(item_cnt - 1)
+		popup.remove_item(item_cnt - 2)
+		
+	var start_idx = _history_ids.size()
+	for i in range(new_sessions.size()):
+		var session = new_sessions[i]
+		_history_ids.append(session)
+		popup.add_item(session.title, start_idx + i)
+		
+	if new_sessions.size() == HISTORY_LIMIT:
+		popup.add_separator()
+		popup.add_item("🔄 Carregar mais...", 9999)
+		
+	call_deferred("_finish_history_loading")
+
+func _finish_history_loading():
+	_is_history_loading = false
 
 func _on_history_item_pressed(id: int):
-	var session = _history_ids[id]
-	if gemini_client.load_session(session.id):
-		_rebuild_chat_from_transcript()
-		_add_to_chat("\n[color=gray]" + locale_manager.tr("chat_loaded") + session.title + " ---[/color]\n")
+	if id == 9999:
+		_load_more_history()
+		call_deferred("_reopen_history_popup")
+		return
+		
+	if id >= 0 and id < _history_ids.size():
+		var session = _history_ids[id]
+		if gemini_client.load_session(session.id):
+			_rebuild_chat_from_transcript()
+			_add_to_chat("\n[color=gray]" + locale_manager.tr("chat_loaded") + session.title + " ---[/color]\n")
+
+func _reopen_history_popup():
+	var popup = history_button.get_popup()
+	popup.popup()
 
 func _rebuild_chat_from_transcript():
 	_clear_chat()
-	for entry in gemini_client.transcript:
+	_pending_history_entries.clear()
+	if _load_more_btn and is_instance_valid(_load_more_btn):
+		_load_more_btn.queue_free()
+		_load_more_btn = null
+		
+	if gemini_client == null or not "transcript" in gemini_client:
+		return
+		
+	var all_entries = gemini_client.transcript
+	var to_render = all_entries
+	
+	if all_entries.size() > 5:
+		_pending_history_entries = all_entries.slice(0, all_entries.size() - 5)
+		to_render = all_entries.slice(all_entries.size() - 5)
+		_add_load_more_button()
+		
+	for entry in to_render:
 		if entry.role == "user":
 			_log_user_message(entry.text)
 		else:
-			_add_to_chat("\n[b]Response:[/b]\n")
-			_add_to_chat(_markdown_to_bbcode(entry.text) + "\n")
+			_add_to_chat("\n[b]Response:[/b]\n", "ai")
+			_add_to_chat(_markdown_to_bbcode(entry.text) + "\n", "ai")
+
+func _add_load_more_button():
+	_load_more_btn = Button.new()
+	var text_msg = locale_manager.tr("load_older_messages") if locale_manager and locale_manager.has_method("tr") else "Carregar Mais"
+	_load_more_btn.text = str(_pending_history_entries.size()) + " " + text_msg
+	_load_more_btn.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+	_load_more_btn.pressed.connect(_load_older_messages)
+	
+	chat_vbox.add_child(_load_more_btn)
+	chat_vbox.move_child(_load_more_btn, 0)
+
+func _load_older_messages():
+	if _pending_history_entries.is_empty() or _load_more_btn == null or _load_more_btn.disabled:
+		return
+		
+	_load_more_btn.disabled = true
+	_load_more_btn.text = locale_manager.tr("loading") if locale_manager and locale_manager.has_method("tr") else "Carregando..."
+	
+	var batch_size = 5
+	var start_idx = max(0, _pending_history_entries.size() - batch_size)
+	var batch = _pending_history_entries.slice(start_idx)
+	_pending_history_entries.resize(start_idx)
+	
+	await get_tree().process_frame
+	var old_scroll = chat_scroll.scroll_vertical
+	var old_height = chat_vbox.size.y
+	
+	var insert_index = 1 # Insert below the Load More button
+	
+	var previous_bubble = _current_bubble
+	var previous_role = _current_role
+	_current_bubble = null
+	
+	var first_bubble = true
+	for entry in batch:
+		if entry.role == "user":
+			_log_user_message(entry.text, -1, insert_index)
+			insert_index += 1
+		else:
+			_add_to_chat("\n[b]Response:[/b]\n", "ai", insert_index)
+			_add_to_chat(_markdown_to_bbcode(entry.text) + "\n", "ai", insert_index)
+			# index only goes up when role shifts (as we re-use bubble per role block)
+			insert_index += 1
+			
+		# Yield occasionally to keep Editor fully unblocked during historical instantiation
+		if first_bubble:
+			await get_tree().process_frame
+			first_bubble = false
+			
+	_current_bubble = previous_bubble
+	_current_role = previous_role
+	
+	if _pending_history_entries.is_empty():
+		_load_more_btn.queue_free()
+		_load_more_btn = null
+	else:
+		_load_more_btn.disabled = false
+		var text_msg = locale_manager.tr("load_older_messages") if locale_manager and locale_manager.has_method("tr") else "Carregar Mais"
+		_load_more_btn.text = str(_pending_history_entries.size()) + " " + text_msg
+	
+	# Compute visual math so chat scroll retains exact original position prior to injection!
+	await get_tree().process_frame
+	await get_tree().process_frame
+	chat_scroll.scroll_vertical = old_scroll + (chat_vbox.size.y - old_height)
 
 func _on_status_changed(is_requesting: bool):
 	_update_ui_state(is_requesting)
@@ -1644,11 +1788,11 @@ func _on_auto_generate_commit_pressed():
 	
 	gemini_client.send_prompt(prompt, "", [], [])
 
-func _log_user_message(msg: String, token_count: int = -1):
+func _log_user_message(msg: String, token_count: int = -1, insert_index: int = -1):
 	var header = ""
 	if token_count != -1:
 		header += "\n[right][i][color=gray](Est. Tokens: ~" + str(token_count) + ")[/color][/i][/right]\n"
-	_add_to_chat(header + msg + "\n", "user")
+	_add_to_chat(header + msg + "\n", "user", insert_index)
 
 func _on_log_entry(entry: Dictionary):
 	var color = "red" if entry.type == "error" else "gray"
@@ -1946,24 +2090,25 @@ func _toggle_block(id: int):
 	var vbar = chat_scroll.get_v_scroll_bar()
 	if vbar: vbar.value = vbar.max_value
 
-func _add_to_chat(bbcode: String, role: String = "system"):
+func _add_to_chat(bbcode: String, role: String = "system", insert_index: int = -1):
 	_chat_log_bbcode += bbcode
 	
 	if _current_bubble == null or _current_role != role:
-		_create_chat_bubble(role)
+		_create_chat_bubble(role, insert_index)
 		
 	_current_bubble.append_text(bbcode)
 	
 	var current_bb = _current_bubble.get_meta("raw_bbcode", "")
 	_current_bubble.set_meta("raw_bbcode", current_bb + bbcode)
 	
-	# Auto-scroll
-	await get_tree().process_frame
-	var v_scroll = chat_scroll.get_v_scroll_bar()
-	if v_scroll:
-		v_scroll.value = v_scroll.max_value
+	# Auto-scroll only for new messages appending at bottom
+	if insert_index == -1:
+		await get_tree().process_frame
+		var v_scroll = chat_scroll.get_v_scroll_bar()
+		if v_scroll:
+			v_scroll.value = v_scroll.max_value
 
-func _create_chat_bubble(role: String):
+func _create_chat_bubble(role: String, insert_index: int = -1):
 	_current_role = role
 	
 	# Outer styled panel (the "bubble")
@@ -2071,6 +2216,9 @@ func _create_chat_bubble(role: String):
 	# Appearance animation
 	panel.modulate.a = 0.0
 	chat_vbox.add_child(panel)
+	if insert_index != -1:
+		chat_vbox.move_child(panel, insert_index)
+		
 	var tween = chat_vbox.create_tween()
 	tween.tween_property(panel, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE)
 

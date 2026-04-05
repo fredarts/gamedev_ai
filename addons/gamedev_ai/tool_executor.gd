@@ -76,6 +76,9 @@ func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
 		if tool_name in ["create_script", "edit_script", "read_file", "patch_script", "remove_file", "list_dir", "create_resource"]:
 			if not path.begins_with("res://"):
 				return {"valid": false, "error": "Parameter 'path' must start with 'res://'. Got: '" + path + "'"}
+				
+		if tool_name in ["create_script", "edit_script", "patch_script"] and not path.ends_with(".gd"):
+			return {"valid": false, "error": "Tool '" + tool_name + "' can only be used on .gd (GDScript) files. Got: '" + path + "'. To modify scenes, use add_node/set_property. To modify resources, use create_resource."}
 		
 		if tool_name == "create_scene" and (not path.begins_with("res://") or not path.ends_with(".tscn")):
 			return {"valid": false, "error": "Parameter 'path' must start with 'res://' and end with '.tscn'. Got: '" + path + "'"}
@@ -216,61 +219,29 @@ func _create_file_undoable(path: String, content: String):
 	_scan_fs()
 
 func _apply_project_settings_from_content(content: String):
-	# Parse .godot/.cfg INI-like format and apply via ProjectSettings API
-	var current_section := ""
-	var lines = content.split("\n")
-	
-	for line in lines:
-		line = line.strip_edges()
-		if line.is_empty() or line.begins_with(";"):
-			continue
+	var config = ConfigFile.new()
+	var err = config.parse(content)
+	if err != OK:
+		tool_output.emit("Error: Could not parse project.godot content (Code " + str(err) + ").")
+		return
 		
-		# Section headers like [application], [display], [rendering], etc.
-		if line.begins_with("[") and line.ends_with("]"):
-			current_section = line.substr(1, line.length() - 2)
-			continue
-		
+	for section in config.get_sections():
 		# Skip non-setting sections (metadata headers)
-		if current_section in ["godot", "gd_resource"]:
+		if section in ["godot", "gd_resource"]:
 			continue
-		
-		# Parse key=value pairs
-		var eq_pos = line.find("=")
-		if eq_pos == -1:
-			continue
-		
-		var key = line.substr(0, eq_pos).strip_edges()
-		var value_str = line.substr(eq_pos + 1).strip_edges()
-		
-		# Build the full setting path: section/key
-		var setting_path = key
-		if current_section != "":
-			setting_path = current_section + "/" + key
-		
-		# Parse the value using Godot's expression evaluator
-		var value = _parse_setting_value(value_str)
-		if value != null:
+			
+		for key in config.get_section_keys(section):
+			var setting_path = key
+			if section != "":
+				setting_path = section + "/" + key
+				
+			var value = config.get_value(section, key)
 			ProjectSettings.set_setting(setting_path, value)
 	
 	# Let Godot save it natively — no "reload from disk" popup
-	var err = ProjectSettings.save()
+	err = ProjectSettings.save()
 	if err != OK:
 		tool_output.emit("Warning: ProjectSettings.save() returned error: " + str(err))
-
-func _parse_setting_value(value_str: String):
-	# Try to evaluate the value string as a GDScript expression
-	var expr = Expression.new()
-	var error = expr.parse(value_str)
-	if error == OK:
-		var result = expr.execute()
-		if not expr.has_execute_failed():
-			return result
-	
-	# Fallback: return as raw string (strip surrounding quotes if present)
-	if value_str.begins_with("\"") and value_str.ends_with("\""):
-		return value_str.substr(1, value_str.length() - 2)
-	
-	return value_str
 
 func _auto_dismiss_reload_dialog():
 	# Search the editor's UI tree for any "reload" confirmation dialog and accept it

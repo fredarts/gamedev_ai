@@ -91,7 +91,16 @@ func _send_request(tools: Array = []):
 	# Dynamically update the system instruction before sending
 	if not history.is_empty() and history[0].get("role") == "system":
 		history[0]["content"] = _get_system_instruction()
-	
+		
+		# Fallback: Inject tools directly into the system prompt for local models without native API wrapping
+		if ("localhost" in base_url or "127.0.0.1" in base_url or "11434" in base_url) and not tools.is_empty():
+			var tools_text = "## SYSTEM CRITICAL OVERRIDE: YOU ARE AN AUTONOMOUS AGENT\n"
+			tools_text += "You are executing in an environment that requires you to use JSON tool calls to interact with files. NEVER ask the user to run commands like 'find' or 'ls'. YOU must do it. To use a tool, you MUST output a raw JSON block:\n```json\n{\"name\": \"function_name\", \"parameters\": {\"arg\": \"val\"}}\n```\n"
+			tools_text += "AVAILABLE TOOLS:\n"
+			for t in tools:
+				tools_text += "- **" + t.get("name", "") + "**: Schema: " + JSON.stringify(t.get("parameters", {})) + "\n"
+			history[0]["content"] = tools_text + "\n==== END OF TOOLS ====\n\n" + history[0]["content"]
+			
 	var body = {
 		"model": model_name,
 		"messages": history
@@ -103,9 +112,9 @@ func _send_request(tools: Array = []):
 			openai_tools.append({
 				"type": "function",
 				"function": {
-					"name": t["name"],
-					"description": t["description"],
-					"parameters": t["parameters"]
+					"name": t.get("name", ""),
+					"description": t.get("description", ""),
+					"parameters": t.get("parameters", { "type": "object", "properties": {} })
 				}
 			})
 		body["tools"] = openai_tools
@@ -153,6 +162,12 @@ func _on_request_completed(_result, response_code, _headers, body):
 		var choice = json["choices"][0]
 		var message = choice.get("message", {})
 		
+		# Sanitize Ollama specific non-standard injected fields before saving to history
+		if message.has("tool_calls"):
+			for tc in message["tool_calls"]:
+				if tc.has("index"):
+					tc.erase("index")
+					
 		history.append(message)
 		
 		if message.has("tool_calls"):
@@ -168,14 +183,69 @@ func _on_request_completed(_result, response_code, _headers, body):
 			return
 		
 		var text = message.get("content", "")
+		if typeof(text) != TYPE_STRING:
+			text = ""
+			
+		# --- Fallback to parse manual tool calls hidden in content (Ollama, Gemma 4) ---
+		if text != "" and not message.has("tool_calls"):
+			var potential_json = ""
+			if "<tool_call>" in text:
+				var t_start = text.find("<tool_call>") + 11
+				var t_end = text.find("</tool_call>", t_start)
+				if t_end != -1: potential_json = text.substr(t_start, t_end - t_start).strip_edges()
+			elif "<|tool_call|>" in text:
+				var t_start = text.find("<|tool_call|>") + 14
+				potential_json = text.substr(t_start).strip_edges()
+			elif "```json" in text and '"name"' in text and '"parameters"' in text:
+				var t_start = text.find("```json") + 7
+				var t_end = text.find("```", t_start)
+				if t_end != -1: potential_json = text.substr(t_start, t_end - t_start).strip_edges()
+			elif text.strip_edges().begins_with('{"name"'):
+				potential_json = text.strip_edges()
+
+			if potential_json != "":
+				var parsed = JSON.parse_string(potential_json)
+				if parsed and parsed is Dictionary and parsed.has("name") and parsed.has("parameters"):
+					var params = parsed.get("parameters", {})
+					if typeof(params) == TYPE_STRING:
+						params = JSON.parse_string(params)
+					var tool_calls = [{
+						"name": parsed["name"],
+						"args": params if typeof(params) == TYPE_DICTIONARY else {},
+						"id": "manual_call_" + str(Time.get_ticks_msec())
+					}]
+					tool_call_received.emit(tool_calls)
+					return
+		# -------------------------------------------------------------------------------
+			
 		if text != "":
 			is_requesting = false
 			transcript.append({"role": "assistant", "text": text})
 			save_session()
 			response_received.emit(text)
 		else:
-			is_requesting = false
-			error_occurred.emit("Empty response from model.")
+			if _retry_count < MAX_RETRIES:
+				_retry_count += 1
+				var wait_secs = 2.0
+				error_occurred.emit("⚠️ Empty response from model. Emitting continue prompt... (" + str(_retry_count) + "/" + str(MAX_RETRIES) + ")")
+				
+				# Record the empty model turn
+				history.append({"role": "assistant", "content": " "})
+				
+				# Add continue prompt
+				var continue_msg = "Your last response was empty. Please reiterate your plan and try to continue what you were doing."
+				transcript.append({"role": "user", "text": continue_msg})
+				history.append({"role": "user", "content": continue_msg})
+				
+				await http_request.get_tree().create_timer(wait_secs).timeout
+				
+				if not _cancelled:
+					_send_request(_last_tools)
+				return
+			else:
+				_retry_count = 0
+				is_requesting = false
+				error_occurred.emit("Empty response from model.")
 	else:
 		is_requesting = false
 		error_occurred.emit("Invalid response format.")
