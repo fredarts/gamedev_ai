@@ -320,6 +320,20 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 	var root = EditorInterface.get_edited_scene_root()
 
 	var final_value = _parse_value(value)
+	
+	if typeof(final_value) == TYPE_STRING and (override_type == "font" or override_type == "stylebox"):
+		if final_value.begins_with("res://"):
+			if FileAccess.file_exists(final_value):
+				final_value = load(final_value)
+			else:
+				_emit_output("Error: Resource file not found: " + final_value)
+				return
+		elif ClassDB.class_exists(final_value):
+			final_value = ClassDB.instantiate(final_value)
+		else:
+			_emit_output("Error: Value for " + override_type + " must be a valid 'res://' path or a Godot class name (like 'StyleBoxFlat').")
+			return
+
 	var ur = _get_undo_redo()
 	
 	if ur:

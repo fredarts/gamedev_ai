@@ -434,7 +434,7 @@ func _on_preset_selected(index: int):
 	
 	preset_name_input.text = active_preset_name
 	provider_selector.selected = config["provider"]
-	settings_bar.visible = (config["provider"] == 1)
+	settings_bar.visible = true
 	api_input.text = config["api_key"]
 	url_input.text = config["base_url"]
 	model_input.text = config["model_name"]
@@ -504,7 +504,7 @@ func _on_delete_preset_pressed():
 
 func _on_provider_type_changed(index: int):
 	presets[active_preset_name]["provider"] = index
-	settings_bar.visible = (index == 1)
+	settings_bar.visible = true
 	_save_presets()
 	preset_changed.emit(presets[active_preset_name])
 
@@ -659,8 +659,13 @@ func _on_summarize_pressed():
 var _history_offset: int = 0
 const HISTORY_LIMIT: int = 15
 var _is_history_loading: bool = false
+var _keep_history_popup_state: bool = false
 
 func _on_history_popup_about_to_show():
+	if _keep_history_popup_state:
+		_keep_history_popup_state = false
+		return
+		
 	_history_offset = 0
 	_refresh_history_list()
 	
@@ -720,6 +725,7 @@ func _finish_history_loading():
 
 func _on_history_item_pressed(id: int):
 	if id == 9999:
+		_keep_history_popup_state = true
 		_load_more_history()
 		call_deferred("_reopen_history_popup")
 		return
@@ -1126,8 +1132,6 @@ func _on_image_captured(path: String):
 			_refresh_thumbnails()
 			var tr_text = locale_manager.tr("image_attached") if locale_manager else "Attached image: "
 			_add_to_chat("\n[color=green][i]" + tr_text + filename + "[/i][/color]\n")
-			
-			_process_send("I have captured the screenshot of the editor. Please analyze it as per my previous request.", true)
 
 func _refresh_thumbnails():
 	for child in _thumbnail_list.get_children():
@@ -1479,7 +1483,21 @@ func _on_tool_output(output: String):
 			var tools = []
 			if _tool_executor:
 				tools = _tool_executor.get_tool_definitions()
-			gemini_client.send_tool_responses(batch_results, tools)
+				
+			var files_data = []
+			if not _attached_files.is_empty():
+				for file in _attached_files:
+					if file["type"] == "image":
+						files_data.append(_encode_image(file["image_obj"]))
+					elif file["type"] == "binary":
+						files_data.append({
+							"mime_type": file["mime_type"],
+							"data": Marshalls.raw_to_base64(file["raw_bytes"])
+						})
+				_attached_files.clear()
+				_refresh_thumbnails()
+				
+			gemini_client.send_tool_responses(batch_results, tools, files_data)
 			batch_results.clear()
 			
 		if _tool_executor.has_method("commit_composite_action"):

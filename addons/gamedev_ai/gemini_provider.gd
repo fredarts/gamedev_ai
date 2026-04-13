@@ -4,6 +4,7 @@ extends "res://addons/gamedev_ai/ai_provider.gd"
 var model_name: String = "gemini-3.1-pro-preview"
 var _cancelled: bool = false
 var _last_tools: Array = []
+var base_url: String = ""
 
 var tts_http_request: HTTPRequest
 var _tts_thread: Thread
@@ -22,12 +23,19 @@ func setup(node: Node):
 		api_key = env
 
 func request_tts(text: String):
-	if api_key == "":
+	if api_key == "" and base_url == "":
 		error_occurred.emit("API Key is missing for TTS.")
 		return
 		
 	var tts_model = "gemini-2.5-flash-preview-tts"
 	var url = "https://generativelanguage.googleapis.com/v1beta/models/" + tts_model + ":generateContent?key=" + api_key
+	if base_url != "":
+		url = base_url
+		if not url.ends_with("/"):
+			url += "/"
+		url += "v1beta/models/" + tts_model + ":generateContent"
+		if not url.begins_with("http://127.0.0.1") and not url.begins_with("http://localhost") and api_key != "":
+			url += "?key=" + api_key
 	var headers = ["Content-Type: application/json"]
 	
 	var body = {
@@ -86,7 +94,7 @@ func _process_tts_payload(payload: String):
 	call_deferred("emit_signal", "error_occurred", "Failed to parse TTS response data.")
 
 func send_prompt(prompt: String, context: String = "", tools: Array = [], files: Array = []):
-	if api_key == "":
+	if api_key == "" and base_url == "":
 		error_occurred.emit("API Key is missing.")
 		return
 
@@ -136,7 +144,7 @@ func _append_to_history(content: Dictionary):
 	while not history.is_empty() and history[0].get("role") != "user":
 		history.remove_at(0)
 
-func send_tool_responses(responses: Array, tools: Array = []):
+func send_tool_responses(responses: Array, tools: Array = [], files: Array = []):
 	var parts = []
 	for resp in responses:
 		parts.append(resp)
@@ -146,13 +154,27 @@ func send_tool_responses(responses: Array, tools: Array = []):
 		"parts": parts
 	}
 	
-	# Protective check: If history is empty (e.g. session cleared), we can't send tool responses 
-	# because Gemini expects a previous model 'functionCall'.
 	if history.is_empty():
-		error_occurred.emit("Cannot send tool response: history is empty (did you start a new chat while the tool was running?)")
+		error_occurred.emit("Cannot send tool response: history is empty")
 		return
 
 	_append_to_history(response_content)
+	
+	if not files.is_empty():
+		var user_parts = []
+		for file_data in files:
+			if not file_data.is_empty():
+				user_parts.append({
+					"inlineData": {
+						"mimeType": file_data["mime_type"],
+						"data": file_data["data"]
+					}
+				})
+		if not user_parts.is_empty():
+			user_parts.append({"text": "Here is the captured screenshot/file from the tool."})
+			_append_to_history({"role": "user", "parts": user_parts})
+			transcript.append({"role": "user", "text": "[System auto-attached file directly after tool response]"})
+
 	_send_request(tools)
 
 func generate_tool_response(tool_name: String, output: String, _tool_call_id: String = "") -> Dictionary:
@@ -170,7 +192,14 @@ func cancel_request():
 	super.cancel_request()
 
 func _send_request(tools: Array = []):
-	var url = "http://127.0.0.1:8000/v1beta/models/" + model_name + ":generateContent"
+	var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent?key=" + api_key
+	if base_url != "":
+		url = base_url
+		if not url.ends_with("/"):
+			url += "/"
+		url += "v1beta/models/" + model_name + ":generateContent"
+		if not url.begins_with("http://127.0.0.1") and not url.begins_with("http://localhost") and api_key != "":
+			url += "?key=" + api_key
 	var headers = ["Content-Type: application/json"]
 	var body = {
 		"contents": history

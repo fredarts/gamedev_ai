@@ -51,6 +51,10 @@ func _create_scene(path: String, root_type: String, root_name: String):
 		_emit_output("Error: Path must start with res:// and end with .tscn")
 		return
 		
+	if FileAccess.file_exists(path):
+		_emit_output("Error: Scene file already exists at " + path + ". Use modify tools like add_node or set_property instead.")
+		return
+		
 	var ur = _get_undo_redo()
 	if ur:
 		if not _is_composite():

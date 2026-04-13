@@ -119,8 +119,10 @@ func _apply_config_to_provider(provider, config: Dictionary):
 		if model != "":
 			provider.model_name = model
 	
+	if "base_url" in provider:
+		provider.base_url = config.get("base_url", "")
+		
 	if provider.get_script().get_path().ends_with("openai_provider.gd"):
-		provider.base_url = config.get("base_url", "https://api.openai.com/v1")
 		if provider.base_url == "":
 			provider.base_url = "https://api.openai.com/v1"
 		

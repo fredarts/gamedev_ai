@@ -65,10 +65,25 @@ func generate_tool_response(_tool_name: String, output: String, tool_call_id: St
 		"content": output
 	}
 
-func send_tool_responses(responses: Array, tools: Array = []):
+func send_tool_responses(responses: Array, tools: Array = [], files: Array = []):
 	for resp in responses:
 		history.append(resp)
 	
+	if not files.is_empty():
+		var user_content = []
+		user_content.append({"type": "text", "text": "Here is the captured screenshot/file from the tool."})
+		for file_data in files:
+			if not file_data.is_empty() and file_data.get("mime_type", "").begins_with("image/"):
+				user_content.append({
+					"type": "image_url",
+					"image_url": {
+						"url": "data:" + file_data["mime_type"] + ";base64," + file_data["data"]
+					}
+				})
+		if user_content.size() > 1:
+			history.append({"role": "user", "content": user_content})
+			transcript.append({"role": "user", "text": "[System auto-attached file directly after tool response]"})
+
 	_send_request(tools)
 
 func cancel_request():

@@ -224,15 +224,33 @@ func _move_files_batch(moves: Dictionary):
 	var error_msgs = []
 	var refactored_files = 0
 	
-	if _get_undo_redo():
-		if not _is_composite():
-			_get_undo_redo().create_action("Organize " + str(moves.size()) + " files", UndoRedo.MERGE_DISABLE, executor)
-			
+	# Validate moves first to prevent catastrophic strings like "res" replacing parts of file contents ("response")
+	var valid_moves = {}
 	for old_path in moves:
 		var new_path = str(moves[old_path])
 		if old_path == new_path:
 			continue
 			
+		if old_path == "res://" or old_path == "res" or not old_path.begins_with("res://"):
+			error_msgs.append("Safety block: Invalid path mapping '" + old_path + "'. Must start with 'res://' and cannot be project root.")
+			continue
+		
+		valid_moves[old_path] = new_path
+			
+	if valid_moves.is_empty():
+		var final_msg = "Batch Move Aborted. No valid moves provided."
+		if not error_msgs.is_empty(): final_msg += "\nErrors:\n- " + "\n- ".join(error_msgs)
+		_emit_output(final_msg)
+		return
+	
+	moves = valid_moves
+	
+	if _get_undo_redo():
+		if not _is_composite():
+			_get_undo_redo().create_action("Organize " + str(moves.size()) + " files", UndoRedo.MERGE_DISABLE, executor)
+			
+	for old_path in moves:
+		var new_path = moves[old_path]
 		if not FileAccess.file_exists(old_path):
 			error_msgs.append("Not found: " + old_path)
 			continue
