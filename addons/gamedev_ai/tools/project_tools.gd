@@ -73,25 +73,75 @@ func _create_scene(path: String, root_type: String, root_name: String):
 		executor._create_scene_file(path, root_type, root_name)
 		_emit_output("Success: Scene " + path + " created (No Undo).")
 
-func _create_resource(path: String, type: String, properties: Dictionary = {}):
+func _create_resource(path: String, type: String, properties: Variant = {}):
 	if not path.begins_with("res://") or not path.ends_with(".tres"):
 		_emit_output("Error: Path must specify a .tres file.")
 		return
 	if FileAccess.file_exists(path):
 		_emit_output("Error: File already exists at " + path)
 		return
-	if not ClassDB.class_exists(type):
-		_emit_output("Error: Class type " + type + " not found.")
-		return
 
-	var res = ClassDB.instantiate(type)
+	# Parse properties if they came as a JSON string from the LLM
+	var props: Dictionary = {}
+	if properties is Dictionary:
+		props = properties
+	elif properties is String:
+		var json = JSON.new()
+		var parse_err = json.parse(properties)
+		if parse_err == OK and json.data is Dictionary:
+			props = json.data
+		else:
+			_emit_output("Error: 'properties' must be a Dictionary or a valid JSON string. Got: " + str(properties).substr(0, 100))
+			return
+
+	var res: Resource = null
+
+	# Check if the user specified a script path in properties (for custom classes)
+	var script_path: String = props.get("script", "")
+	if script_path != "" and script_path.begins_with("res://"):
+		props.erase("script")
+		if FileAccess.file_exists(script_path):
+			var script = load(script_path)
+			if script and script is GDScript:
+				res = script.new()
+			else:
+				_emit_output("Error: Could not load script at " + script_path)
+				return
+		else:
+			_emit_output("Error: Script file not found: " + script_path)
+			return
+	elif ClassDB.class_exists(type):
+		res = ClassDB.instantiate(type)
+	else:
+		# Try to find the class as a global GDScript class
+		var global_classes = ProjectSettings.get_global_class_list()
+		for cls in global_classes:
+			if cls["class"] == type:
+				var script = load(cls["path"])
+				if script and script is GDScript:
+					res = script.new()
+				break
+		if not res:
+			_emit_output("Error: Class type '" + type + "' not found in ClassDB or global scripts.")
+			return
+
 	if not res:
 		_emit_output("Error: Could not instantiate " + type)
 		return
-		
-	for key in properties:
-		res.set(key, properties[key])
-		
+
+	# Apply properties, with special handling for resource paths
+	for key in props:
+		var value = props[key]
+		if value is String and value.begins_with("res://"):
+			var loaded = load(value)
+			if loaded:
+				res.set(key, loaded)
+			else:
+				push_warning("GamedevAI: Could not load resource for property '" + key + "': " + value)
+				res.set(key, value)
+		else:
+			res.set(key, value)
+
 	var err = ResourceSaver.save(res, path)
 	if err == OK:
 		_scan_fs()

@@ -48,10 +48,19 @@ func _attach_script(node_path: String, script_path: String):
 	if not root:
 		_emit_output("Error: No scene open.")
 		return
-	
-	var node = root.get_node(node_path)
+
+	var node: Node = null
+	if node_path == "." or node_path == "":
+		node = root
+	else:
+		node = root.get_node_or_null(node_path)
+		if not node:
+			# Fallback: search by name
+			var node_name = node_path.get_file()
+			if node_name != "":
+				node = root.find_child(node_name, true, false)
 	if not node:
-		_emit_output("Error: Node not found: " + node_path)
+		_emit_output("Error: Node not found: '" + node_path + "'. Make sure the scene containing this node is open in the editor.")
 		return
 		
 	if not FileAccess.file_exists(script_path):

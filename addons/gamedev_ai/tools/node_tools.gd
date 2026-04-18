@@ -89,20 +89,45 @@ func _get_property_type(node: Object, property: String) -> int:
 
 func _parse_value(value: Variant, expected_type: int = -1) -> Variant:
 	if value is Array:
+		# Check if this is an array of resource paths (e.g. loading_screens)
+		if expected_type == TYPE_ARRAY or expected_type == -1:
+			var all_res_paths := true
+			for item in value:
+				if not (item is String and item.begins_with("res://")):
+					all_res_paths = false
+					break
+			if all_res_paths and value.size() > 0 and (value.size() != 2 and value.size() != 3 and value.size() != 4):
+				var loaded_array: Array = []
+				for item in value:
+					var res = load(item)
+					if res:
+						loaded_array.append(res)
+					else:
+						push_warning("GamedevAI: Could not load resource: " + str(item))
+				return loaded_array
+
+		# Vector/Color construction with safe float coercion
 		if value.size() == 2:
-			return Vector2(value[0], value[1])
+			return Vector2(float(value[0]), float(value[1]))
 		if value.size() == 3:
 			if expected_type == TYPE_COLOR:
-				return Color(value[0], value[1], value[2])
+				return Color(float(value[0]), float(value[1]), float(value[2]))
 			if expected_type == TYPE_VECTOR3:
-				return Vector3(value[0], value[1], value[2])
-			return Vector3(value[0], value[1], value[2])
+				return Vector3(float(value[0]), float(value[1]), float(value[2]))
+			return Vector3(float(value[0]), float(value[1]), float(value[2]))
 		if value.size() == 4:
 			if expected_type == TYPE_QUATERNION:
-				return Quaternion(value[0], value[1], value[2], value[3])
+				return Quaternion(float(value[0]), float(value[1]), float(value[2]), float(value[3]))
 			if expected_type == TYPE_VECTOR4:
-				return Vector4(value[0], value[1], value[2], value[3])
-			return Color(value[0], value[1], value[2], value[3])
+				return Vector4(float(value[0]), float(value[1]), float(value[2]), float(value[3]))
+			return Color(float(value[0]), float(value[1]), float(value[2]), float(value[3]))
+
+	# Handle single resource path string for resource-typed properties
+	if value is String and value.begins_with("res://") and expected_type != TYPE_STRING:
+		var res = load(value)
+		if res:
+			return res
+
 	return value
 
 func _find_scene_file_by_name(dir_path: String, target_name: String) -> String:
