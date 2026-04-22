@@ -22,3 +22,6 @@ dist/
 .vitepress/dist/
 .vitepress/cache/
 
+# Plugin-specific ignores
+.gamedev_ai/
+

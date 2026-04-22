@@ -1,11 +1,13 @@
 import re
 import os
 
-repo_path = r"c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tool_executor.gd"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, "..", ".."))
+repo_path = os.path.join(script_dir, "tool_executor.gd")
 # We can read from git using OS command
 import subprocess
 
-result = subprocess.run(["git", "show", "HEAD:addons/gamedev_ai/tool_executor.gd"], capture_output=True, text=True, cwd=r"c:\Users\Fred\Documents\game-dev\Gamedev Ai", encoding="utf-8")
+result = subprocess.run(["git", "show", "HEAD:addons/gamedev_ai/tool_executor.gd"], capture_output=True, text=True, cwd=project_root, encoding="utf-8")
 orig_text = result.stdout
 
 # Extract _remove_node
@@ -49,7 +51,7 @@ def replace_self_with_executor(code):
     return code
 
 # --- PATCH SCRIPT TOOLS ---
-script_tools_path = r"c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tools\script_tools.gd"
+script_tools_path = os.path.join(script_dir, "tools", "script_tools.gd")
 with open(script_tools_path, "r", encoding="utf-8") as f:
     st_text = f.read()
 
@@ -68,12 +70,12 @@ with open(script_tools_path, "w", encoding="utf-8") as f:
     f.write(st_text + "\n" + st_add)
 
 # --- PATCH NODE TOOLS ---
-node_tools_path = r"c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tools\node_tools.gd"
+node_tools_path = os.path.join(script_dir, "tools", "node_tools.gd")
 with open(node_tools_path, "a", encoding="utf-8") as f:
     f.write("\n" + replace_self_with_executor(remove_node_code))
 
 # --- PATCH FILE TOOLS ---
-file_tools_path = r"c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tools\file_tools.gd"
+file_tools_path = os.path.join(script_dir, "tools", "file_tools.gd")
 with open(file_tools_path, "a", encoding="utf-8") as f:
     ft_add = replace_self_with_executor(remove_file_code) + "\n" + replace_self_with_executor(move_files_code)
     ft_add = ft_add.replace("_delete_file_undoable(", "executor._delete_file_undoable(")

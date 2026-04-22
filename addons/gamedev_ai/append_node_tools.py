@@ -1,6 +1,7 @@
 import os
 
-path = r'c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tools\node_tools.gd'
+script_dir = os.path.dirname(os.path.abspath(__file__))
+path = os.path.join(script_dir, 'tools', 'node_tools.gd')
 append_code = """
 
 func _analyze_node_children(node_path: String, max_depth: int = 5):

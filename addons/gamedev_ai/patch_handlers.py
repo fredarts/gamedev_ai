@@ -1,9 +1,10 @@
 import os
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
 files = [
-    r'c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tools\script_tools.gd',
-    r'c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tools\node_tools.gd',
-    r'c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tools\file_tools.gd'
+    os.path.join(script_dir, 'tools', 'script_tools.gd'),
+    os.path.join(script_dir, 'tools', 'node_tools.gd'),
+    os.path.join(script_dir, 'tools', 'file_tools.gd')
 ]
 
 for filepath in files:

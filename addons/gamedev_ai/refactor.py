@@ -1,6 +1,6 @@
-import re
-
-GD_PATH = r"c:\Users\Fred\Documents\game-dev\Gamedev Ai\addons\gamedev_ai\tool_executor.gd"
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+GD_PATH = os.path.join(script_dir, "tool_executor.gd")
 
 with open(GD_PATH, "r", encoding="utf-8") as f:
     text = f.read()
