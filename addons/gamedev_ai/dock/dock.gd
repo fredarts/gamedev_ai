@@ -56,7 +56,7 @@ var screenshot_enabled: bool = false
 @onready var language_selector: OptionButton = %LanguageSelector
 @onready var language_label: Label = %LanguageSelector.get_parent().get_child(0)
 
-@onready var git_tab: VBoxContainer = $TabContainer/Git
+@onready var git_tab: VBoxContainer = $TabContainer.get_child(2)
 @onready var init_repo_btn: Button = %InitRepoBtn
 @onready var remote_container: HBoxContainer = %RemoteContainer
 @onready var remote_url_input: LineEdit = %RemoteUrlInput
@@ -98,6 +98,7 @@ var _cached_tts_text: String = ""
 var _cached_tts_stream: AudioStreamWAV = null
 
 var git_manager
+var _card_titles: Array[Label] = []
 var _is_generating_commit: bool = false
 var _last_ai_response_text: String = ""
 var _is_dragging_tts_slider: bool = false
@@ -257,9 +258,9 @@ func _ready():
 	font_size_plus_btn.pressed.connect(_on_font_plus_pressed)
 	
 	preset_selector.item_selected.connect(_on_preset_selected)
-	$TabContainer/Settings/PresetBar/AddPresetBtn.pressed.connect(_on_add_preset_pressed)
+	find_child("AddPresetBtn", true, false).pressed.connect(_on_add_preset_pressed)
 	edit_preset_btn.pressed.connect(_on_edit_preset_pressed)
-	$TabContainer/Settings/PresetBar/DelPresetBtn.pressed.connect(_on_delete_preset_pressed)
+	find_child("DelPresetBtn", true, false).pressed.connect(_on_delete_preset_pressed)
 	close_edit_btn.pressed.connect(_on_close_edit_pressed)
 	preset_name_input.text_submitted.connect(_on_rename_preset)
 	preset_name_input.focus_exited.connect(func(): _on_rename_preset(preset_name_input.text))
@@ -576,12 +577,16 @@ func _apply_locale():
 	history_button.text = "" # Icon only
 	history_button.tooltip_text = L.tr("history")
 	
-	magic_actions_btn.text = L.tr("magic_actions") if L.has_method("has_message") and L.has_message("magic_actions") else "Magic Actions"
-	prompt_settings_btn.text = L.tr("prompt_settings") if L.has_method("has_message") and L.has_message("prompt_settings") else "Prompt Settings"
+	magic_actions_btn.text = L.tr("magic_actions")
+	prompt_settings_btn.text = L.tr("prompt_settings")
 	
 	selection_status.text = L.tr("no_selection")
 	input_field.placeholder_text = L.tr("input_placeholder")
 	execute_plan_btn.text = L.tr("run_plan")
+	
+	for title_label in _card_titles:
+		if is_instance_valid(title_label):
+			title_label.text = L.tr(title_label.get_meta("tr_key"))
 	
 	# Prompt Settings Menu items
 	var p_popup = prompt_settings_btn.get_popup()
@@ -590,29 +595,61 @@ func _apply_locale():
 	p_popup.set_item_text(2, L.tr("plan_first"))
 	p_popup.set_item_text(3, L.tr("watch_mode"))
 	
+	# Magic Actions Menu items
+	var m_popup = magic_actions_btn.get_popup()
+	if m_popup.item_count >= 5:
+		m_popup.set_item_text(0, L.tr("refactor"))
+		m_popup.set_item_text(1, L.tr("fix"))
+		m_popup.set_item_text(2, L.tr("explain"))
+		m_popup.set_item_text(3, L.tr("undo_last"))
+		m_popup.set_item_text(4, L.tr("fix_console"))
+		
+	# Tab Titles
+	var tab_container = find_child("TabContainer", true, false)
+	if tab_container and tab_container is TabContainer:
+		tab_container.set_tab_title(0, L.tr("chat_tab"))
+		tab_container.set_tab_title(1, L.tr("settings_tab"))
+		tab_container.set_tab_title(2, L.tr("git_tab"))
+	
 	# TTS
 	if not tts_player.playing and not tts_player.stream_paused:
 		tts_play_btn.text = L.tr("tts_read_aloud")
 	
 	# Settings tab
-	$TabContainer/Settings/PresetBar/PresetLabel.text = L.tr("preset_label")
-	$TabContainer/Settings/PresetBar/AddPresetBtn.text = L.tr("add")
+	var p_label = find_child("PresetLabel", true, false)
+	if p_label: p_label.text = L.tr("preset_label")
+	var add_btn = find_child("AddPresetBtn", true, false)
+	if add_btn: add_btn.text = L.tr("add")
 	edit_preset_btn.text = L.tr("edit")
-	$TabContainer/Settings/PresetBar/DelPresetBtn.text = L.tr("delete")
+	var del_btn = find_child("DelPresetBtn", true, false)
+	if del_btn: del_btn.text = L.tr("delete")
 	close_edit_btn.text = L.tr("done_editing")
-	$TabContainer/Settings/PresetEditPanel/ConfigGrid/NameLabel.text = L.tr("preset_name_label")
-	$TabContainer/Settings/PresetEditPanel/ConfigGrid/ProviderLabel.text = L.tr("provider_label")
-	$TabContainer/Settings/PresetEditPanel/ConfigGrid/ApiLabel.text = L.tr("api_key_label")
-	$TabContainer/Settings/PresetEditPanel/ConfigGrid/ModelLabel.text = L.tr("model_name_label")
-	$TabContainer/Settings/PresetEditPanel/SettingsBar/UrlLabel.text = L.tr("base_url_label")
+	var name_lbl = find_child("NameLabel", true, false)
+	if name_lbl: name_lbl.text = L.tr("preset_name_label")
+	var prov_lbl = find_child("ProviderLabel", true, false)
+	if prov_lbl: prov_lbl.text = L.tr("provider_label")
+	var api_lbl = find_child("ApiLabel", true, false)
+	if api_lbl: api_lbl.text = L.tr("api_key_label")
+	var mod_lbl = find_child("ModelLabel", true, false)
+	if mod_lbl: mod_lbl.text = L.tr("model_name_label")
+	var url_lbl = find_child("UrlLabel", true, false)
+	if url_lbl: url_lbl.text = L.tr("base_url_label")
 	language_label.text = L.tr("language_label")
-	$TabContainer/Settings/CustomPromptLabel.text = L.tr("custom_instructions_label")
+	var cust_lbl = find_child("CustomPromptLabel", true, false)
+	if cust_lbl: cust_lbl.text = L.tr("custom_instructions_label")
 	custom_prompt_input.placeholder_text = L.tr("custom_instructions_placeholder")
+	enhance_prompt_btn.text = L.tr("enhance_instructions")
+	scan_changes_btn.text = L.tr("scan_changes")
+	index_codebase_btn.text = L.tr("index_codebase")
 	
+	var vdb_lbl = find_child("VectorDBLabel", true, false)
+	if vdb_lbl: vdb_lbl.text = L.tr("vector_db")
+	
+
 	# Git tab
 	init_repo_btn.text = L.tr("initialize_repo")
 	init_repo_btn.tooltip_text = L.tr("tt_init_repo")
-	$TabContainer/Git/RemoteContainer/Label.text = L.tr("github_url_label")
+	remote_container.get_node("Label").text = L.tr("github_url_label")
 	set_remote_btn.text = L.tr("save")
 	set_remote_btn.tooltip_text = L.tr("tt_set_remote")
 	pull_btn.text = L.tr("pull")
@@ -634,7 +671,7 @@ func _apply_locale():
 	force_push_btn.tooltip_text = L.tr("tt_force_push")
 	
 	# Diff preview
-	$TabContainer/Chat/DiffPreviewPanel/DiffLabel.text = L.tr("diff_preview_label")
+	_diff_preview_panel.get_node("DiffLabel").text = L.tr("diff_preview_label")
 	_apply_diff_btn.text = L.tr("apply_changes")
 	_skip_diff_btn.text = L.tr("skip")
 	
@@ -1166,30 +1203,63 @@ func _refresh_thumbnails():
 			container.add_child(thumb_rect)
 		else:
 			var panel = PanelContainer.new()
-			panel.custom_minimum_size = Vector2(120, 80)
+			panel.custom_minimum_size = Vector2(80, 80)
+			panel.tooltip_text = file_data["filename"]
 			var vbox = VBoxContainer.new()
 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 			var icon_label = Label.new()
 			var is_audio = file_data["filename"].ends_with("mp3") or file_data["filename"].ends_with("wav") or file_data["filename"].ends_with("ogg")
-			icon_label.text = "🎵" if is_audio else "📄"
+			icon_label.text = "🎵" if is_audio else "📎"
 			icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			var name_label = Label.new()
 			name_label.text = file_data["filename"]
 			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			name_label.clip_text = true
-			name_label.custom_minimum_size = Vector2(110, 0)
+			name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			name_label.custom_minimum_size = Vector2(70, 0)
 			vbox.add_child(icon_label)
 			vbox.add_child(name_label)
 			panel.add_child(vbox)
-			container.custom_minimum_size = Vector2(120, 80)
+			container.custom_minimum_size = Vector2(80, 80)
 			container.add_child(panel)
 		
 		var close_btn = Button.new()
-		close_btn.text = "X"
-		close_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		close_btn.size = Vector2(24, 24)
-		close_btn.position = Vector2(container.custom_minimum_size.x - 24, 0)
-		close_btn.add_theme_color_override("font_color", Color(1, 0, 0))
+		close_btn.text = ""
+		var _close_icon = load("res://addons/gamedev_ai/icons/close.svg")
+		close_btn.icon = _close_icon
+		close_btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		close_btn.expand_icon = true
+		close_btn.custom_minimum_size = Vector2(20, 20)
+		close_btn.size = Vector2(20, 20)
+		close_btn.position = Vector2(container.custom_minimum_size.x - 22, 2)
+		close_btn.add_theme_color_override("icon_normal_color", Color(1.0, 1.0, 1.0, 0.9))
+		close_btn.add_theme_color_override("icon_hover_color", Color.WHITE)
+		close_btn.add_theme_color_override("icon_pressed_color", Color(0.9, 0.3, 0.3))
+		var btn_normal = StyleBoxFlat.new()
+		btn_normal.bg_color = Color(0.12, 0.12, 0.15, 0.85)
+		btn_normal.border_color = Color(0.3, 0.3, 0.35, 0.6)
+		btn_normal.border_width_top = 1
+		btn_normal.border_width_bottom = 1
+		btn_normal.border_width_left = 1
+		btn_normal.border_width_right = 1
+		btn_normal.corner_radius_top_left = 3
+		btn_normal.corner_radius_top_right = 3
+		btn_normal.corner_radius_bottom_left = 3
+		btn_normal.corner_radius_bottom_right = 3
+		btn_normal.content_margin_left = 0
+		btn_normal.content_margin_right = 0
+		btn_normal.content_margin_top = 0
+		btn_normal.content_margin_bottom = 0
+		var btn_hover = btn_normal.duplicate()
+		btn_hover.bg_color = Color(0.75, 0.2, 0.2, 0.95)
+		btn_hover.border_color = Color(0.9, 0.35, 0.35, 0.8)
+		var btn_pressed = btn_normal.duplicate()
+		btn_pressed.bg_color = Color(0.6, 0.12, 0.12, 0.95)
+		btn_pressed.border_color = Color(0.7, 0.25, 0.25, 0.8)
+		close_btn.add_theme_stylebox_override("normal", btn_normal)
+		close_btn.add_theme_stylebox_override("hover", btn_hover)
+		close_btn.add_theme_stylebox_override("pressed", btn_pressed)
+		close_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		close_btn.pressed.connect(func():
 			_remove_attached_file(i)
 		)
@@ -1265,8 +1335,8 @@ func _attach_file_from_path(path: String) -> void:
 func _is_game_running() -> bool:
 	return EditorInterface.is_playing_scene()
 
-func _process_send(prompt_text: String, is_execute_plan: bool = false):
-	if _is_game_running():
+func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_mode: bool = false):
+	if _is_game_running() and not is_watch_mode:
 		_add_to_chat("\n[color=orange][b]" + locale_manager.tr("game_running_warning") + "[/color]\n", "system")
 		return
 	_is_stopped = false
@@ -1422,7 +1492,11 @@ func _check_for_new_errors():
 				_watch_fix_count += 1
 				_watch_cooldown_until = now + _WATCH_COOLDOWN_SECS
 				_add_to_chat("\n[color=orange][b]" + locale_manager.tr("watch_error_detected").replace("{current}", str(_watch_fix_count)).replace("{max}", str(_WATCH_MAX_FIXES)) + "[/b][/color]\n")
-				_process_send("I noticed a new error in the console:\n" + new_content + "\n\nPlease analyze and fix it.")
+				
+				if _is_game_running():
+					EditorInterface.stop_playing_scene()
+				
+				_process_send("I noticed a new error in the console:\n" + new_content + "\n\nPlease analyze and fix it.", false, true)
 
 func _on_tool_calls(tool_calls: Array):
 	batch_queue = tool_calls.duplicate()
@@ -2487,7 +2561,7 @@ func _make_card_style(bg_color: Color = Color(0.14, 0.15, 0.19), border_color: C
 	style.content_margin_bottom = 10
 	return style
 
-func _wrap_in_card(parent: Control, children: Array, title: String, bg_color: Color = Color(0.14, 0.15, 0.19), border_color: Color = Color(0.25, 0.27, 0.35, 0.4)) -> PanelContainer:
+func _wrap_in_card(parent: Control, children: Array, title_key: String, bg_color: Color = Color(0.14, 0.15, 0.19), border_color: Color = Color(0.25, 0.27, 0.35, 0.4)) -> PanelContainer:
 	var card = PanelContainer.new()
 	card.size_flags_horizontal = SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override("panel", _make_card_style(bg_color, border_color))
@@ -2497,11 +2571,13 @@ func _wrap_in_card(parent: Control, children: Array, title: String, bg_color: Co
 	vbox.add_theme_constant_override("separation", 8)
 	
 	# Add title label
-	if title != "":
+	if title_key != "":
 		var title_label = Label.new()
-		title_label.text = title
+		title_label.text = locale_manager.tr(title_key) if locale_manager else title_key
+		title_label.set_meta("tr_key", title_key)
 		title_label.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85))
 		vbox.add_child(title_label)
+		_card_titles.append(title_label)
 	
 	# Get indexes for insertion order
 	var insert_idx = -1
@@ -2532,7 +2608,7 @@ func _apply_settings_cards():
 	# Card 1: API & Provider
 	var preset_bar = $TabContainer/Settings/PresetBar
 	var preset_edit = $TabContainer/Settings/PresetEditPanel
-	_wrap_in_card(settings_tab, [preset_bar, preset_edit], "API & Provedor")
+	_wrap_in_card(settings_tab, [preset_bar, preset_edit], "api_and_provider")
 	
 	# Card 2: AI Behavior
 	var lang_hbox = $TabContainer/Settings/LanguageHBox
@@ -2541,7 +2617,7 @@ func _apply_settings_cards():
 	var enhance_btn = enhance_prompt_btn
 	# Increase Custom Instructions height
 	prompt_input.custom_minimum_size = Vector2(0, 200)
-	_wrap_in_card(settings_tab, [lang_hbox, prompt_label, prompt_input, enhance_btn], "Comportamento da IA")
+	_wrap_in_card(settings_tab, [lang_hbox, prompt_label, prompt_input, enhance_btn], "ai_behavior")
 	
 	# Card 3: Vector Database
 	var vdb_sep = $TabContainer/Settings/VectorDBSeparator
@@ -2551,7 +2627,8 @@ func _apply_settings_cards():
 	# Increase VectorDB list height
 	vdb_scroll.custom_minimum_size = Vector2(0, 180)
 	vdb_sep.queue_free()
-	_wrap_in_card(settings_tab, [vdb_label, vdb_scroll, vdb_actions], "Vector Database")
+	vdb_label.queue_free()
+	_wrap_in_card(settings_tab, [vdb_scroll, vdb_actions], "vector_db")
 
 func _apply_git_zones():
 	var git_tab = $TabContainer/Git
@@ -2572,11 +2649,11 @@ func _apply_git_zones():
 	var git_actions = $TabContainer/Git/GitActionsContainer
 	var commit_container = $TabContainer/Git/CommitMsgContainer
 	var commit_btn = commit_sync_btn
-	_wrap_in_card(git_tab, [remote, git_status_label, git_actions, commit_container, commit_btn], "Commit & Sync")
+	_wrap_in_card(git_tab, [remote, git_status_label, git_actions, commit_container, commit_btn], "commit_sync_title")
 	
 	# Branch Zone
 	var branch_container = $TabContainer/Git/BranchContainer
-	_wrap_in_card(git_tab, [branch_container], "Branch")
+	_wrap_in_card(git_tab, [branch_container], "branch_title")
 	
 	# Remove old separator
 	var old_sep = $TabContainer/Git/HSeparator
@@ -2585,7 +2662,7 @@ func _apply_git_zones():
 	
 	# Danger Zone
 	var danger_hbox = $TabContainer/Git/AdvancedGitHBox
-	_wrap_in_card(git_tab, [danger_hbox], "Danger Zone", Color(0.22, 0.08, 0.08), Color(0.6, 0.2, 0.2, 0.5))
+	_wrap_in_card(git_tab, [danger_hbox], "danger_zone", Color(0.22, 0.08, 0.08), Color(0.6, 0.2, 0.2, 0.5))
 
 func _add_action_icons():
 	var btn_map = {

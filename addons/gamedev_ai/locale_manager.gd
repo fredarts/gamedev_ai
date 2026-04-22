@@ -139,7 +139,7 @@ func _build_translations():
 	_t("github_url_label", "GitHub URL:", "URL do GitHub:", "URL de GitHub:", "URL GitHub :", "GitHub-URL:", "GitHub URL:", "GitHub URL:", "عنوان GitHub:", "URL GitHub:", "GitHub URL:", "URL GitHub:")
 	_t("save", "Save", "Salvar", "Guardar", "Enregistrer", "Speichern", "सहेजें", "保存", "حفظ", "Сохранить", "সংরক্ষণ", "Simpan")
 	_t("checking_git_status", "Checking Git status...", "Verificando status do Git...", "Verificando estado de Git...", "Vérification du statut Git...", "Git-Status wird geprüft...", "Git स्थिति जाँच रहे हैं...", "正在检查 Git 状态...", "جارٍ التحقق من حالة Git...", "Проверка статуса Git...", "Git অবস্থা পরীক্ষা হচ্ছে...", "Memeriksa status Git...")
-	_t("pull", "Pull", "Puxar (Pull)", "Pull", "Pull", "Pull", "Pull", "Pull", "Pull", "Pull", "Pull", "Pull")
+	_t("pull", "Pull (Download)", "Puxar (Pull)", "Descargar (Pull)", "Tirer (Pull)", "Ziehen (Pull)", "पुल करें", "拉取 (Pull)", "سحب (Pull)", "Загрузить (Pull)", "পুল করুন", "Tarik (Pull)")
 	_t("refresh_status", "Refresh Status", "Atualizar Status", "Actualizar Estado", "Actualiser", "Status Aktualisieren", "स्थिति ताज़ा करें", "刷新状态", "تحديث الحالة", "Обновить статус", "স্ট্যাটাস রিফ্রেশ", "Segarkan Status")
 	_t("auto_generate_commit", "✨ Auto-Generate Commit Message", "✨ Gerar Mensagem de Commit", "✨ Generar Mensaje de Commit", "✨ Générer Message de Commit", "✨ Commit-Nachricht Generieren", "✨ कमिट संदेश स्वत: बनाएँ", "✨ 自动生成提交信息", "✨ إنشاء رسالة الإيداع تلقائياً", "✨ Сгенерировать сообщение", "✨ কমিট মেসেজ স্বয়ংক্রিয়", "✨ Buat Pesan Commit Otomatis")
 	_t("commit_msg_placeholder", "Enter commit message here...", "Digite a mensagem de commit aqui...", "Ingrese el mensaje de commit aquí...", "Entrez le message de commit ici...", "Commit-Nachricht hier eingeben...", "कमिट संदेश यहाँ दर्ज करें...", "在此输入提交信息...", "أدخل رسالة الإيداع هنا...", "Введите сообщение коммита...", "কমিট মেসেজ এখানে লিখুন...", "Masukkan pesan commit di sini...")
@@ -214,6 +214,38 @@ func _build_translations():
 	_t("skip", "Skip", "Pular", "Omitir", "Ignorer", "Überspringen", "छोड़ें", "跳过", "تخطي", "Пропустить", "এড়িয়ে যান", "Lewati")
 	_t("new_content_preview", "New content preview:", "Pré-visualização do novo conteúdo:", "Vista previa del contenido:", "Aperçu du nouveau contenu :", "Neue Inhaltsvorschau:", "नई सामग्री पूर्वावलोकन:", "新内容预览:", "معاينة المحتوى الجديد:", "Предпросмотр нового содержимого:", "নতুন বিষয়বস্তু প্রিভিউ:", "Pratinjau konten baru:")
 	_t("modifying_label", "Modifying: ", "Modificando: ", "Modificando: ", "Modification : ", "Ändern: ", "संशोधित: ", "正在修改: ", "جارٍ التعديل: ", "Изменение: ", "পরিবর্তন হচ্ছে: ", "Mengubah: ")
+
+	# ─── Missing UI Elements ───
+	_t("api_and_provider", "API & Provider", "API & Provedor", "API & Proveedor", "API & Fournisseur", "API & Anbieter", "API और प्रदाता", "API & 提供者", "API والمزود", "API и Провайдер", "API এবং প্রদানকারী", "API & Penyedia")
+	_t("ai_behavior", "AI Behavior", "Comportamento da IA", "Comportamiento de la IA", "Comportement de l'IA", "KI-Verhalten", "AI व्यवहार", "AI 行为", "سلوك الذكاء الاصطناعي", "Поведение ИИ", "AI আচরণ", "Perilaku AI")
+	_t("vector_db", "🗄️ Vector Database", "🗄️ Banco de Dados Vetorial", "🗄️ Base de Datos Vectorial", "🗄️ Base de Données Vectorielle", "🗄️ Vektordatenbank", "🗄️ वेक्टर डेटाबेस", "🗄️ 向量数据库", "🗄️ قاعدة بيانات المتجهات", "🗄️ Векторная БД", "🗄️ ভেক্টর ডেটাবেস", "🗄️ Database Vektor")
+	_t("commit_sync_title", "Commit & Sync", "Commit & Sincronizar", "Commit y Sincronizar", "Commit & Sync", "Commit & Sync", "कमिट और सिंक", "提交与同步", "إيداع ومزامنة", "Commit & Sync", "কমিট এবং সিঙ্ক", "Commit & Sync")
+	_t("branch_title", "Branch", "Branch", "Rama", "Branche", "Branch", "ब्रांच", "分支", "فرع", "Ветка", "ব্রাঞ্চ", "Cabang")
+	_t("danger_zone", "Danger Zone", "Zona de Perigo", "Zona de Peligro", "Zone de Danger", "Gefahrenzone", "खतरे का क्षेत्र", "危险区域", "منطقة الخطر", "Опасная зона", "বিপজ্জনক অঞ্চল", "Zona Bahaya")
+	_t("magic_actions", "Magic Actions", "Ações Mágicas", "Acciones Mágicas", "Actions Magiques", "Magische Aktionen", "जादुई क्रियाएँ", "魔法操作", "أفعال سحرية", "Магические действия", "ম্যাজিক অ্যাকশন", "Aksi Ajaib")
+	_t("prompt_settings", "Prompt Settings", "Configurações do Prompt", "Ajustes del Prompt", "Paramètres du Prompt", "Prompt-Einstellungen", "प्रॉम्प्ट सेटिंग्स", "提示设置", "إعدادات الموجه", "Настройки промпта", "প্রম্পট সেটিংস", "Pengaturan Prompt")
+	_t("enhance_instructions", "✨ Enhance Instructions with AI", "✨ Melhorar Instruções com IA", "✨ Mejorar Instrucciones con IA", "✨ Améliorer les instructions (IA)", "✨ Anweisungen mit KI verbessern", "✨ AI के साथ निर्देश बेहतर करें", "✨ 使用 AI 优化指令", "✨ تحسين التعليمات بالذكاء الاصطناعي", "✨ Улучшить инструкции (ИИ)", "✨ AI দিয়ে নির্দেশ উন্নত করুন", "✨ Tingkatkan Instruksi (AI)")
+	_t("scan_changes", "🔍 Scan Changes", "🔍 Escanear Mudanças", "🔍 Escanear Cambios", "🔍 Analyser les modifications", "🔍 Änderungen scannen", "🔍 बदलाव स्कैन करें", "🔍 扫描更改", "🔍 مسح التغييرات", "🔍 Сканировать изменения", "🔍 পরিবর্তন স্ক্যান করুন", "🔍 Pindai Perubahan")
+	_t("index_codebase", "⚡ Index Codebase", "⚡ Indexar Código Base", "⚡ Indexar Código Base", "⚡ Indexer la base de code", "⚡ Codebasis indexieren", "⚡ कोडबेस इंडेक्स करें", "⚡ 索引代码库", "⚡ فهرسة قاعدة الكود", "⚡ Индексировать кодовую базу", "⚡ কোডবেস ইনডেক্স করুন", "⚡ Indeks Basis Kode")
+
+	_t("chat_tab", "Chat ", "Chat", "Chat", "Chat", "Chat", "चैट", "聊天", "دردشة", "Чат", "চ্যাট", "Obrolan")
+	_t("settings_tab", "Settings ", "Configurações", "Ajustes", "Paramètres", "Einstellungen", "सेटिंग्स", "设置", "الإعدادات", "Настройки", "সেটিংস", "Pengaturan")
+	_t("git_tab", "Git ", "Git", "Git", "Git", "Git", "गिट", "Git", "Git", "Git", "গিট", "Git")
+	
+	_t("refactor", "Refactor", "Refatorar", "Refactorizar", "Refactoriser", "Code refaktorieren", "रिफैक्टर", "重构代码", "إعادة هيكلة", "Рефакторинг", "রিফ্যাক্টর", "Refaktor")
+	_t("fix", "Fix Selection", "Corrigir Seleção", "Corregir Selección", "Corriger la sélection", "Auswahl reparieren", "चयन ठीक करें", "修复选择", "إصلاح التحديد", "Исправить выбор", "নির্বাচন সংশোধন", "Perbaiki Pilihan")
+	_t("explain", "Explain selection", "Explicar seleção", "Explicar selección", "Expliquer la sélection", "Auswahl erklären", "चयन समझाएं", "解释选择", "شرح التحديد", "Объяснить выбор", "নির্বাচন ব্যাখ্যা", "Jelaskan pilihan")
+	_t("undo_last", "Undo Last", "Desfazer Último", "Deshacer Último", "Annuler le dernier", "Zuletzt rückgängig", "पिछला पूर्ववत करें", "撤销上一步", "تراجع عن الأخير", "Отменить последнее", "আগেরটি বাতিল", "Batalkan Terakhir")
+	_t("fix_console", "Fix Console", "Corrigir Console", "Corregir Consola", "Corriger la Console", "Konsole reparieren", "कंसोल ठीक करें", "修复控制台", "إصلاح وحدة التحكم", "Исправить консоль", "কনসোল সংশোধন", "Perbaiki Konsol")
+	
+	_t("undo_uncommitted", "Undo Changes ", "Desfazer Mudanças", "Deshacer Cambios", "Annuler les modifications", "Änderungen rückgängig", "बदलाव पूर्ववत करें", "撤销更改", "تراجع عن التغييرات", "Отменить изменения", "পরিবর্তন বাতিল", "Batalkan Perubahan")
+	_t("create_switch", "Create / Switch", "Criar / Trocar", "Crear / Cambiar", "Créer / Changer", "Erstellen / Wechseln", "बनाएं / बदलें", "创建 / 切换", "إنشاء / تبديل", "Создать / Сменить", "তৈরি / পরিবর্তন", "Buat / Beralih")
+	_t("force_pull", "Force Pull ", "Forçar Pull", "Forzar Pull", "Forcer le pull", "Pull erzwingen", "फ़ोर्स पुल", "强制拉取", "سحب قسري", "Принудительный Pull", "ফোর্স পুল", "Paksa Pull")
+	_t("force_push", "Force Push ", "Forçar Envio", "Forzar Push", "Forcer l'envoi", "Push erzwingen", "फ़ोर्स पुश", "强制推送", "دفع قسري", "Принудительный Push", "ফোর্স পুশ", "Paksa Push")
+	
+	_t("add", "Add ", "Adicionar", "Añadir", "Ajouter", "Hinzufügen", "जोड़ें", "添加", "إضافة", "Добавить", "যোগ করুন", "Tambahkan")
+	_t("edit", "Edit ", "Editar", "Editar", "Éditer", "Bearbeiten", "संपादित करें", "编辑", "تعديل", "Изменить", "সম্পাদনা", "Edit")
+	_t("delete", "Delete ", "Excluir", "Eliminar", "Supprimer", "Löschen", "हटाएं", "删除", "حذف", "Удалить", "মুছে ফেলুন", "Hapus")
 
 # Helper to add translation entries
 func _t(key: String, en: String, pt_BR: String, es: String, fr: String, de: String, hi: String, zh_CN: String, ar: String, ru: String, bn: String, id: String):

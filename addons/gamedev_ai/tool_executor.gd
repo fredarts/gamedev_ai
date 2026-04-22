@@ -196,8 +196,13 @@ func _create_file_undoable(path: String, content: String):
 	if script and script is Script:
 		# Update the source code in memory
 		script.source_code = content
-		# Trigger a reload to update tool scripts or live instances
-		script.reload()
+		# Try to reload — this will fail if instances of the script exist in the scene tree.
+		# In that case, we skip the reload and let ResourceSaver + filesystem scan handle it.
+		var reload_err = script.reload()
+		if reload_err != OK:
+			# This is expected for scripts attached to active nodes (e.g. @tool scripts, open scenes).
+			# The source_code is already updated in memory; saving will persist it to disk.
+			pass
 		
 		# Save using ResourceSaver, which avoids the "modified outside" popup
 		var err = ResourceSaver.save(script)

@@ -24,14 +24,22 @@ func execute(tool_name: String, args: Dictionary) -> bool:
 func _validate_script(path: String) -> String:
 	if not path.ends_with(".gd"):
 		return ""
-	var script = load(path)
-	if script == null:
-		return "⚠️ Validation: Failed to load script. It may contain syntax errors."
-	if script is GDScript:
-		var err = script.reload()
-		if err != OK:
-			return "⚠️ Validation: Script has errors (reload error code: " + str(err) + "). Check for syntax issues."
-	return "" 
+	if not FileAccess.file_exists(path):
+		return "⚠️ Validation: File does not exist."
+	# Read source from disk and validate in an isolated GDScript to avoid
+	# "Cannot reload script while instances exist" errors on scripts
+	# that are attached to active nodes in the scene tree.
+	var file = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return "⚠️ Validation: Could not read file."
+	var source = file.get_as_text()
+	file.close()
+	var test_script = GDScript.new()
+	test_script.source_code = source
+	var err = test_script.reload()
+	if err != OK:
+		return "⚠️ Validation: Script has errors (reload error code: " + str(err) + "). Check for syntax issues."
+	return ""
 
 func _create_script(path: String, content: String):
 	if not path.begins_with("res://"):
