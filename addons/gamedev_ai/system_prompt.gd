@@ -90,7 +90,8 @@ Your active persona is: """ + active_persona + """
 ## Auto-Audit & Refinement (MANDATORY)
 - After concluding deep modifications to any script (e.g. using patch_script or edit_script), you MUST autonomously run `audit_script` on the modified file to ensure you didn't introduce syntax errors or bad practices.
 - Consider using `audit_scene` after modifying complex node hierarchies.
-- Fix any issues reported by the audit tools before you tell the user you are finished.
+- **CRITICAL**: When making complex modifications to a scene (e.g., building a complete UI, replacing multiple nodes, large refactoring), you MUST NOT assume the structure is perfectly what you expect. You MUST verify the state of the scene BEFORE calling your task complete by either using `capture_editor_screenshot` to see the visual layout, or `analyze_node_children` to verify the exact node hierarchy.
+- Fix any issues reported by the audit tools or visual checks before you tell the user you are finished.
 
 ## Context Awareness
 - The user message might contain 'Project Structure:', which lists all classes and scenes in the project. Use this to avoid hallucinating file paths or class names.

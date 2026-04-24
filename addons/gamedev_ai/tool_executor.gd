@@ -174,6 +174,16 @@ func _proxy_call(obj: Object, method: String, arg1: Variant = null, arg2: Varian
 		else:
 			obj.call(method)
 
+func _proxy_connect(source: Object, signal_name: String, callable: Callable, flags: int = 0):
+	if is_instance_valid(source) and callable.is_valid():
+		if not source.is_connected(signal_name, callable):
+			source.connect(signal_name, callable, flags)
+
+func _proxy_disconnect(source: Object, signal_name: String, callable: Callable):
+	if is_instance_valid(source) and callable.is_valid():
+		if source.is_connected(signal_name, callable):
+			source.disconnect(signal_name, callable)
+
 # File Undo Helpers (Static-like)
 # File Undo Helpers (Static-like)
 func _create_file_undoable(path: String, content: String):

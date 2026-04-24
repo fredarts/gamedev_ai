@@ -8,8 +8,7 @@ func execute(tool_name: String, args: Dictionary) -> bool:
 			_add_node(args.get("parent_path"), args.get("type"), args.get("name"), args.get("script_path", ""))
 			return true
 		"remove_node":
-			var node_path = args.get("node_path", "")
-			_request_confirmation("Remove node '" + node_path + "' from the scene?", tool_name, args)
+			_remove_node(args.get("node_path", ""))
 			return true
 		"instance_scene":
 			_instance_scene(args.get("parent_path"), args.get("scene_path"), args.get("name"))
@@ -417,12 +416,13 @@ func _connect_signal(source_path: String, signal_name: String, target_path: Stri
 		ur.add_do_method(executor, "_proxy_connect", source, signal_name, callable, flags)
 		ur.add_undo_method(executor, "_proxy_disconnect", source, signal_name, callable)
 		
-		if not _is_composite():
+		if _is_composite():
+			executor._proxy_connect(source, signal_name, callable, flags)
+			_emit_output("Success: Connection queued: " + signal_name + " -> " + method_name)
+		else:
 			ur.commit_action()
 			_save_scene()
 			_emit_output("Success: Connected " + signal_name + " to " + method_name)
-		else:
-			_emit_output("Success: Connection queued.")
 	else:
 		source.connect(signal_name, callable, flags)
 		_save_scene()
@@ -450,12 +450,13 @@ func _disconnect_signal(source_path: String, signal_name: String, target_path: S
 		ur.add_do_method(executor, "_proxy_disconnect", source, signal_name, callable)
 		ur.add_undo_method(executor, "_proxy_connect", source, signal_name, callable) 
 		
-		if not _is_composite():
+		if _is_composite():
+			executor._proxy_disconnect(source, signal_name, callable)
+			_emit_output("Success: Disconnection queued: " + signal_name)
+		else:
 			ur.commit_action()
 			_save_scene()
 			_emit_output("Success: Disconnected " + signal_name)
-		else:
-			_emit_output("Success: Disconnection queued.")
 	else:
 		source.disconnect(signal_name, callable)
 		_save_scene()
@@ -473,22 +474,26 @@ func _remove_node(node_path: String):
 		_emit_output("Error: Cannot remove the scene root node via this tool.")
 		return
 		
+	var parent = node.get_parent()
+		
 	if _get_undo_redo():
 		if not _is_composite():
 			_get_undo_redo().create_action("Remove Node " + node.name, UndoRedo.MERGE_DISABLE, executor)
 			
-		_get_undo_redo().add_do_method(executor, "_proxy_remove_child", node.get_parent(), node)
-		_get_undo_redo().add_undo_method(executor, "_proxy_add_child", node.get_parent(), node)
+		_get_undo_redo().add_do_method(executor, "_proxy_remove_child", parent, node)
+		_get_undo_redo().add_undo_method(executor, "_proxy_add_child", parent, node)
 		_get_undo_redo().add_undo_method(executor, "_proxy_set_property", node, "owner", root)
+		_get_undo_redo().add_undo_reference(node) # Prevent memory leak when history is cleared
 		
-		if not _is_composite():
+		if _is_composite():
+			executor._proxy_remove_child(parent, node)
+			_emit_output("Success: Node removal queued: " + node_path)
+		else:
 			_get_undo_redo().commit_action()
 			_save_scene()
 			_emit_output("Success: Node " + node_path + " removed.")
-		else:
-			_emit_output("Success: Node removal queued: " + node_path)
 	else:
-		node.get_parent().remove_child(node)
+		parent.remove_child(node)
 		node.queue_free()
 		_save_scene()
 		_emit_output("Success: Node " + node_path + " removed (No Undo).")
