@@ -232,7 +232,7 @@ func _inject_full_system_instruction(body: Dictionary):
 		version_str += " (" + status + ")"
 	body["systemInstruction"] = {
 		"parts": [
-			{ "text": SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction, transcript) }
+			{ "text": SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction, transcript, screenshot_enabled) }
 		]
 	}
 

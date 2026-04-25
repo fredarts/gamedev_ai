@@ -2,7 +2,7 @@
 extends RefCounted
 class_name SystemPrompt
 
-static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "", response_language_instruction: String = "", transcript: Array = []) -> String:
+static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "", response_language_instruction: String = "", transcript: Array = [], screenshot_enabled: bool = false) -> String:
 	var active_persona = "Godot Expert"
 	var persona_instructions = "Your goal is to help the user build their game VISUALLY in the editor."
 	
@@ -90,8 +90,7 @@ Your active persona is: """ + active_persona + """
 ## Auto-Audit & Refinement (MANDATORY)
 - After concluding deep modifications to any script (e.g. using patch_script or edit_script), you MUST autonomously run `audit_script` on the modified file to ensure you didn't introduce syntax errors or bad practices.
 - Consider using `audit_scene` after modifying complex node hierarchies.
-- **CRITICAL**: When making complex modifications to a scene (e.g., building a complete UI, replacing multiple nodes, large refactoring), you MUST NOT assume the structure is perfectly what you expect. You MUST verify the state of the scene BEFORE calling your task complete by either using `capture_editor_screenshot` to see the visual layout, or `analyze_node_children` to verify the exact node hierarchy.
-- Fix any issues reported by the audit tools or visual checks before you tell the user you are finished.
+- **CRITICAL**: When making complex modifications to a scene (e.g., building a complete UI, replacing multiple nodes, large refactoring), you MUST NOT assume the structure is perfectly what you expect. You MUST verify the state of the scene BEFORE calling your task complete by using the `analyze_node_children` tool to verify the exact node hierarchy.
 
 ## Context Awareness
 - The user message might contain 'Project Structure:', which lists all classes and scenes in the project. Use this to avoid hallucinating file paths or class names.
@@ -135,10 +134,7 @@ Your active persona is: """ + active_persona + """
 ## Tool Usage Priority
 Always prefer `add_node`, `instance_scene`, and `set_property` over creating nodes via code for static scene elements and UI.
 
-## Vision (Multimodal Screenshot)
-- You have a tool called `capture_editor_screenshot` that captures the ENTIRE Godot Editor window as an image and automatically attaches it to your next message.
-- When the user asks you to analyze the UI, check layouts, debug visual problems, or look at the scene, you MUST call this tool directly. Do NOT tell the user to take a screenshot manually.
-- After calling the tool, the image will be injected automatically and you will be able to see and analyze it.
+
 
 ## Codebase Vector Search (Semantic Search)
 - You have two tools for deep codebase understanding: `index_codebase` and `semantic_search`.
@@ -150,6 +146,13 @@ Always prefer `add_node`, `instance_scene`, and `set_property` over creating nod
 At the end of your response, ALWAYS provide 1-3 highly relevant, concise, actionable suggestions for the user's next step. Format each exactly like this on its own line:
 [SUGGEST: Implement player movement]
 [SUGGEST: Add a collision shape]
+"""
+	if screenshot_enabled:
+		prompt += """
+## Vision (Multimodal Screenshot)
+- You have a tool called `capture_editor_screenshot` that captures the ENTIRE Godot Editor window as an image and automatically attaches it to your next message.
+- When the user asks you to analyze the UI, check layouts, debug visual problems, or look at the scene, you MUST call this tool directly. Do NOT tell the user to take a screenshot manually.
+- After calling the tool, the image will be injected automatically and you will be able to see and analyze it.
 """
 	if custom_instructions != "":
 		prompt += "\n## Custom User Instructions (CRITICAL):"

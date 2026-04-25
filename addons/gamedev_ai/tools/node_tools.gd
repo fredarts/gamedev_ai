@@ -87,6 +87,11 @@ func _get_property_type(node: Object, property: String) -> int:
 	return -1
 
 func _parse_value(value: Variant, expected_type: int = -1) -> Variant:
+	if value is String and value.begins_with("[") and value.ends_with("]"):
+		var parsed = JSON.parse_string(value)
+		if parsed != null and parsed is Array:
+			value = parsed
+			
 	if value is Array:
 		# Check if this is an array of resource paths (e.g. loading_screens)
 		if expected_type == TYPE_ARRAY or expected_type == -1:
@@ -226,32 +231,28 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 			else:
 				add_msg = " | Warning: Script not found at " + script_path
 		
-		if not _is_composite():
-			ur.create_action("Add Node " + name, UndoRedo.MERGE_DISABLE, executor)
+		ur.create_action("Add Node " + name, UndoRedo.MERGE_DISABLE, root)
 			
-		ur.add_do_method(executor, "_proxy_add_child", parent, node)
-		ur.add_do_method(executor, "_proxy_set_property", node, "owner", root)
+		ur.add_do_method(parent, "add_child", node)
+		ur.add_do_method(node, "set_owner", root)
 		if script:
-			ur.add_do_method(executor, "_proxy_set_script", node, script)
+			ur.add_do_method(node, "set_script", script)
 		ur.add_do_reference(node)
-		ur.add_undo_method(executor, "_proxy_remove_child", parent, node)
+		ur.add_undo_method(parent, "remove_child", node)
 		
-		if _is_composite():
-			executor._proxy_add_child(parent, node)
-			executor._proxy_set_property(node, "owner", root)
-			if script:
-				executor._proxy_set_script(node, script)
+		# Execute manually to make it immediately available to next tools
+		parent.add_child(node)
+		node.owner = root
+		if script:
+			node.set_script(script)
 		
 		var msg = "Success: Node " + name + " (" + type + ") added to " + parent.name
 		if script:
 			msg += " with script " + script_path
 			
-		if not _is_composite():
-			ur.commit_action()
-			_save_scene()
-			_emit_output(msg + add_msg)
-		else:
-			_emit_output(msg + " (Queued)" + add_msg)
+		ur.commit_action(false) # false = don't double execute
+		_save_scene()
+		_emit_output(msg + add_msg)
 	else:
 		_emit_output("Error: UndoRedoManager not available.")
 
@@ -279,24 +280,19 @@ func _instance_scene(parent_path: String, scene_path: String, name: String):
 		var instance = scene.instantiate()
 		instance.name = name
 		
-		if not _is_composite():
-			ur.create_action("Instance Scene " + name, UndoRedo.MERGE_DISABLE, executor)
+		ur.create_action("Instance Scene " + name, UndoRedo.MERGE_DISABLE, root)
 		
-		ur.add_do_method(executor, "_proxy_add_child", parent, instance)
-		ur.add_do_method(executor, "_proxy_set_property", instance, "owner", root)
+		ur.add_do_method(parent, "add_child", instance)
+		ur.add_do_method(instance, "set_owner", root)
 		ur.add_do_reference(instance)
-		ur.add_undo_method(executor, "_proxy_remove_child", parent, instance)
+		ur.add_undo_method(parent, "remove_child", instance)
 		
-		if _is_composite():
-			executor._proxy_add_child(parent, instance)
-			executor._proxy_set_property(instance, "owner", root)
+		parent.add_child(instance)
+		instance.owner = root
 		
-		if not _is_composite():
-			ur.commit_action()
-			_save_scene()
-			_emit_output("Success: Scene " + scene_path + " instanced as " + name + " under " + parent.name)
-		else:
-			_emit_output("Success: Scene instance queued: " + name)
+		ur.commit_action(false)
+		_save_scene()
+		_emit_output("Success: Scene " + scene_path + " instanced as " + name + " under " + parent.name)
 	else:
 		var instance = scene.instantiate()
 		instance.name = name
@@ -318,18 +314,17 @@ func _set_property(node_path: String, property: String, value: Variant):
 	
 	var ur = _get_undo_redo()
 	if ur:
-		if not _is_composite():
-			ur.create_action("Set Property " + property + " on " + node.name, UndoRedo.MERGE_DISABLE, executor)
+		ur.create_action("Set Property " + property + " on " + node.name, UndoRedo.MERGE_DISABLE, root)
 			
-		ur.add_do_method(executor, "_proxy_set_property", node, property, final_value)
-		ur.add_undo_method(executor, "_proxy_set_property", node, property, node.get(property))
+		var old_value = node.get(property)
+		ur.add_do_method(node, "set", property, final_value)
+		ur.add_undo_method(node, "set", property, old_value)
 		
-		if not _is_composite():
-			ur.commit_action()
-			_save_scene()
-			_emit_output("Success: Set " + property + " to " + str(final_value) + " on " + node_path)
-		else:
-			_emit_output("Success: Set property queued: " + property + " on " + node_path)
+		node.set(property, final_value)
+		
+		ur.commit_action(false)
+		_save_scene()
+		_emit_output("Success: Set " + property + " to " + str(final_value) + " on " + node_path)
 	else:
 		node.set(property, final_value)
 		_save_scene()
@@ -361,22 +356,25 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 	var ur = _get_undo_redo()
 	
 	if ur:
-		if not _is_composite():
-			ur.create_action("Set Theme Override " + name + " on " + node.name, UndoRedo.MERGE_DISABLE, executor)
+		ur.create_action("Set Theme Override " + name + " on " + node.name, UndoRedo.MERGE_DISABLE, root)
 			
 		match override_type:
-			"color": ur.add_do_method(executor, "_proxy_call", node, "add_theme_color_override", name, final_value)
-			"constant": ur.add_do_method(executor, "_proxy_call", node, "add_theme_constant_override", name, int(final_value))
-			"font_size": ur.add_do_method(executor, "_proxy_call", node, "add_theme_font_size_override", name, int(final_value))
-			"font": ur.add_do_method(executor, "_proxy_call", node, "add_theme_font_override", name, final_value)
-			"stylebox": ur.add_do_method(executor, "_proxy_call", node, "add_theme_stylebox_override", name, final_value)
+			"color": ur.add_do_method(node, "add_theme_color_override", name, final_value)
+			"constant": ur.add_do_method(node, "add_theme_constant_override", name, int(final_value))
+			"font_size": ur.add_do_method(node, "add_theme_font_size_override", name, int(final_value))
+			"font": ur.add_do_method(node, "add_theme_font_override", name, final_value)
+			"stylebox": ur.add_do_method(node, "add_theme_stylebox_override", name, final_value)
 		
-		if not _is_composite():
-			ur.commit_action()
-			_save_scene()
-			_emit_output("Success: Set theme override " + name + " on " + node_path)
-		else:
-			_emit_output("Success: Set theme override queued: " + name)
+		match override_type:
+			"color": node.add_theme_color_override(name, final_value)
+			"constant": node.add_theme_constant_override(name, int(final_value))
+			"font_size": node.add_theme_font_size_override(name, int(final_value))
+			"font": node.add_theme_font_override(name, final_value)
+			"stylebox": node.add_theme_stylebox_override(name, final_value)
+			
+		ur.commit_action(false)
+		_save_scene()
+		_emit_output("Success: Set theme override " + name + " on " + node_path)
 	else:
 		match override_type:
 			"color": node.add_theme_color_override(name, final_value)
@@ -410,19 +408,16 @@ func _connect_signal(source_path: String, signal_name: String, target_path: Stri
 
 	var ur = _get_undo_redo()
 	if ur:
-		if not _is_composite():
-			ur.create_action("Connect Signal " + signal_name, UndoRedo.MERGE_DISABLE, executor)
+		ur.create_action("Connect Signal " + signal_name, UndoRedo.MERGE_DISABLE, root)
 			
-		ur.add_do_method(executor, "_proxy_connect", source, signal_name, callable, flags)
-		ur.add_undo_method(executor, "_proxy_disconnect", source, signal_name, callable)
+		ur.add_do_method(source, "connect", signal_name, callable, flags)
+		ur.add_undo_method(source, "disconnect", signal_name, callable)
 		
-		if _is_composite():
-			executor._proxy_connect(source, signal_name, callable, flags)
-			_emit_output("Success: Connection queued: " + signal_name + " -> " + method_name)
-		else:
-			ur.commit_action()
-			_save_scene()
-			_emit_output("Success: Connected " + signal_name + " to " + method_name)
+		source.connect(signal_name, callable, flags)
+		
+		ur.commit_action(false)
+		_save_scene()
+		_emit_output("Success: Connected " + signal_name + " to " + method_name)
 	else:
 		source.connect(signal_name, callable, flags)
 		_save_scene()
@@ -444,19 +439,16 @@ func _disconnect_signal(source_path: String, signal_name: String, target_path: S
 
 	var ur = _get_undo_redo()
 	if ur:
-		if not _is_composite():
-			ur.create_action("Disconnect Signal " + signal_name, UndoRedo.MERGE_DISABLE, executor)
+		ur.create_action("Disconnect Signal " + signal_name, UndoRedo.MERGE_DISABLE, root)
 			
-		ur.add_do_method(executor, "_proxy_disconnect", source, signal_name, callable)
-		ur.add_undo_method(executor, "_proxy_connect", source, signal_name, callable) 
+		ur.add_do_method(source, "disconnect", signal_name, callable)
+		ur.add_undo_method(source, "connect", signal_name, callable) 
 		
-		if _is_composite():
-			executor._proxy_disconnect(source, signal_name, callable)
-			_emit_output("Success: Disconnection queued: " + signal_name)
-		else:
-			ur.commit_action()
-			_save_scene()
-			_emit_output("Success: Disconnected " + signal_name)
+		source.disconnect(signal_name, callable)
+		
+		ur.commit_action(false)
+		_save_scene()
+		_emit_output("Success: Disconnected " + signal_name)
 	else:
 		source.disconnect(signal_name, callable)
 		_save_scene()
@@ -475,23 +467,20 @@ func _remove_node(node_path: String):
 		return
 		
 	var parent = node.get_parent()
-		
-	if _get_undo_redo():
-		if not _is_composite():
-			_get_undo_redo().create_action("Remove Node " + node.name, UndoRedo.MERGE_DISABLE, executor)
+	var ur = _get_undo_redo()
+	if ur:
+		ur.create_action("Remove Node " + node.name, UndoRedo.MERGE_DISABLE, root)
 			
-		_get_undo_redo().add_do_method(executor, "_proxy_remove_child", parent, node)
-		_get_undo_redo().add_undo_method(executor, "_proxy_add_child", parent, node)
-		_get_undo_redo().add_undo_method(executor, "_proxy_set_property", node, "owner", root)
-		_get_undo_redo().add_undo_reference(node) # Prevent memory leak when history is cleared
+		ur.add_do_method(parent, "remove_child", node)
+		ur.add_undo_method(parent, "add_child", node)
+		ur.add_undo_method(node, "set_owner", root)
+		ur.add_undo_reference(node) # Prevent memory leak when history is cleared
 		
-		if _is_composite():
-			executor._proxy_remove_child(parent, node)
-			_emit_output("Success: Node removal queued: " + node_path)
-		else:
-			_get_undo_redo().commit_action()
-			_save_scene()
-			_emit_output("Success: Node " + node_path + " removed.")
+		parent.remove_child(node)
+		
+		ur.commit_action(false)
+		_save_scene()
+		_emit_output("Success: Node " + node_path + " removed.")
 	else:
 		parent.remove_child(node)
 		node.queue_free()

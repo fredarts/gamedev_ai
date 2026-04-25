@@ -81,7 +81,7 @@ func _prepare_request(text: String) -> Dictionary:
 				"parts": [{"text": text}]
 			}
 		})
-	else: # OpenAI / OpenRouter
+	else: # OpenAI / OpenRouter / Local (all OpenAI-compatible)
 		if base_url != "":
 			url = base_url
 			if not url.ends_with("/"): url += "/"

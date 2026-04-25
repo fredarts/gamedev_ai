@@ -118,6 +118,7 @@ var _chat_log_bbcode: String = ""
 
 var presets: Dictionary = {}
 var active_preset_name: String = ""
+var _local_hint_label: Label = null
 
 var _last_log_size: int = 0
 var _ignore_next_error: bool = false
@@ -282,6 +283,7 @@ func _ready():
 	# Add provider options
 	provider_selector.add_item("Gemini", 0)
 	provider_selector.add_item("OpenAI / OpenRouter", 1)
+	provider_selector.add_item("Local (Ollama / LM Studio)", 2)
 	
 	# Polling timer
 	$PollTimer.timeout.connect(_on_poll_timer_timeout)
@@ -384,6 +386,7 @@ func _set_client(client):
 		gemini_client.token_usage_reported.connect(_on_token_usage)
 		if custom_prompt_input:
 			gemini_client.custom_instructions = custom_prompt_input.text
+			gemini_client.screenshot_enabled = screenshot_enabled
 
 func _load_presets():
 	var settings = EditorInterface.get_editor_settings()
@@ -445,6 +448,8 @@ func _on_preset_selected(index: int):
 	
 	_save_presets()
 	preset_changed.emit(config)
+	
+	_update_fields_for_provider(config["provider"])
 
 func _on_chat_preset_selected(index: int):
 	preset_selector.selected = index
@@ -508,6 +513,43 @@ func _on_provider_type_changed(index: int):
 	settings_bar.visible = true
 	_save_presets()
 	preset_changed.emit(presets[active_preset_name])
+	_update_fields_for_provider(index)
+
+func _update_fields_for_provider(index: int):
+	var is_local = (index == 2)
+	
+	api_input.editable = not is_local
+	if is_local:
+		api_input.text = ""
+		if locale_manager:
+			api_input.placeholder_text = locale_manager.tr("api_key_not_required")
+	else:
+		api_input.placeholder_text = ""
+		
+	if is_local and url_input.text == "":
+		url_input.text = "http://localhost:11434/v1"
+		
+	if is_local:
+		url_input.placeholder_text = "http://localhost:11434/v1"
+		if locale_manager:
+			model_input.placeholder_text = locale_manager.tr("local_model_placeholder")
+	else:
+		url_input.placeholder_text = ""
+		model_input.placeholder_text = ""
+		
+	_update_local_hint(is_local)
+
+func _update_local_hint(is_local: bool):
+	if not _local_hint_label:
+		_local_hint_label = Label.new()
+		_local_hint_label.add_theme_color_override("font_color", Color(0.9, 0.7, 0.2, 0.9))
+		_local_hint_label.add_theme_font_size_override("font_size", 11)
+		settings_bar.get_parent().add_child(_local_hint_label)
+		settings_bar.get_parent().move_child(_local_hint_label, settings_bar.get_index() + 1)
+		
+	_local_hint_label.visible = is_local
+	if is_local and locale_manager:
+		_local_hint_label.text = locale_manager.tr("local_hint")
 
 func _on_rename_preset(new_name: String):
 	new_name = new_name.strip_edges()
@@ -535,7 +577,8 @@ func _on_rename_preset(new_name: String):
 	_save_presets()
 
 func _on_config_changed(_text: String = ""):
-	presets[active_preset_name]["api_key"] = api_input.text
+	var provider = presets[active_preset_name].get("provider", 0)
+	presets[active_preset_name]["api_key"] = "" if provider == 2 else api_input.text
 	presets[active_preset_name]["base_url"] = url_input.text
 	presets[active_preset_name]["model_name"] = model_input.text
 	_save_presets()
@@ -917,9 +960,24 @@ func _on_prompt_setting_id_pressed(id: int):
 	
 	match id:
 		0: context_enabled = checked
-		1: screenshot_enabled = checked
+		1: 
+			screenshot_enabled = checked
+			if gemini_client:
+				gemini_client.screenshot_enabled = checked
 		2: plan_first_enabled = checked
 		3: watch_mode_enabled = checked
+
+func _get_filtered_tools() -> Array:
+	var tools = []
+	if _tool_executor:
+		tools = _tool_executor.get_tool_definitions()
+		if not screenshot_enabled:
+			var filtered = []
+			for t in tools:
+				if t.get("name") != "capture_editor_screenshot":
+					filtered.append(t)
+			return filtered
+	return tools
 
 func _on_quick_action_pressed(action_text: String):
 	_process_send(action_text)
@@ -1418,9 +1476,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_
 			files_data.append(scr)
 			_add_to_chat("[i]" + locale_manager.tr("capturing_screenshot") + "[/i]\n")
 
-	var tools = []
-	if _tool_executor:
-		tools = _tool_executor.get_tool_definitions()
+	var tools = _get_filtered_tools()
 	
 	if gemini_client:
 		gemini_client.send_prompt(final_prompt, context, tools, files_data)
@@ -1554,9 +1610,7 @@ func _on_tool_output(output: String):
 	else:
 		if gemini_client and not batch_results.is_empty():
 			_add_to_chat("\n[i]" + locale_manager.tr("sending_batch_results") + "[/i]\n")
-			var tools = []
-			if _tool_executor:
-				tools = _tool_executor.get_tool_definitions()
+			var tools = _get_filtered_tools()
 				
 			var files_data = []
 			if not _attached_files.is_empty():

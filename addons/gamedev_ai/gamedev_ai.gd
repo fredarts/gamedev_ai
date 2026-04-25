@@ -90,7 +90,7 @@ func _set_provider(config: Dictionary):
 	if index == 0:
 		var GeminiProvider = load("res://addons/gamedev_ai/gemini_provider.gd")
 		ai_provider = GeminiProvider.new()
-	else:
+	else: # index 1 (OpenAI/OpenRouter) and index 2 (Local)
 		var OpenAIProvider = load("res://addons/gamedev_ai/openai_provider.gd")
 		ai_provider = OpenAIProvider.new()
 	
@@ -122,8 +122,12 @@ func _apply_config_to_provider(provider, config: Dictionary):
 	if "base_url" in provider:
 		provider.base_url = config.get("base_url", "")
 		
+	var prov_index = config.get("provider", 0)
 	if provider.get_script().get_path().ends_with("openai_provider.gd"):
-		if provider.base_url == "":
+		if prov_index == 2: # Local
+			if provider.base_url == "":
+				provider.base_url = "http://localhost:11434/v1"
+		elif provider.base_url == "":
 			provider.base_url = "https://api.openai.com/v1"
 		
 		# Set OpenRouter headers

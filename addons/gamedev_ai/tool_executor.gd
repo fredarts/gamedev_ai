@@ -77,8 +77,8 @@ func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
 			if not path.begins_with("res://"):
 				return {"valid": false, "error": "Parameter 'path' must start with 'res://'. Got: '" + path + "'"}
 				
-		if tool_name in ["create_script", "edit_script", "patch_script"] and not path.ends_with(".gd"):
-			return {"valid": false, "error": "Tool '" + tool_name + "' can only be used on .gd (GDScript) files. Got: '" + path + "'. To modify scenes, use add_node/set_property. To modify resources, use create_resource."}
+		if tool_name in ["create_script", "edit_script", "patch_script"] and not (path.ends_with(".gd") or path.ends_with(".gdshader")):
+			return {"valid": false, "error": "Tool '" + tool_name + "' can only be used on .gd (GDScript) or .gdshader files. Got: '" + path + "'. To modify scenes, use add_node/set_property. To modify resources, use create_resource."}
 		
 		if tool_name == "create_scene" and (not path.begins_with("res://") or not path.ends_with(".tscn")):
 			return {"valid": false, "error": "Parameter 'path' must start with 'res://' and end with '.tscn'. Got: '" + path + "'"}
@@ -293,19 +293,19 @@ func get_tool_definitions() -> Array:
 	return [
 		{
 			"name": "create_script",
-			"description": "Creates a new GDScript file at the specified path with the given content.",
+			"description": "Creates a new GDScript (.gd) or Shader (.gdshader) file at the specified path with the given content.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
-					"path": {"type": "STRING", "description": "The resource path (res://...) for the script."},
-					"content": {"type": "STRING", "description": "The GDScript code content."}
+					"path": {"type": "STRING", "description": "The resource path (res://...) for the script (must end in .gd or .gdshader)."},
+					"content": {"type": "STRING", "description": "The code content."}
 				},
 				"required": ["path", "content"]
 			}
 		},
 		{
 			"name": "add_node",
-			"description": "Adds a new node to the currently open scene in the Godot Editor. Use this to visually build levels, scenes, and UI hierarchies.",
+			"description": "Adds a new node to a scene. If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes. Use this to visually build levels, scenes, and UI hierarchies.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -319,7 +319,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "attach_script",
-			"description": "Attaches an existing GDScript to a node in the current scene.",
+			"description": "Attaches an existing GDScript to a node. If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -344,7 +344,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "instance_scene",
-			"description": "Instantiates an existing .tscn scene file as a child of another node in the current scene. Use this to place pre-made scenes (like an Enemy) into a level.",
+			"description": "Instantiates an existing .tscn scene file as a child of another node. If the parent scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes. Use this to place pre-made scenes (like an Enemy) into a level.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -357,7 +357,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "edit_script",
-			"description": "(DEPRECATED: Use patch_script) Edits an existing GDScript file. You should read the file first to ensure you have the full current content before providing the updated version.",
+			"description": "(DEPRECATED: Use patch_script) Edits an existing GDScript or Shader file. You should read the file first to ensure you have the full current content before providing the updated version.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -369,7 +369,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "remove_node",
-			"description": "Removes a node from the current scene.",
+			"description": "Removes a node from a scene. If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -424,12 +424,12 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "set_property",
-			"description": "Sets a property on a node in the current scene (e.g., position, size, text, color). Can handle numbers, vectors, colors, and strings.",
+			"description": "Sets a standard property on a node (e.g., position, size, text, color). DO NOT use this for theme overrides like constants or font colors! If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes. Can handle numbers, vectors, colors, and strings.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
 					"node_path": {"type": "STRING", "description": "Path to the node in the scene tree."},
-					"property": {"type": "STRING", "description": "The name of the property to set (e.g., 'text', 'size', 'position')."},
+					"property": {"type": "STRING", "description": "The name of the standard property to set (e.g., 'text', 'size', 'position'). DO NOT use theme methods here (like 'add_theme_constant_override')."},
 					"value": {"description": "The value to set. Can be string, number, or array for vectors [x, y] / colors [r, g, b, a]."}
 				},
 				"required": ["node_path", "property", "value"]
@@ -437,7 +437,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "set_theme_override",
-			"description": "Sets a theme override on a Control node (e.g., fontSize, fontColor).",
+			"description": "Sets a theme override on a Control node (e.g., separation, margin, font_size, font_color). ALWAYS use this instead of set_property for theme-related visual changes. If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -486,7 +486,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "connect_signal",
-			"description": "Connects a signal from a source node to a target node's method in the current scene.",
+			"description": "Connects a signal from a source node to a target node's method. If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -502,7 +502,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "disconnect_signal",
-			"description": "Disconnects a signal between nodes in the current scene.",
+			"description": "Disconnects a signal between nodes. If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -516,13 +516,13 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "create_resource",
-			"description": "Creates a new Resource file (.tres). Useful for data-driven assets like Items, Stats, or custom configurations.",
+			"description": "Creates a new Resource file (.tres). Useful for data-driven assets like Items, Stats, Materials, etc.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
 					"path": {"type": "STRING", "description": "Save path (res://.../file.tres)."},
-					"type": {"type": "STRING", "description": "The class name of the resource (e.g., 'Resource', 'StandardMaterial3D', or a custom class)."},
-					"properties": {"type": "OBJECT", "description": "Dictionary of initial property values { 'prop_name': value }."}
+					"type": {"type": "STRING", "description": "The class name of the resource (e.g., 'Resource', 'ShaderMaterial')."},
+					"properties": {"type": "OBJECT", "description": "Dictionary of initial property values. IMPORTANT: For resource-type properties (like 'shader', 'texture'), pass the string path ('res://...') directly, DO NOT pass a dictionary with uid/path! Example: {'shader': 'res://my_shader.gdshader', 'shader_parameter/intensity': 1.0}"}
 				},
 				"required": ["path", "type"]
 			}
@@ -645,7 +645,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "analyze_node_children",
-			"description": "Returns a detailed dump of a specific node's sub-tree in the current edited scene. Use this to explore deep hierarchies when the main context manager truncates the tree.",
+			"description": "Returns a detailed dump of a specific node's sub-tree. If the target scene is not open, the plugin will automatically find and open it for you. DO NOT ask the user to open scenes. Use this to explore deep hierarchies when the main context manager truncates the tree.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {

@@ -37,6 +37,20 @@ Gamedev AI admite el ecosistema de OpenAI/OpenRouter sin cambiar una sola línea
    * Para OpenRouter: `https://openrouter.ai/api/v1`
 5. Cambia el nombre del modelo (por ejemplo, `gpt-5.4` o `anthropic/claude-opus-4.6`).
 
+## Uso de Modelos Locales (Ollama / LM Studio)
+
+¿Prefieres ejecutar modelos de IA directamente en tu máquina, sin depender de API externas?
+Gamedev AI admite cualquier servidor compatible con la API de OpenAI que se ejecute localmente:
+
+1. Instala [Ollama](https://ollama.ai) y descarga un modelo: `ollama pull llama3.1`
+2. Asegúrate de que Ollama se esté ejecutando (`ollama serve`).
+3. En la pestaña **Settings**, cambia el Proveedor a **`Local (Ollama / LM Studio)`**.
+4. El campo **Base URL** se completará automáticamente con `http://localhost:11434/v1`.
+5. Escribe el nombre del modelo en el campo **Model Name** (ej.: `llama3.1`, `gemma3`, `qwen3`).
+6. El campo API Key se deshabilitará automáticamente (los modelos locales no lo necesitan).
+
+> **⚠️ Nota:** La calidad de las respuestas depende del modelo local elegido y de los recursos de hardware disponibles.
+
 ¡Estamos listos para chatear!
 
 [**Siguiente paso: Di "Hola" a la IA** ➔](./quick-start.md)

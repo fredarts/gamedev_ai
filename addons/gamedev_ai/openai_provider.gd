@@ -16,7 +16,8 @@ func setup(node: Node):
 		api_key = env
 
 func send_prompt(prompt: String, context: String = "", tools: Array = [], files: Array = []):
-	if api_key == "":
+	var is_local = ("localhost" in base_url or "127.0.0.1" in base_url or "11434" in base_url)
+	if api_key == "" and not is_local:
 		error_occurred.emit("API Key is missing.")
 		return
 
@@ -56,7 +57,7 @@ func _get_system_instruction() -> String:
 	var status = info.get("status", "")
 	if status != "":
 		version_str += " (" + status + ")"
-	return SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction, transcript)
+	return SysPrompt.get_system_instruction(version_str, custom_instructions, response_language_instruction, transcript, screenshot_enabled)
 
 func generate_tool_response(_tool_name: String, output: String, tool_call_id: String = "") -> Dictionary:
 	return {
@@ -124,12 +125,17 @@ func _send_request(tools: Array = []):
 	if not tools.is_empty():
 		var openai_tools = []
 		for t in tools:
+			var params = t.get("parameters", { "type": "object", "properties": {} })
+			# Duplicate to avoid modifying the original array from tool_executor
+			params = params.duplicate(true)
+			_fix_schema_types(params)
+			
 			openai_tools.append({
 				"type": "function",
 				"function": {
 					"name": t.get("name", ""),
 					"description": t.get("description", ""),
-					"parameters": t.get("parameters", { "type": "object", "properties": {} })
+					"parameters": params
 				}
 			})
 		body["tools"] = openai_tools
@@ -141,6 +147,19 @@ func _send_request(tools: Array = []):
 		_stop_timeout()
 		is_requesting = false
 		error_occurred.emit("Failed to send request: " + str(error))
+
+func _fix_schema_types(schema: Dictionary):
+	if schema.has("type") and typeof(schema["type"]) == TYPE_STRING:
+		schema["type"] = schema["type"].to_lower()
+		
+	if schema.has("properties") and typeof(schema["properties"]) == TYPE_DICTIONARY:
+		for key in schema["properties"]:
+			var prop = schema["properties"][key]
+			if typeof(prop) == TYPE_DICTIONARY:
+				_fix_schema_types(prop)
+				
+	if schema.has("items") and typeof(schema["items"]) == TYPE_DICTIONARY:
+		_fix_schema_types(schema["items"])
 
 func _on_request_completed(_result, response_code, _headers, body):
 	_stop_timeout()
