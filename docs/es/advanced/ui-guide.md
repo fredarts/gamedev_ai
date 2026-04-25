@@ -83,7 +83,7 @@ Estas opciones están agrupadas bajo el icono ⚙️ junto al botón de enviar.
 ### Campos de Edición de Presets
 | Campo | Descripción |
 |-------|-----------|
-| **Nombre del Preset** | Nombre descriptivo para identificar el preset (ej. "Gemini 3.1 Gratis"). |
+| **Nombre del Preset** | Nombre descriptivo para identificar el preset (ej. "Gemini 3.1"). |
 | **Proveedor** | Opción desplegable entre "Gemini" y "OpenAI / OpenRouter". |
 | **Clave API** | Tu clave API del proveedor seleccionado. |
 | **URL Base** | URL base de la API (solo para OpenAI/OpenRouter). |

@@ -83,7 +83,7 @@
 ### 预设编辑字段
 | 字段 | 描述 |
 |-------|-----------|
-| **Preset Name** | 用于标识的显示名称（例如 "Gemini 3.1 Free"）。 |
+| **Preset Name** | 用于标识的显示名称（例如 "Gemini 3.1"）。 |
 | **Provider** | “Gemini”和“OpenAI / OpenRouter”之间的下拉选择。 |
 | **API Key** | 您所选提供商的 API 密钥。 |
 | **Base URL** | 基础 API URL（仅适用于 OpenAI/OpenRouter）。 |

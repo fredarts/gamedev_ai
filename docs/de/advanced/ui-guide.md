@@ -83,7 +83,7 @@ Diese Optionen sind unter dem ⚙️-Symbol neben der Senden-Schaltfläche grupp
 ### Preset-Edit-Felder
 | Feld | Beschreibung |
 |-------|-----------|
-| **Preset Name** | Anzeigename zur Identifizierung (z.B. "Gemini 3.1 Free"). |
+| **Preset Name** | Anzeigename zur Identifizierung (z.B. "Gemini 3.1"). |
 | **Provider** | Dropdown-Auswahl zwischen "Gemini" und "OpenAI / OpenRouter". |
 | **API Key** | Ihr API-Key des gewählten Anbieters. |
 | **Base URL** | Basis-API-URL (nur für OpenAI/OpenRouter). |

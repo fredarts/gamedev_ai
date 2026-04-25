@@ -83,7 +83,7 @@ Ces options sont regroupées sous l'icône ⚙️ à côté du bouton d'envoi.
 ### Champs d'édition des Presets
 | Champ | Description |
 |-------|-----------|
-| **Nom du Preset** | Nom convivial (ex: "Gemini 3.1 Gratuit"). |
+| **Nom du Preset** | Nom convivial (ex: "Gemini 3.1"). |
 | **Fournisseur** | Choix entre "Gemini" et "OpenAI / OpenRouter". |
 | **Clé API** | Votre clé API du fournisseur sélectionné. |
 | **URL de base** | URL de base de l'API (uniquement pour OpenAI/OpenRouter). |

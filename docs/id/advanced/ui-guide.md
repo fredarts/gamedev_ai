@@ -83,7 +83,7 @@ Opsi-opsi ini dikelompokkan di bawah ikon ⚙️ di sebelah tombol kirim.
 ### Bidang Pengeditan Preset
 | Bidang | Deskripsi |
 |-------|-----------|
-| **Preset Name** | Nama identitas (contoh: "Gemini 3.1 Free"). |
+| **Preset Name** | Nama identitas (contoh: "Gemini 3.1"). |
 | **Provider** | Pilihan antara "Gemini" dan "OpenAI / OpenRouter". |
 | **API Key** | Kunci API dari provider terpilih. |
 | **Base URL** | URL dasar API (hanya untuk OpenAI/OpenRouter). |

@@ -4,8 +4,8 @@ O Gamedev AI não possui um backend proprietário para roubar seus dados. Ele fa
 
 Para o plugin falar e responder aos seus códigos, precisamos fornecer uma **Chave de API** (API Key).
 
-## Utilizando as Ferramentas Google (Gemini) - Gratuito
-A forma mais popular, incrivelmente inteligente e **gratuita** de usar o plugin hoje é utilizando o Google AI Studio com o Gemini 3.1 Pro ou Gemini 3.1 Flash. O Gemini 4.0 está em beta.
+## Utilizando as Ferramentas Google (Gemini)
+A forma mais popular e incrivelmente inteligente de usar o plugin hoje é utilizando o Google AI Studio com o Gemini 3.1 Pro ou Gemini 3.1 Flash. O Gemini 4.0 está em beta.
 
 1. Acesse o [Google AI Studio](https://aistudio.google.com/app/apikey).
 2. Faça login com sua conta Google (não exige cartão de crédito no Tier Gratuito).

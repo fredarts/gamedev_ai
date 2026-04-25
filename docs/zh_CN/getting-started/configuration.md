@@ -4,8 +4,8 @@ Gamedev AI 没有专有的后端来偷取您的数据。它会直接调用您喜
 
 为了让插件能够与您的代码对话并做出响应，我们需要提供一个 **API 密钥**。
 
-## 使用 Google 工具 (Gemini) - 免费
-目前使用该插件最流行、极其智能且**免费**的方法是通过 Google AI Studio 使用 Gemini 3.1 Pro 或 Gemini 3.1 Flash。Gemini 4.0 目前处于测试阶段。
+## 使用 Google 工具 (Gemini)
+目前使用该插件最流行且极其智能的方法是通过 Google AI Studio 使用 Gemini 3.1 Pro 或 Gemini 3.1 Flash。Gemini 4.0 目前处于测试阶段。
 
 1. 前往 [Google AI Studio](https://aistudio.google.com/app/apikey)。
 2. 使用您的 Google 账户登录（免费层级不需要信用卡）。

@@ -83,7 +83,7 @@
 ### حقول تحرير الـ Preset
 | الحقل | الوصف |
 |-------|-----------|
-| **Preset Name** | الاسم التعريفي (مثل "Gemini 3.1 Free"). |
+| **Preset Name** | الاسم التعريفي (مثل "Gemini 3.1"). |
 | **Provider** | الاختيار بين "Gemini" و "OpenAI / OpenRouter". |
 | **API Key** | مفتاح API الخاص بالمزود المختار. |
 | **Base URL** | رابط API الأساسي (فقط لـ OpenAI/OpenRouter). |

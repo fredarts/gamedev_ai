@@ -4,8 +4,8 @@ Gamedev AI tidak menggunakan backend milik sendiri untuk mencuri data Anda. Ia l
 
 For the plugin to speak and respond to your code, we need to provide an **API Key**.
 
-## Menggunakan Google Tools (Gemini) - Gratis
-Saat ini, cara paling populer, sangat cerdas, dan **Gratis** untuk menggunakan plugin ini adalah melalui Google AI Studio dengan Gemini 3.1 Pro atau Gemini 3.1 Flash. Gemini 4.0 saat ini dalam tahap beta.
+## Menggunakan Google Tools (Gemini)
+Saat ini, cara paling populer dan sangat cerdas untuk menggunakan plugin ini adalah melalui Google AI Studio dengan Gemini 3.1 Pro atau Gemini 3.1 Flash. Gemini 4.0 saat ini dalam tahap beta.
 
 1. Buka [Google AI Studio](https://aistudio.google.com/app/apikey).
 2. Login dengan akun Google Anda (tidak perlu kartu kredit untuk paket gratis).
