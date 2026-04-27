@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/public/images/gamedevAi_logo.png" width="200" alt="Gamedev AI Logo">
+  <img src="https://raw.githubusercontent.com/fredarts/gamedev_ai/main/docs/images/cover%2002.jpg" alt="Gamedev AI Cover">
 </p>
 
 <h1 align="center">Gamedev AI</h1>
@@ -42,6 +42,28 @@ Fully localized documentation and interface in:
 | **ENGINE** | **Watch Mode (Auto-Fix)**: AI monitors the Output window and proposes fixes for crashes on-the-fly. |
 | **SMART** | **25 Built-in Skills**: Shaders, Multiplayer, UI/UX, Inventories, and more — using industrial standards. |
 | **WORKFLOW** | **Slash Commands**: Adapt AI methodology instantly with commands like `/plan`, `/debug`, and `/brainstorm`. |
+
+### 📸 Interface Highlights
+
+**Main Interface:**
+<p align="center">
+  <img src="docs/images/main_interface.png" width="800" alt="Main Interface">
+</p>
+
+**Safe & Visual Diff Preview:**
+<p align="center">
+  <img src="docs/images/diff_preview.png" width="800" alt="Diff Preview">
+</p>
+
+**Git Integration Tab:**
+<p align="center">
+  <img src="docs/images/git_tab.png" width="800" alt="Git Integration">
+</p>
+
+**Node Drag and Drop:**
+<p align="center">
+  <img src="docs/images/drag_and_drop.png" width="800" alt="Drag and Drop Nodes">
+</p>
 
 ---
 
