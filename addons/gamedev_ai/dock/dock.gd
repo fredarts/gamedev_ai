@@ -2052,6 +2052,7 @@ func _drop_data(_at_pos: Vector2, data: Variant):
 	if not node_paths_raw.is_empty():
 		var editor_root = EditorInterface.get_edited_scene_root()
 		var lines: Array = []
+		var node_names: Array = []
 		for np in node_paths_raw:
 			var node = editor_root.get_node_or_null(np) if editor_root else null
 			if node:
@@ -2059,12 +2060,27 @@ func _drop_data(_at_pos: Vector2, data: Variant):
 				var script_path = script.resource_path if (script and script.resource_path != "") else "(no script)"
 				var scene_path = node.scene_file_path if node.scene_file_path != "" else "(no scene file)"
 				lines.append("Node: " + node.name + "  |  Type: " + node.get_class() + "  |  Path: " + str(np) + "  |  Scene: " + scene_path + "  |  Script: " + script_path)
+				node_names.append(node.name)
 			else:
 				lines.append("Node path: " + str(np))
-		var label = str(node_paths_raw.size()) + " node(s) from scene tree"
+				var path_str = str(np)
+				var last_slash = path_str.rfind("/")
+				if last_slash != -1:
+					node_names.append(path_str.substr(last_slash + 1))
+				else:
+					node_names.append(path_str)
+
+		var label = ""
+		if node_names.size() == 1:
+			label = node_names[0]
+		elif node_names.size() <= 3:
+			label = ", ".join(node_names)
+		else:
+			label = str(node_paths_raw.size()) + " nodes"
+
 		_attached_files.append({
 			"type": "text",
-			"filename": "[Nodes] " + label,
+			"filename": label,
 			"text_content": "## Dragged Nodes from Scene Tree\n\n" + "\n".join(lines)
 		})
 		_refresh_thumbnails()

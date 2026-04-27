@@ -37,9 +37,11 @@ Fully localized documentation and interface in:
 | Category | Features |
 |---|---|
 | **CORE** | **Building via Chat**: Drag nodes from Scene Tree to chat. Structure systems instantly. |
+| **CORE** | **Git Integration**: Native UI to manage branches and let AI auto-generate commit messages. |
 | **SAFE** | **Safe & Visual Diff**: Preview every line of code before applying it. Accept or reject changes. |
 | **ENGINE** | **Watch Mode (Auto-Fix)**: AI monitors the Output window and proposes fixes for crashes on-the-fly. |
 | **SMART** | **25 Built-in Skills**: Shaders, Multiplayer, UI/UX, Inventories, and more — using industrial standards. |
+| **WORKFLOW** | **Slash Commands**: Adapt AI methodology instantly with commands like `/plan`, `/debug`, and `/brainstorm`. |
 
 ---
 
@@ -53,6 +55,18 @@ Your scripts are indexed locally into a **Vector DB**. The AI understands your c
 
 ### 3. Socratic Gate
 The assistant stops and asks strategic questions before changing critical systems, ensuring you maintain control and avoid broken code.
+
+---
+
+## 🧠 Supported AI Models
+
+Gamedev AI is fully flexible and doesn't force you into a proprietary backend. You control the intelligence:
+
+*   **Local Models (100% Free & Private):** Run offline using **Ollama** or **LM Studio** (Llama 3, DeepSeek, Gemma, etc.).
+*   **Google Gemini:** Native support for Gemini 3.1 Pro / Flash via Google AI Studio.
+*   **OpenRouter & OpenAI:** Access Claude, GPT, and other cutting-edge models.
+*   **NVIDIA NIM:** Fast access to high-end open models like DeepSeek-R1 and Llama 3.1 70B.
+*   **Multimodal Vision:** Support for AI Vision to analyze your Editor (can be toggled off if unsupported).
 
 ---
 
