@@ -77,8 +77,15 @@ func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
 			if not path.begins_with("res://"):
 				return {"valid": false, "error": "Parameter 'path' must start with 'res://'. Got: '" + path + "'"}
 				
-		if tool_name in ["create_script", "edit_script", "patch_script"] and not (path.ends_with(".gd") or path.ends_with(".gdshader")):
-			return {"valid": false, "error": "Tool '" + tool_name + "' can only be used on .gd (GDScript) or .gdshader files. Got: '" + path + "'. To modify scenes, use add_node/set_property. To modify resources, use create_resource."}
+		var allowed_text_exts = [".gd", ".gdshader", ".md", ".txt", ".json", ".cfg", ".xml", ".csv"]
+		if tool_name in ["create_script", "edit_script", "patch_script"]:
+			var has_valid_ext = false
+			for ext in allowed_text_exts:
+				if path.ends_with(ext):
+					has_valid_ext = true
+					break
+			if not has_valid_ext:
+				return {"valid": false, "error": "Tool '" + tool_name + "' can only be used on text-based files (" + str(allowed_text_exts) + "). Got: '" + path + "'. To modify scenes, use add_node/set_property. To modify resources, use create_resource."}
 		
 		if tool_name == "create_scene" and (not path.begins_with("res://") or not path.ends_with(".tscn")):
 			return {"valid": false, "error": "Parameter 'path' must start with 'res://' and end with '.tscn'. Got: '" + path + "'"}
@@ -293,11 +300,11 @@ func get_tool_definitions() -> Array:
 	return [
 		{
 			"name": "create_script",
-			"description": "Creates a new GDScript (.gd) or Shader (.gdshader) file at the specified path with the given content.",
+			"description": "Creates a new text file (GDScript, Shader, Markdown, JSON, etc.) at the specified path with the given content.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
-					"path": {"type": "STRING", "description": "The resource path (res://...) for the script (must end in .gd or .gdshader)."},
+					"path": {"type": "STRING", "description": "The resource path (res://...) for the file (e.g. .gd, .gdshader, .md, .json)."},
 					"content": {"type": "STRING", "description": "The code content."}
 				},
 				"required": ["path", "content"]
@@ -357,7 +364,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "edit_script",
-			"description": "(DEPRECATED: Use patch_script) Edits an existing GDScript or Shader file. You should read the file first to ensure you have the full current content before providing the updated version.",
+			"description": "(DEPRECATED: Use patch_script) Edits an existing text file (GDScript, Shader, Markdown, etc.). You should read the file first to ensure you have the full current content before providing the updated version.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
@@ -473,7 +480,7 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "patch_script",
-			"description": "Surgically edits a script by replacing a specific block of code with new content. Use this for small changes to avoid overwriting the entire file.",
+			"description": "Surgically edits a text file (GDScript, Markdown, JSON, etc.) by replacing a specific block of code or text with new content. Use this for small changes to avoid overwriting the entire file.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {

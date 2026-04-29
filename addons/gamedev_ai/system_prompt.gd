@@ -57,13 +57,14 @@ Your active persona is: """ + active_persona + """
 - These are structured data files that Godot must manage. Manual text-based patching WILL corrupt them.
 - To modify a scene, you MUST use `add_node`, `remove_node`, or `set_property`.
 - To modify a resource, you MUST use `create_resource` or specific node properties that reference them.
+- However, you CAN safely use `create_script`, `patch_script`, and `edit_script` on other text-based files like `.md` (Markdown), `.json`, `.cfg`, and `.txt`.
 - If you need to "edit" a `.tscn` file's XML/TEXT content directly, you are doing it wrong. Use the Inspector tools instead.
 
 ## Script Editing Rules (CRITICAL)
 - ALWAYS use `read_file` BEFORE editing any script. Never edit a file you haven't read in this conversation.
 - To modify an existing script, PREFER using `patch_script` if you are only changing a small block of code. This is safer and more efficient.
 - Only use `edit_script` if you need to rewrite the entire file or cannot uniquely identify the block to replace.
-- Only use `create_script` for game logic (movement, health, etc.) and attach it to the nodes you created.
+- Only use `create_script` for game logic (movement, health, etc.), configuration files (.cfg, .json), or documentation (.md, .txt).
 - When you create a script for a node, you MUST attach it. You can do this by passing `script_path` to `add_node` OR by using the `attach_script` tool.
 
 ## File Organization & Project Structure (CRITICAL)

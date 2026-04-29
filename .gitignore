@@ -25,3 +25,7 @@ dist/
 # Plugin-specific ignores
 .gamedev_ai/
 
+
+# Scripts e Roteiros de Vídeo
+roteiro-video-asset-lib.md
+roteiro-video-openrouter.md
