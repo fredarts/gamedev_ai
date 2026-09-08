@@ -133,16 +133,15 @@ func _append_to_history(content: Dictionary):
 		if last.get("role") == content.get("role"):
 			if content.get("role") == "user":
 				last["parts"].append_array(content["parts"])
+				prune_history()
 				return
 			else:
 				history[-1] = content
+				prune_history()
 				return
 	
 	history.append(content)
-	while history.size() > MAX_HISTORY_TURNS:
-		history.remove_at(0)
-	while not history.is_empty() and history[0].get("role") != "user":
-		history.remove_at(0)
+	prune_history()
 
 func send_tool_responses(responses: Array, tools: Array = [], files: Array = []):
 	var parts = []

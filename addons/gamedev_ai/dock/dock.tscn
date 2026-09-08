@@ -605,6 +605,113 @@ size_flags_horizontal = 3
 text = "Force Push"
 tooltip_text = "Force upload your local project to GitHub, overwriting whatever is there. Useful when your local Git history got out of sync with GitHub."
 
+[node name="Shaders" type="VBoxContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="ShaderTopBar" type="HBoxContainer" parent="TabContainer/Shaders"]
+layout_mode = 2
+
+[node name="ShaderCategorySelector" type="OptionButton" parent="TabContainer/Shaders/ShaderTopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShaderPresetSelector" type="OptionButton" parent="TabContainer/Shaders/ShaderTopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShaderModeSelector" type="OptionButton" parent="TabContainer/Shaders/ShaderTopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+item_count = 2
+popup/item_0/text = "2D CanvasItem"
+popup/item_0/id = 0
+popup/item_1/text = "3D Spatial"
+popup/item_1/id = 1
+
+[node name="ShaderMainHSplit" type="HSplitContainer" parent="TabContainer/Shaders"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShaderLeftPanel" type="VBoxContainer" parent="TabContainer/Shaders/ShaderMainHSplit"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShaderPreviewContainer" type="PanelContainer" parent="TabContainer/Shaders/ShaderMainHSplit/ShaderLeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+
+[node name="ShaderViewportContainer" type="SubViewportContainer" parent="TabContainer/Shaders/ShaderMainHSplit/ShaderLeftPanel/ShaderPreviewContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+stretch = true
+
+[node name="ShaderUniformsScroll" type="ScrollContainer" parent="TabContainer/Shaders/ShaderMainHSplit/ShaderLeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ShaderUniformsContainer" type="VBoxContainer" parent="TabContainer/Shaders/ShaderMainHSplit/ShaderLeftPanel/ShaderUniformsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ShaderRightPanel" type="VBoxContainer" parent="TabContainer/Shaders/ShaderMainHSplit"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShaderCodeLabel" type="Label" parent="TabContainer/Shaders/ShaderMainHSplit/ShaderRightPanel"]
+layout_mode = 2
+text = "GDShader Code:"
+
+[node name="ShaderCodeEdit" type="TextEdit" parent="TabContainer/Shaders/ShaderMainHSplit/ShaderRightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+wrap_mode = 1
+
+[node name="ShaderActionsHBox" type="HBoxContainer" parent="TabContainer/Shaders"]
+layout_mode = 2
+
+[node name="ShaderRecompileBtn" type="Button" parent="TabContainer/Shaders/ShaderActionsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🔄 Recompile"
+tooltip_text = "Recompile modified shader code and update live preview"
+
+[node name="ShaderRandomizeBtn" type="Button" parent="TabContainer/Shaders/ShaderActionsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🎲 Randomize"
+tooltip_text = "Mutate shader parameters with random values"
+
+[node name="ShaderApplyBtn" type="Button" parent="TabContainer/Shaders/ShaderActionsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🎯 Apply to Selection"
+tooltip_text = "Apply this shader material to the currently selected node in the Scene tree"
+
+[node name="ShaderSaveBtn" type="Button" parent="TabContainer/Shaders/ShaderActionsHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "💾 Save to Project"
+tooltip_text = "Save .gdshader and companion .tres material into res://shaders/"
+
+[node name="ShaderStatusLabel" type="RichTextLabel" parent="TabContainer/Shaders"]
+unique_name_in_owner = true
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = "[color=gray]Visual Shader Studio ready.[/color]"
+
 [node name="PollTimer" type="Timer" parent="."]
 wait_time = 0.5
 autostart = true

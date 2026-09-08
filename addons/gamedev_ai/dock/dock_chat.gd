@@ -1,0 +1,712 @@
+@tool
+extends RefCounted
+class_name DockChat
+
+var _dock_owner: Node
+var ai_provider
+var context_manager
+var _tool_executor
+var _memory_manager
+var locale_manager
+
+# UI Node references
+var chat_scroll: ScrollContainer
+var chat_vbox: VBoxContainer
+var input_field: TextEdit
+var send_button: Button
+var magic_actions_btn: MenuButton
+var prompt_settings_btn: MenuButton
+var selection_status: Label
+var history_button: MenuButton
+var summarize_btn: Button
+var new_chat_button: Button
+var execute_plan_btn: Button
+var chat_preset_selector: OptionButton
+
+var _image_preview_scroll: ScrollContainer
+var _thumbnail_list: HBoxContainer
+var add_file_btn: Button
+var _add_file_dialog: FileDialog
+var _image_popup_dialog: AcceptDialog
+var _popup_texture_rect: TextureRect
+var _file_preview_container: HBoxContainer
+var _file_preview_label: RichTextLabel
+var _file_clear_btn: Button
+
+var tts_player_container: VBoxContainer
+var tts_play_btn: Button
+var tts_stop_btn: Button
+var tts_seek_slider: HSlider
+var tts_speed_selector: OptionButton
+var tts_player: AudioStreamPlayer
+
+# Chat & Streaming State
+var _current_bubble: RichTextLabel = null
+var _current_role: String = ""
+var _bubble_map: Dictionary = {}
+var _chat_log_bbcode: String = ""
+var _attached_files: Array[Dictionary] = []
+var _dropped_files: Array[String] = []
+var _history_ids: Array = []
+var _pending_history_entries: Array = []
+var _load_more_btn: Button = null
+
+var _next_block_id: int = 0
+var _block_data: Dictionary = {}
+var _last_ai_response_text: String = ""
+var _is_stopped: bool = false
+var _plan_pending: bool = false
+
+# Settings & Flags
+var watch_mode_enabled: bool = false
+var plan_first_enabled: bool = false
+var context_enabled: bool = true
+var screenshot_enabled: bool = false
+var _current_font_size: int = 14
+
+# Multi-Agent Orchestrator
+var orchestrator: RefCounted
+var _pipeline_chips_container: HBoxContainer
+var _pipeline_chip_labels: Dictionary = {}
+
+# Watch Mode Limits
+var _last_log_size: int = 0
+var _ignore_next_error: bool = false
+var _watch_fix_count: int = 0
+var _watch_cooldown_until: float = 0.0
+const _WATCH_MAX_FIXES: int = 3
+const _WATCH_COOLDOWN_SECS: float = 30.0
+
+# Batch Execution
+var batch_queue: Array = []
+var batch_results: Array = []
+var current_tool_context: Dictionary = {}
+var _batch_total: int = 0
+var _confirm_dialog: ConfirmationDialog
+
+# TTS State
+var _cached_tts_text: String = ""
+var _cached_tts_stream: AudioStreamWAV = null
+var _is_dragging_tts_slider: bool = false
+
+# Regexes & Popups
+var _regex_bold_italic: RegEx
+var _regex_bold: RegEx
+var _regex_italic: RegEx
+var _regex_code: RegEx
+var _regex_suggest: RegEx
+var command_popup: PopupMenu
+
+func setup(dock_owner: Node, p_ai_provider, p_context_manager, p_tool_executor, p_memory_manager, p_locale_manager, nodes: Dictionary):
+	_dock_owner = dock_owner
+	ai_provider = p_ai_provider
+	context_manager = p_context_manager
+	_tool_executor = p_tool_executor
+	_memory_manager = p_memory_manager
+	locale_manager = p_locale_manager
+	
+	chat_scroll = nodes.get("chat_scroll")
+	chat_vbox = nodes.get("chat_vbox")
+	input_field = nodes.get("input_field")
+	send_button = nodes.get("send_button")
+	magic_actions_btn = nodes.get("magic_actions_btn")
+	prompt_settings_btn = nodes.get("prompt_settings_btn")
+	selection_status = nodes.get("selection_status")
+	history_button = nodes.get("history_button")
+	summarize_btn = nodes.get("summarize_btn")
+	new_chat_button = nodes.get("new_chat_button")
+	execute_plan_btn = nodes.get("execute_plan_btn")
+	chat_preset_selector = nodes.get("chat_preset_selector")
+	
+	_image_preview_scroll = nodes.get("_image_preview_scroll")
+	_thumbnail_list = nodes.get("_thumbnail_list")
+	add_file_btn = nodes.get("add_file_btn")
+	_add_file_dialog = nodes.get("_add_file_dialog")
+	_image_popup_dialog = nodes.get("_image_popup_dialog")
+	_popup_texture_rect = nodes.get("_popup_texture_rect")
+	_file_preview_container = nodes.get("_file_preview_container")
+	_file_preview_label = nodes.get("_file_preview_label")
+	_file_clear_btn = nodes.get("_file_clear_btn")
+	
+	tts_player_container = nodes.get("tts_player_container")
+	tts_play_btn = nodes.get("tts_play_btn")
+	tts_stop_btn = nodes.get("tts_stop_btn")
+	tts_seek_slider = nodes.get("tts_seek_slider")
+	tts_speed_selector = nodes.get("tts_speed_selector")
+	tts_player = nodes.get("tts_player")
+	
+	_setup_regexes()
+	_setup_command_popup()
+	_connect_signals()
+	_connect_tool_executor()
+	_setup_orchestrator()
+
+func set_ai_provider(provider):
+	ai_provider = provider
+	if ai_provider:
+		if not ai_provider.chunk_received.is_connected(_on_chunk_received):
+			ai_provider.chunk_received.connect(_on_chunk_received)
+		if not ai_provider.tool_call_requested.is_connected(_on_tool_call):
+			ai_provider.tool_call_requested.connect(_on_tool_call)
+		if not ai_provider.tool_calls_requested.is_connected(_on_tool_calls):
+			ai_provider.tool_calls_requested.connect(_on_tool_calls)
+		if not ai_provider.request_completed.is_connected(_on_request_completed):
+			ai_provider.request_completed.connect(_on_request_completed)
+		if not ai_provider.audio_received.is_connected(_on_audio_received):
+			ai_provider.audio_received.connect(_on_audio_received)
+		if not ai_provider.error_occurred.is_connected(_on_ai_error):
+			ai_provider.error_occurred.connect(_on_ai_error)
+
+func _setup_regexes():
+	_regex_bold_italic = RegEx.new()
+	_regex_bold_italic.compile("\\*\\*\\*(.+?)\\*\\*\\*")
+	_regex_bold = RegEx.new()
+	_regex_bold.compile("\\*\\*(.+?)\\*\\*")
+	_regex_italic = RegEx.new()
+	_regex_italic.compile("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)")
+	_regex_code = RegEx.new()
+	_regex_code.compile("`([^`]+)`")
+	_regex_suggest = RegEx.new()
+	_regex_suggest.compile("\\[SUGGEST:\\s*(.+?)\\]")
+
+func _setup_command_popup():
+	command_popup = PopupMenu.new()
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.11, 0.12, 0.15, 0.98)
+	panel_style.border_width_left = 1
+	panel_style.border_width_top = 1
+	panel_style.border_width_right = 1
+	panel_style.border_width_bottom = 1
+	panel_style.border_color = Color(0.3, 0.5, 0.9, 0.6)
+	panel_style.corner_radius_top_left = 6
+	panel_style.corner_radius_top_right = 6
+	panel_style.corner_radius_bottom_left = 6
+	panel_style.corner_radius_bottom_right = 6
+	command_popup.add_theme_stylebox_override("panel", panel_style)
+	command_popup.transparent_bg = true
+	_dock_owner.add_child(command_popup)
+	command_popup.id_pressed.connect(_on_command_selected)
+
+func _connect_signals():
+	if send_button and not send_button.pressed.is_connected(_on_send_pressed):
+		send_button.pressed.connect(_on_send_pressed)
+	if input_field:
+		if not input_field.gui_input.is_connected(_on_input_gui_input):
+			input_field.gui_input.connect(_on_input_gui_input)
+		if not input_field.text_changed.is_connected(_on_input_text_changed):
+			input_field.text_changed.connect(_on_input_text_changed)
+			
+	if magic_actions_btn and not magic_actions_btn.get_popup().id_pressed.is_connected(_on_magic_action_id_pressed):
+		magic_actions_btn.get_popup().id_pressed.connect(_on_magic_action_id_pressed)
+	if prompt_settings_btn and not prompt_settings_btn.get_popup().id_pressed.is_connected(_on_prompt_setting_id_pressed):
+		prompt_settings_btn.get_popup().id_pressed.connect(_on_prompt_setting_id_pressed)
+		
+	if new_chat_button and not new_chat_button.pressed.is_connected(_on_new_chat_pressed):
+		new_chat_button.pressed.connect(_on_new_chat_pressed)
+	if summarize_btn and not summarize_btn.pressed.is_connected(_on_summarize_pressed):
+		summarize_btn.pressed.connect(_on_summarize_pressed)
+	if history_button:
+		if not history_button.get_popup().about_to_popup.is_connected(_on_history_popup_about_to_show):
+			history_button.get_popup().about_to_popup.connect(_on_history_popup_about_to_show)
+		if not history_button.get_popup().id_pressed.is_connected(_on_history_item_pressed):
+			history_button.get_popup().id_pressed.connect(_on_history_item_pressed)
+			
+	if execute_plan_btn and not execute_plan_btn.pressed.is_connected(_on_execute_plan_pressed):
+		execute_plan_btn.pressed.connect(_on_execute_plan_pressed)
+		
+	if add_file_btn and not add_file_btn.pressed.is_connected(func(): _add_file_dialog.popup_centered()):
+		add_file_btn.pressed.connect(func(): _add_file_dialog.popup_centered())
+	if _add_file_dialog and not _add_file_dialog.file_selected.is_connected(_on_add_file_selected):
+		_add_file_dialog.file_selected.connect(_on_add_file_selected)
+	if _file_clear_btn and not _file_clear_btn.pressed.is_connected(_on_clear_dropped_files):
+		_file_clear_btn.pressed.connect(_on_clear_dropped_files)
+		
+	# TTS
+	if tts_play_btn and not tts_play_btn.pressed.is_connected(_on_tts_play_pressed):
+		tts_play_btn.pressed.connect(_on_tts_play_pressed)
+	if tts_stop_btn and not tts_stop_btn.pressed.is_connected(_on_tts_stop_pressed):
+		tts_stop_btn.pressed.connect(_on_tts_stop_pressed)
+	if tts_speed_selector and not tts_speed_selector.item_selected.is_connected(_on_tts_speed_changed):
+		tts_speed_selector.item_selected.connect(_on_tts_speed_changed)
+	if tts_player and not tts_player.finished.is_connected(_on_tts_finished):
+		tts_player.finished.connect(_on_tts_finished)
+
+	if tts_seek_slider:
+		if not tts_seek_slider.drag_started.is_connected(func(): _is_dragging_tts_slider = true):
+			tts_seek_slider.drag_started.connect(func(): _is_dragging_tts_slider = true)
+		if not tts_seek_slider.drag_ended.is_connected(_on_tts_slider_drag_ended):
+			tts_seek_slider.drag_ended.connect(_on_tts_slider_drag_ended)
+
+	# Drag & drop forwarding
+	if input_field and chat_scroll:
+		input_field.set_drag_forwarding(Callable(), _can_drop_data_fw, _drop_data_fw)
+		chat_scroll.set_drag_forwarding(Callable(), _can_drop_data_fw, _drop_data_fw)
+
+func _connect_tool_executor():
+	if _tool_executor:
+		if not _tool_executor.tool_output.is_connected(_on_tool_output):
+			_tool_executor.tool_output.connect(_on_tool_output)
+		if not _tool_executor.confirmation_needed.is_connected(_on_confirmation_needed):
+			_tool_executor.confirmation_needed.connect(_on_confirmation_needed)
+		if not _tool_executor.image_captured.is_connected(_on_image_captured):
+			_tool_executor.image_captured.connect(_on_image_captured)
+
+func set_font_size(new_size: int):
+	_current_font_size = new_size
+	for child in chat_vbox.get_children():
+		var label = child.find_child("RichTextLabel", true, false)
+		if label and label is RichTextLabel:
+			label.add_theme_font_size_override("normal_font_size", _current_font_size)
+			label.add_theme_font_size_override("bold_font_size", _current_font_size)
+			label.add_theme_font_size_override("italics_font_size", _current_font_size)
+			label.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
+			label.add_theme_font_size_override("mono_font_size", _current_font_size)
+
+# ===================== PROMPT SENDING =====================
+
+func _on_send_pressed():
+	if input_field == null: return
+	var text = input_field.text.strip_edges()
+	if text == "" and _attached_files.is_empty() and _dropped_files.is_empty():
+		return
+	_process_send(text)
+
+func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_mode: bool = false):
+	if _is_game_running() and not is_watch_mode:
+		_add_to_chat("\n[color=orange][b]" + locale_manager.tr("game_running_warning") + "[/color]\n", "system")
+		return
+	_is_stopped = false
+	_watch_fix_count = 0
+	
+	if not is_execute_plan:
+		var est_tokens = int(prompt_text.length() / 4.0)
+		_log_user_message(prompt_text, est_tokens)
+		input_field.text = ""
+	else:
+		_add_to_chat("\n[color=cyan][b]" + locale_manager.tr("executing_plan") + "[/b][/color]\n")
+	
+	if prompt_text.begins_with("/orchestrate"):
+		var task = prompt_text.trim_prefix("/orchestrate").strip_edges()
+		if task == "":
+			_add_to_chat("\n[color=yellow][b]Usage:[/b] /orchestrate <feature description>[/color]\nExample: /orchestrate Create a Coin Pickup System with HUD and Sound\n", "system")
+			return
+		if orchestrator:
+			orchestrator.start_orchestration(task)
+			return
+
+	if prompt_text.begins_with("/sfx"):
+		var sfx_arg = prompt_text.trim_prefix("/sfx").strip_edges()
+		if sfx_arg == "":
+			_add_to_chat("\n[color=cyan][b]🎵 Procedural SFX Generator:[/b][/color]\nUsage: `/sfx <preset or description>` (e.g. `/sfx coin`, `/sfx jump`, `/sfx laser`, `/sfx explosion`)\nAvailable presets: `coin`, `laser`, `jump`, `hit`, `hurt`, `explosion`, `powerup`, `blip`, `ui_click`, `dash`, `game_over`, `victory`\n", "system")
+			return
+		if _tool_executor:
+			_tool_executor.execute_tool("generate_sfx", {"preset": sfx_arg})
+			return
+
+	if prompt_text.begins_with("/shader"):
+		var shader_arg = prompt_text.trim_prefix("/shader").strip_edges()
+		if shader_arg == "":
+			_add_to_chat("\n[color=pink][b]🎨 Visual Shader & Material Synthesizer:[/b][/color]\nUsage: `/shader <preset or description>` (e.g. `/shader hit_flash`, `/shader toon_cel`, `/shader dissolve_2d`, `/shader water_ripple`)\nAvailable presets: `hit_flash`, `dissolve_2d`, `outline_2d`, `shield_bubble`, `pixelate_2d`, `vhs_glitch`, `hologram_2d`, `water_ripple`, `wind_sway_2d`, `fire_lava`, `toon_cel`, `fresnel_rim`, `stylized_water_3d`, `dissolve_3d`, `hologram_3d`, `foliage_wind_3d`\n", "system")
+			return
+		if _tool_executor:
+			_tool_executor.execute_tool("generate_shader", {"preset": shader_arg})
+			return
+	
+	var selection = {}
+	if context_manager:
+		selection = context_manager.get_selection_info()
+	
+	var final_prompt = prompt_text
+	if not selection.is_empty() and not is_execute_plan:
+		final_prompt = "Selection Context (File: " + selection.path + "):\n```gdscript\n" + selection.text + "\n```\n\nCommand: " + prompt_text
+		_add_to_chat("[i]Using selection from " + selection.path.get_file() + "...[/i]\n")
+	
+	var context_str = ""
+	if context_enabled and context_manager:
+		context_str = context_manager.build_context()
+	
+	var images = []
+	if screenshot_enabled and context_manager:
+		var screenshot = context_manager.get_editor_screenshot()
+		if not screenshot.is_empty():
+			images.append(screenshot)
+			
+	for att in _attached_files:
+		if att["type"] == "image":
+			images.append({
+				"filename": att["filename"],
+				"mime_type": att["mime_type"],
+				"raw_bytes": att["raw_bytes"],
+				"image_obj": att["image_obj"]
+			})
+	
+	var tools_list = _tool_executor.get_tools() if _tool_executor else []
+	if ai_provider:
+		ai_provider.send_prompt(final_prompt, context_str, tools_list, images)
+
+func _is_game_running() -> bool:
+	return EditorInterface.is_playing_scene()
+
+func _log_user_message(msg: String, token_count: int = -1, insert_index: int = -1):
+	var header = ""
+	if token_count != -1:
+		header += "\n[right][i][color=gray](Est. Tokens: ~" + str(token_count) + ")[/color][/i][/right]\n"
+	_add_to_chat(header + msg + "\n", "user", insert_index)
+
+func _add_to_chat(bbcode: String, role: String = "system", insert_index: int = -1):
+	_chat_log_bbcode += bbcode
+	
+	if _current_bubble == null or _current_role != role:
+		_create_chat_bubble(role, insert_index)
+		
+	_current_bubble.append_text(bbcode)
+	
+	var current_bb = _current_bubble.get_meta("raw_bbcode", "")
+	_current_bubble.set_meta("raw_bbcode", current_bb + bbcode)
+	
+	if insert_index == -1 and _dock_owner and _dock_owner.is_inside_tree():
+		await _dock_owner.get_tree().process_frame
+		var v_scroll = chat_scroll.get_v_scroll_bar()
+		if v_scroll:
+			v_scroll.value = v_scroll.max_value
+
+func _create_chat_bubble(role: String, insert_index: int = -1):
+	_current_role = role
+	var panel = PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style = StyleBoxFlat.new()
+	style.corner_radius_top_left = 12
+	style.corner_radius_top_right = 12
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var inner_hbox = HBoxContainer.new()
+	inner_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner_hbox.add_theme_constant_override("separation", 12)
+	
+	var text_vbox = VBoxContainer.new()
+	text_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var label = RichTextLabel.new()
+	label.bbcode_enabled = true
+	label.fit_content = true
+	label.selection_enabled = true
+	label.meta_clicked.connect(_on_meta_clicked)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_current_bubble = label
+	text_vbox.add_child(label)
+	
+	if _current_font_size != 14:
+		label.add_theme_font_size_override("normal_font_size", _current_font_size)
+		label.add_theme_font_size_override("bold_font_size", _current_font_size)
+		label.add_theme_font_size_override("italics_font_size", _current_font_size)
+		label.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
+		label.add_theme_font_size_override("mono_font_size", _current_font_size)
+		
+	if role == "user":
+		style.bg_color = Color(0.18, 0.22, 0.3)
+	elif role == "ai":
+		style.bg_color = Color(0.13, 0.14, 0.18)
+	else:
+		style.bg_color = Color(0.10, 0.10, 0.12)
+		
+	inner_hbox.add_child(text_vbox)
+	panel.add_child(inner_hbox)
+	
+	if insert_index >= 0 and insert_index < chat_vbox.get_child_count():
+		chat_vbox.add_child(panel)
+		chat_vbox.move_child(panel, insert_index)
+	else:
+		chat_vbox.add_child(panel)
+
+func _on_meta_clicked(meta):
+	var meta_str = str(meta)
+	if meta_str.begins_with("suggest:"):
+		var suggestion = meta_str.substr(8)
+		input_field.text = suggestion
+		_on_send_pressed()
+	elif meta_str.begins_with("toggle_block:"):
+		var block_id = meta_str.substr(13).to_int()
+		_toggle_block(block_id)
+	else:
+		OS.shell_open(meta_str)
+
+func _toggle_block(id: int):
+	if not _block_data.has(id): return
+	var data = _block_data[id]
+	data.expanded = !data.expanded
+	if data.has("bubble_ref") and is_instance_valid(data.bubble_ref):
+		var raw = data.bubble_ref.get_meta("raw_bbcode", "")
+		data.bubble_ref.text = raw
+
+func _on_chunk_received(chunk: String):
+	_add_to_chat(_markdown_to_bbcode(chunk), "ai")
+
+func _on_tool_call(tool_name: String, args: Dictionary):
+	_append_collapsible_block("Tool Call: " + tool_name, JSON.stringify(args, "  "), "yellow", false)
+	if _tool_executor:
+		_tool_executor.execute_tool(tool_name, args)
+
+func _on_tool_calls(calls: Array):
+	for call in calls:
+		_on_tool_call(call.get("name", ""), call.get("args", {}))
+
+func _on_tool_output(output):
+	_append_collapsible_block("Tool Result", str(output), "dodgerblue", false)
+
+func _on_confirmation_needed(message: String, tool_name: String, args: Dictionary):
+	_append_collapsible_block("Confirmation Required", message, "orange", true)
+
+func _on_image_captured(image_path: String):
+	_attach_file_from_path(image_path)
+
+func _on_request_completed():
+	pass
+
+func _on_ai_error(error: String):
+	_add_to_chat("\n[color=red]Error: " + error + "[/color]\n")
+
+func handle_engine_log(entry: Dictionary):
+	if not watch_mode_enabled: return
+	if entry.type == "error":
+		var now = Time.get_ticks_msec() / 1000.0
+		if now < _watch_cooldown_until: return
+		if _watch_fix_count >= _WATCH_MAX_FIXES: return
+		
+		_watch_fix_count += 1
+		_watch_cooldown_until = now + _WATCH_COOLDOWN_SECS
+		var fix_prompt = "Fix Engine Error:\n" + entry.message
+		_process_send(fix_prompt, false, true)
+
+func _markdown_to_bbcode(text: String) -> String:
+	var out = text
+	if _regex_bold_italic: out = _regex_bold_italic.sub(out, "[b][i]$1[/i][/b]", true)
+	if _regex_bold: out = _regex_bold.sub(out, "[b]$1[/b]", true)
+	if _regex_italic: out = _regex_italic.sub(out, "[i]$1[/i]", true)
+	if _regex_code: out = _regex_code.sub(out, "[code]$1[/code]", true)
+	return out
+
+func _append_collapsible_block(label: String, content: String, color: String, expanded: bool):
+	var id = _next_block_id
+	_next_block_id += 1
+	var safe_content = content.replace("[", "[lb]")
+	_block_data[id] = {"label": label, "content": safe_content, "color": color, "expanded": expanded}
+	_add_to_chat("\n[color=" + color + "]⚙ " + label + ":[/color]\n[indent]" + safe_content + "[/indent]\n")
+
+# ===================== CHAT CONTROLS & POPUPS =====================
+
+func _on_new_chat_pressed():
+	for child in chat_vbox.get_children():
+		child.queue_free()
+	_chat_log_bbcode = ""
+	_current_bubble = null
+	_current_role = ""
+	_block_data.clear()
+	_attached_files.clear()
+	_refresh_thumbnails()
+	_add_to_chat("[i]" + locale_manager.tr("new_chat_started") + "[/i]\n")
+
+func _on_summarize_pressed():
+	if _chat_log_bbcode.strip_edges() == "": return
+	var prompt = "Summarize the key architectural decisions, mechanics, and code from this conversation into concise project memory bullet points:\n\n" + _chat_log_bbcode
+	if ai_provider:
+		ai_provider.send_prompt(prompt, "", [], [])
+
+func _on_history_popup_about_to_show():
+	pass
+
+func _on_history_item_pressed(_id: int):
+	pass
+
+func _on_execute_plan_pressed():
+	if _plan_pending:
+		_plan_pending = false
+		execute_plan_btn.visible = false
+		_process_send("Execute the approved plan step by step.", true)
+
+func _on_magic_action_id_pressed(id: int):
+	match id:
+		0: _process_send("Refactor the current script following clean code principles.")
+		1: _process_send("Fix errors in the selected code snippet.")
+		2: _process_send("Explain how the selected code works.")
+		3: if _tool_executor: _tool_executor.undo()
+		4: _process_send("Analyze and fix the latest console errors.")
+
+func _on_prompt_setting_id_pressed(id: int):
+	var popup = prompt_settings_btn.get_popup()
+	var checked = !popup.is_item_checked(id)
+	popup.set_item_checked(id, checked)
+	match id:
+		0: context_enabled = checked
+		1: screenshot_enabled = checked
+		2: plan_first_enabled = checked
+		3: watch_mode_enabled = checked
+
+func _on_input_gui_input(event: InputEvent):
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
+			if not event.shift_pressed:
+				_dock_owner.get_viewport().set_input_as_handled()
+				_on_send_pressed()
+
+func _on_input_text_changed():
+	var text = input_field.text
+	if text.begins_with("/"):
+		_show_command_popup(text)
+	else:
+		command_popup.hide()
+
+func _show_command_popup(filter: String):
+	command_popup.clear()
+	var cmds = [
+		{"name": "/sfx", "desc": "Generate procedural SFX (coin, jump, laser...)"},
+		{"name": "/orchestrate", "desc": "Run 4-persona multi-agent pipeline"},
+		{"name": "/plan", "desc": "Create a detailed implementation plan"},
+		{"name": "/debug", "desc": "Investigate and fix a bug"},
+		{"name": "/brainstorm", "desc": "Explore ideas and possibilities"},
+		{"name": "/create", "desc": "Build a new feature from scratch"}
+	]
+	var count = 0
+	for cmd in cmds:
+		if filter == "/" or cmd.name.begins_with(filter):
+			command_popup.add_item(cmd.name + " - " + cmd.desc, count)
+			command_popup.set_item_metadata(count, cmd.name)
+			count += 1
+	if count > 0:
+		var pos = input_field.global_position + Vector2(0, -command_popup.size.y - 10)
+		command_popup.position = Vector2i(pos.x, pos.y)
+		command_popup.popup()
+
+func _on_command_selected(id: int):
+	var cmd = command_popup.get_item_metadata(id)
+	input_field.text = cmd + " "
+	input_field.set_caret_column(input_field.text.length())
+
+# ===================== ATTACHMENTS & DRAG & DROP =====================
+
+func _on_add_file_selected(path: String):
+	_attach_file_from_path(path)
+
+func _attach_file_from_path(path: String):
+	var abs_path = ProjectSettings.globalize_path(path) if path.begins_with("res://") else path
+	var ext = path.get_extension().to_lower()
+	var filename = path.get_file()
+	
+	if ext in ["png", "jpg", "jpeg", "webp"]:
+		var img = Image.new()
+		if img.load(abs_path) == OK:
+			var file = FileAccess.open(abs_path, FileAccess.READ)
+			if file:
+				_attached_files.append({
+					"type": "image",
+					"filename": filename,
+					"mime_type": "image/" + ext,
+					"image_obj": img,
+					"raw_bytes": file.get_buffer(file.get_length())
+				})
+				_refresh_thumbnails()
+				_add_to_chat("\n[color=green][i]Image attached: " + filename + "[/i][/color]\n")
+	else:
+		var file = FileAccess.open(abs_path, FileAccess.READ)
+		if file:
+			_attached_files.append({"type": "text", "filename": filename, "text_content": file.get_as_text()})
+			_refresh_thumbnails()
+			_add_to_chat("\n[color=green][i]File attached: " + filename + "[/i][/color]\n")
+
+func _refresh_thumbnails():
+	if not _thumbnail_list: return
+	for child in _thumbnail_list.get_children(): child.queue_free()
+	_image_preview_scroll.visible = not _attached_files.is_empty()
+	for i in range(_attached_files.size()):
+		var att = _attached_files[i]
+		var label = Button.new()
+		label.text = "📎 " + att["filename"]
+		label.pressed.connect(func(): _remove_attached_file(i))
+		_thumbnail_list.add_child(label)
+
+func _remove_attached_file(index: int):
+	if index >= 0 and index < _attached_files.size():
+		_attached_files.remove_at(index)
+		_refresh_thumbnails()
+
+func _can_drop_data_fw(_pos, data, _ctrl) -> bool:
+	return typeof(data) == TYPE_DICTIONARY and (data.has("files") or data.has("nodes") or data.has("type"))
+
+func _drop_data_fw(_pos, data, _ctrl):
+	if data.has("files"):
+		for f in data["files"]: _attach_file_from_path(f)
+	elif data.has("nodes"):
+		for n in data["nodes"]:
+			input_field.text += " $" + str(n)
+
+func _on_clear_dropped_files():
+	_dropped_files.clear()
+	if _file_preview_container: _file_preview_container.visible = false
+
+# ===================== TTS PLAYER =====================
+
+func _on_tts_play_pressed():
+	if _last_ai_response_text == "": return
+	if ai_provider:
+		ai_provider.request_tts(_last_ai_response_text)
+
+func _on_tts_stop_pressed():
+	if tts_player and tts_player.playing:
+		tts_player.stop()
+		tts_play_btn.disabled = false
+		tts_stop_btn.disabled = true
+
+func _on_tts_speed_changed(index: int):
+	var speeds = [1.0, 1.25, 1.5, 2.0]
+	if index >= 0 and index < speeds.size() and tts_player:
+		tts_player.pitch_scale = speeds[index]
+
+func _on_tts_finished():
+	tts_play_btn.disabled = false
+	tts_stop_btn.disabled = true
+
+func _on_tts_slider_drag_ended(changed: bool):
+	_is_dragging_tts_slider = false
+	if changed and tts_player and tts_player.playing:
+		tts_player.seek(tts_seek_slider.value)
+
+func _on_audio_received(raw_data: PackedByteArray):
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = 24000
+	stream.data = raw_data
+	if tts_player:
+		tts_player.stream = stream
+		tts_player.play()
+		tts_play_btn.disabled = true
+		tts_stop_btn.disabled = false
+
+# ===================== MULTI-AGENT ORCHESTRATOR =====================
+
+func _setup_orchestrator():
+	var AgentOrchestratorScript = load("res://addons/gamedev_ai/orchestration/agent_orchestrator.gd")
+	if AgentOrchestratorScript:
+		orchestrator = AgentOrchestratorScript.new()
+		orchestrator.setup(ai_provider, _tool_executor)
+		orchestrator.status_message.connect(func(msg): _add_to_chat(msg + "\n", "system"))
+		orchestrator.stage_started.connect(_on_orchestrator_stage_started)
+		orchestrator.stage_completed.connect(_on_orchestrator_stage_completed)
+		orchestrator.pipeline_completed.connect(_on_orchestrator_pipeline_completed)
+		orchestrator.pipeline_failed.connect(func(err): _add_to_chat("\n[color=red]❌ Pipeline Failed: " + err + "[/color]\n", "system"))
+
+func _on_orchestrator_stage_started(role: int, role_name: String):
+	var icon = "🤖"
+	var PersonaConfigScript = load("res://addons/gamedev_ai/orchestration/persona_config.gd")
+	if PersonaConfigScript:
+		icon = PersonaConfigScript.get_persona_icon(role)
+	_add_to_chat("\n[b]" + icon + " [" + role_name.to_upper() + " ACTIVE][/b]\n", "system")
+
+func _on_orchestrator_stage_completed(_role: int, role_name: String, _summary: String):
+	_add_to_chat("[color=green]✔ Phase " + role_name + " finished.[/color]\n", "system")
+
+func _on_orchestrator_pipeline_completed(_blackboard):
+	_add_to_chat("\n[color=green][b]✨ All Multi-Agent Pipeline Stages Completed Successfully![/b][/color]\n", "system")
+

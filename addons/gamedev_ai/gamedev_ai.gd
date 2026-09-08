@@ -123,6 +123,14 @@ func _apply_config_to_provider(provider, config: Dictionary):
 		provider.base_url = config.get("base_url", "")
 		
 	var prov_index = config.get("provider", 0)
+	if "max_buffer_chars" in provider:
+		if prov_index == 2: # Local
+			provider.max_buffer_chars = 32000 # ~8k tokens budget
+			provider.max_history_turns = 16
+		else: # Cloud
+			provider.max_buffer_chars = 64000 # ~16k tokens budget
+			provider.max_history_turns = 24
+
 	if provider.get_script().get_path().ends_with("openai_provider.gd"):
 		if prov_index == 2: # Local
 			if provider.base_url == "":

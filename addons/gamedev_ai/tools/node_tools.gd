@@ -231,7 +231,9 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 			else:
 				add_msg = " | Warning: Script not found at " + script_path
 		
-		ur.create_action("Add Node " + name, UndoRedo.MERGE_DISABLE, root)
+		var is_comp = _is_composite()
+		if not is_comp:
+			ur.create_action("Add Node " + name, UndoRedo.MERGE_DISABLE, root)
 			
 		ur.add_do_method(parent, "add_child", node)
 		ur.add_do_method(node, "set_owner", root)
@@ -250,8 +252,9 @@ func _add_node(parent_path: String, type: String, name: String, script_path: Str
 		if script:
 			msg += " with script " + script_path
 			
-		ur.commit_action(false) # false = don't double execute
-		_save_scene()
+		if not is_comp:
+			ur.commit_action(false) # false = don't double execute
+			_save_scene()
 		_emit_output(msg + add_msg)
 	else:
 		_emit_output("Error: UndoRedoManager not available.")
@@ -280,7 +283,9 @@ func _instance_scene(parent_path: String, scene_path: String, name: String):
 		var instance = scene.instantiate()
 		instance.name = name
 		
-		ur.create_action("Instance Scene " + name, UndoRedo.MERGE_DISABLE, root)
+		var is_comp = _is_composite()
+		if not is_comp:
+			ur.create_action("Instance Scene " + name, UndoRedo.MERGE_DISABLE, root)
 		
 		ur.add_do_method(parent, "add_child", instance)
 		ur.add_do_method(instance, "set_owner", root)
@@ -290,8 +295,9 @@ func _instance_scene(parent_path: String, scene_path: String, name: String):
 		parent.add_child(instance)
 		instance.owner = root
 		
-		ur.commit_action(false)
-		_save_scene()
+		if not is_comp:
+			ur.commit_action(false)
+			_save_scene()
 		_emit_output("Success: Scene " + scene_path + " instanced as " + name + " under " + parent.name)
 	else:
 		var instance = scene.instantiate()
@@ -314,16 +320,19 @@ func _set_property(node_path: String, property: String, value: Variant):
 	
 	var ur = _get_undo_redo()
 	if ur:
-		ur.create_action("Set Property " + property + " on " + node.name, UndoRedo.MERGE_DISABLE, root)
+		var is_comp = _is_composite()
+		if not is_comp:
+			ur.create_action("Set Property " + property + " on " + node.name, UndoRedo.MERGE_DISABLE, root)
 			
-		var old_value = node.get(property)
+		var old_value = _duplicate_value(node.get(property))
 		ur.add_do_method(node, "set", property, final_value)
 		ur.add_undo_method(node, "set", property, old_value)
 		
 		node.set(property, final_value)
 		
-		ur.commit_action(false)
-		_save_scene()
+		if not is_comp:
+			ur.commit_action(false)
+			_save_scene()
 		_emit_output("Success: Set " + property + " to " + str(final_value) + " on " + node_path)
 	else:
 		node.set(property, final_value)
@@ -356,7 +365,9 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 	var ur = _get_undo_redo()
 	
 	if ur:
-		ur.create_action("Set Theme Override " + name + " on " + node.name, UndoRedo.MERGE_DISABLE, root)
+		var is_comp = _is_composite()
+		if not is_comp:
+			ur.create_action("Set Theme Override " + name + " on " + node.name, UndoRedo.MERGE_DISABLE, root)
 			
 		match override_type:
 			"color": ur.add_do_method(node, "add_theme_color_override", name, final_value)
@@ -372,8 +383,9 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 			"font": node.add_theme_font_override(name, final_value)
 			"stylebox": node.add_theme_stylebox_override(name, final_value)
 			
-		ur.commit_action(false)
-		_save_scene()
+		if not is_comp:
+			ur.commit_action(false)
+			_save_scene()
 		_emit_output("Success: Set theme override " + name + " on " + node_path)
 	else:
 		match override_type:
@@ -408,15 +420,18 @@ func _connect_signal(source_path: String, signal_name: String, target_path: Stri
 
 	var ur = _get_undo_redo()
 	if ur:
-		ur.create_action("Connect Signal " + signal_name, UndoRedo.MERGE_DISABLE, root)
+		var is_comp = _is_composite()
+		if not is_comp:
+			ur.create_action("Connect Signal " + signal_name, UndoRedo.MERGE_DISABLE, root)
 			
 		ur.add_do_method(source, "connect", signal_name, callable, flags)
 		ur.add_undo_method(source, "disconnect", signal_name, callable)
 		
 		source.connect(signal_name, callable, flags)
 		
-		ur.commit_action(false)
-		_save_scene()
+		if not is_comp:
+			ur.commit_action(false)
+			_save_scene()
 		_emit_output("Success: Connected " + signal_name + " to " + method_name)
 	else:
 		source.connect(signal_name, callable, flags)
@@ -439,15 +454,18 @@ func _disconnect_signal(source_path: String, signal_name: String, target_path: S
 
 	var ur = _get_undo_redo()
 	if ur:
-		ur.create_action("Disconnect Signal " + signal_name, UndoRedo.MERGE_DISABLE, root)
+		var is_comp = _is_composite()
+		if not is_comp:
+			ur.create_action("Disconnect Signal " + signal_name, UndoRedo.MERGE_DISABLE, root)
 			
 		ur.add_do_method(source, "disconnect", signal_name, callable)
 		ur.add_undo_method(source, "connect", signal_name, callable) 
 		
 		source.disconnect(signal_name, callable)
 		
-		ur.commit_action(false)
-		_save_scene()
+		if not is_comp:
+			ur.commit_action(false)
+			_save_scene()
 		_emit_output("Success: Disconnected " + signal_name)
 	else:
 		source.disconnect(signal_name, callable)
@@ -469,7 +487,9 @@ func _remove_node(node_path: String):
 	var parent = node.get_parent()
 	var ur = _get_undo_redo()
 	if ur:
-		ur.create_action("Remove Node " + node.name, UndoRedo.MERGE_DISABLE, root)
+		var is_comp = _is_composite()
+		if not is_comp:
+			ur.create_action("Remove Node " + node.name, UndoRedo.MERGE_DISABLE, root)
 			
 		ur.add_do_method(parent, "remove_child", node)
 		ur.add_undo_method(parent, "add_child", node)
@@ -478,8 +498,9 @@ func _remove_node(node_path: String):
 		
 		parent.remove_child(node)
 		
-		ur.commit_action(false)
-		_save_scene()
+		if not is_comp:
+			ur.commit_action(false)
+			_save_scene()
 		_emit_output("Success: Node " + node_path + " removed.")
 	else:
 		parent.remove_child(node)

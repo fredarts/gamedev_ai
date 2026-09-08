@@ -71,12 +71,16 @@ func _prepare_request(text: String) -> Dictionary:
 		if base_url != "":
 			url = base_url
 			if not url.ends_with("/"): url += "/"
-			url += "v1beta/models/gemini-embedding-001:embedContent"
+			url += "v1beta/models/text-embedding-004:embedContent"
+			if not url.begins_with("http://127.0.0.1") and not url.begins_with("http://localhost") and api_key != "":
+				url += "?key=" + api_key
 		else:
-			url = "http://127.0.0.1:8000/v1beta/models/gemini-embedding-001:embedContent"
+			url = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent"
+			if api_key != "":
+				url += "?key=" + api_key
 			
 		body = JSON.stringify({
-			"model": "models/gemini-embedding-001",
+			"model": "models/text-embedding-004",
 			"content": {
 				"parts": [{"text": text}]
 			}

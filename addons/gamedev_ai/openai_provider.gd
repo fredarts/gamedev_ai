@@ -93,6 +93,7 @@ func cancel_request():
 
 func _send_request(tools: Array = []):
 	_cancelled = false
+	prune_history()
 	_last_tools = tools
 	var url = base_url + "/chat/completions"
 	var headers = [

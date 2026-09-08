@@ -1,101 +1,153 @@
-# Godot 4.6 Shaders and VFX
+# Godot 4.x Shaders, Materials & VFX
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-### 1. SHADER TYPES
+### 1. SHADER TYPES & STAGES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Godot uses its own shading language: **GDShader**, similar to GLSL.
-Every shader file (`.gdshader`) must start by specifying its type:
+Godot uses **GDShader**, a high-performance shading language similar to GLSL ES 3.0.
+Every shader file (`.gdshader`) MUST begin with its shader type declaration:
 
-- `shader_type canvas_item;` -> For 2D nodes (`Sprite2D`, `ColorRect`, Control nodes).
-- `shader_type spatial;` -> For 3D meshes and materials.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-### 2. BUILT-IN VARIABLES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**CanvasItem (2D) Built-ins:**
-- `COLOR`: The output color for the current pixel (RGBA format, `vec4`).
-- `UV`: Normalized coordinates (0.0 to 1.0) of the current pixel on the sprite.
-- `TEXTURE`: The default texture assigned to the node.
-- `TIME`: Global elapsed time in seconds (`float`), mostly used for animations.
-- `FRAGCOORD`: Actual pixel coordinate on the physical screen.
-
-To read the color of the sprite's texture at the current UV, you must sample it:
-```glsl
-vec4 tex_color = texture(TEXTURE, UV);
-```
+- `shader_type canvas_item;` -> For 2D nodes (`Sprite2D`, `AnimatedSprite2D`, `ColorRect`, `TextureRect`, `Control`).
+- `shader_type spatial;` -> For 3D meshes (`MeshInstance3D`, `CSGShape3D`, `Sprite3D`).
+- `shader_type particles;` -> For GPU compute particle systems (`GPUParticles2D`, `GPUParticles3D`).
+- `shader_type sky;` -> For custom skyboxes / procedural environments.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-### 3. EXAMPLES
+### 2. UNIFORM HINTS & INSPECTOR EXPOSURE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-#### 3.1. The "Hit Flash" (Blinking solid white when taking damage)
-A very common pattern in 2D games. We expose a `flash_active` variable to the Inspector.
+Always provide explicit uniform hints so Godot's Inspector automatically renders tailored widgets:
 
 ```glsl
-shader_type canvas_item;
-
-// Exposed to the Inspector. Use a Tween in GDScript to animate this from 0 to 1 or boolean over time.
-uniform bool flash_active = false;
+// Color picker widget (linear to sRGB conversion handled by engine)
 uniform vec4 flash_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 
-void fragment() {
-    // Read the original texture pixel
-    vec4 current_color = texture(TEXTURE, UV);
-    
-    // If the pixel is completely transparent, keep it transparent
-    if (current_color.a > 0.0) {
-        if (flash_active) {
-            // Replace the RGB but keep the original Alpha
-            COLOR = vec4(flash_color.rgb, current_color.a);
-        } else {
-            COLOR = current_color;
-        }
-    } else {
-        COLOR = current_color;
-    }
-}
-```
+// Numeric Slider with min, max, and step
+uniform float dissolve_amount : hint_range(0.0, 1.0, 0.01) = 0.5;
+uniform int blur_iterations : hint_range(1, 16) = 4;
 
-#### 3.2. Scrolling Texture (e.g., Water, Lava, Backgrounds)
-
-```glsl
-shader_type canvas_item;
-
+// 2D & 3D Vectors
 uniform vec2 scroll_speed = vec2(0.5, 0.0);
+uniform vec3 wind_direction = vec3(1.0, 0.0, 0.5);
 
-void fragment() {
-    // Offset the UV by the speed multiplied by global TIME
-    vec2 scrolled_uv = UV + (scroll_speed * TIME);
-    
-    // Sample the texture at the new offset position
-    COLOR = texture(TEXTURE, scrolled_uv);
-}
+// Textures with sensible fallbacks
+uniform sampler2D noise_texture : hint_default_white, filter_linear_mipmap;
+uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
 ```
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-### 4. PERFORMANCE BEST PRACTICES
+### 3. BUILT-IN VARIABLES QUICK REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-The `fragment()` function runs for EVERY PIXEL the node occupies. Do not perform heavy math (e.g., sine waves, complex multiplication) inside `fragment()` if it can be avoided.
+**CanvasItem (2D):**
+- `COLOR`: Final output pixel color (`vec4`).
+- `UV`: Normalized pixel coordinates [0.0, 1.0].
+- `TEXTURE`: Bound texture asset.
+- `TEXTURE_PIXEL_SIZE`: Size of a single pixel in UV space (`vec2(1.0/width, 1.0/height)`).
+- `TIME`: Continuous global game time in seconds (`float`).
+- `VERTEX`: Position of vertices in local space.
 
-Perform math in the `vertex()` function (which runs once per vertex, like the 4 corners of a Sprite) and pass the result to `fragment()` using a **`varying`** variable. Interpolation is essentially free.
+**Spatial (3D):**
+- `ALBEDO`: Base surface color (`vec3`).
+- `ALPHA`: Surface opacity [0.0, 1.0].
+- `ROUGHNESS`: Surface roughness [0.0, 1.0].
+- `METALLIC`: Metallic reflectivity [0.0, 1.0].
+- `SPECULAR`: Specular highlight strength.
+- `EMISSION`: Emissive light glow color and intensity (`vec3`).
+- `NORMAL`: Surface normal vector in view space.
+- `VIEW`: View direction vector pointing toward camera.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+### 4. CLASSIC GAME RECIPES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+#### 4.1. 2D Damage Hit Flash
 ```glsl
 shader_type canvas_item;
 
-// Calculate a pulsing wave in vertex, pass to fragment
-varying float pulsing_wave;
+uniform bool active = true;
+uniform vec4 flash_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float flash_modifier : hint_range(0.0, 1.0, 0.05) = 1.0;
 
-void vertex() {
-    // Cheap per-vertex calculation
-    pulsing_wave = (sin(TIME * 5.0) + 1.0) / 2.0; 
+void fragment() {
+	vec4 color = texture(TEXTURE, UV);
+	if (active && color.a > 0.0) {
+		color.rgb = mix(color.rgb, flash_color.rgb, flash_modifier);
+	}
+	COLOR = color;
+}
+```
+
+#### 4.2. 2D Procedural Dissolve with Burning Edge
+```glsl
+shader_type canvas_item;
+
+uniform float dissolve_amount : hint_range(0.0, 1.0, 0.01) = 0.35;
+uniform float burn_size : hint_range(0.0, 0.2, 0.01) = 0.08;
+uniform vec4 burn_color : source_color = vec4(1.0, 0.4, 0.1, 1.0);
+
+float pseudo_noise(vec2 uv) {
+	return fract(sin(dot(uv.xy, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
 void fragment() {
-    vec4 tex = texture(TEXTURE, UV);
-    // Cheap per-pixel read
-    COLOR = tex * pulsing_wave; 
+	vec4 tex_color = texture(TEXTURE, UV);
+	float noise = pseudo_noise(UV * 8.0);
+	
+	if (noise < dissolve_amount) {
+		discard;
+	} else if (noise < dissolve_amount + burn_size && tex_color.a > 0.0) {
+		tex_color = burn_color;
+	}
+	COLOR = tex_color;
 }
 ```
+
+#### 4.3. 3D Toon / Cel Shading with Stepped Lighting
+```glsl
+shader_type spatial;
+render_mode diffuse_toon, specular_toon;
+
+uniform vec4 albedo_color : source_color = vec4(0.8, 0.4, 0.3, 1.0);
+uniform vec4 shadow_color : source_color = vec4(0.3, 0.15, 0.2, 1.0);
+uniform float cuts : hint_range(1.0, 8.0, 1.0) = 3.0;
+uniform float roughness : hint_range(0.0, 1.0, 0.05) = 0.5;
+
+void fragment() {
+	ALBEDO = albedo_color.rgb;
+	ROUGHNESS = roughness;
+}
+
+void light() {
+	float ndotl = dot(NORMAL, LIGHT);
+	float stepped = floor(max(0.0, ndotl) * cuts) / cuts;
+	vec3 diff = mix(shadow_color.rgb, albedo_color.rgb, stepped);
+	DIFFUSE_LIGHT += diff * ATTENUATION * LIGHT_COLOR;
+}
+```
+
+#### 4.4. 3D Fresnel Silhouette Rim Glow
+```glsl
+shader_type spatial;
+
+uniform vec4 base_color : source_color = vec4(0.1, 0.15, 0.25, 1.0);
+uniform vec4 rim_color : source_color = vec4(0.3, 0.8, 1.0, 1.0);
+uniform float rim_power : hint_range(0.5, 8.0, 0.1) = 3.0;
+uniform float emission_energy : hint_range(0.0, 10.0, 0.5) = 2.5;
+
+void fragment() {
+	ALBEDO = base_color.rgb;
+	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
+	EMISSION = rim_color.rgb * fresnel * emission_energy;
+}
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+### 5. PERFORMANCE RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **Vertex Math > Fragment Math**: The vertex function executes once per vertex (e.g. 4 times per quad sprite), while `fragment()` executes millions of times per frame for every covered pixel. Calculate sine waves, wind swaying, and matrix transformations in `vertex()` and pass via `varying`.
+2. **Avoid Heavy Texture Branching**: Avoid dynamic loops containing texture sampling inside `fragment()`.
+3. **Use Shader Synthesizer Tools**:
+   - `generate_shader(preset: "hit_flash")` -> Auto-creates `.gdshader` and `.tres` `ShaderMaterial`.
+   - `apply_shader_to_node(node_path: "%PlayerSprite", preset: "hit_flash")` -> Attaches material with Undo/Redo support.

@@ -37,6 +37,13 @@ func _get_undo_redo() -> EditorUndoRedoManager:
 		return executor._undo_redo
 	return null
 
+func _get_scene_context() -> Object:
+	if Engine.is_editor_hint():
+		var root = EditorInterface.get_edited_scene_root()
+		if is_instance_valid(root):
+			return root
+	return executor
+
 func _is_composite() -> bool:
 	if executor and "_composite_action_name" in executor:
 		return executor._composite_action_name != ""
@@ -44,3 +51,12 @@ func _is_composite() -> bool:
 
 func _has_undo() -> bool:
 	return _get_undo_redo() != null
+
+func _duplicate_value(val: Variant) -> Variant:
+	if val is Dictionary:
+		return val.duplicate(true)
+	elif val is Array:
+		return val.duplicate(true)
+	elif val is Resource and val.has_method("duplicate"):
+		return val.duplicate(true)
+	return val

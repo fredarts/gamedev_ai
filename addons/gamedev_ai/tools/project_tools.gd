@@ -25,6 +25,9 @@ func execute(tool_name: String, args: Dictionary) -> bool:
 		"capture_editor_screenshot":
 			_capture_editor_screenshot()
 			return true
+		"get_lsp_diagnostics":
+			_get_lsp_diagnostics(args.get("path"), args.get("source_code", ""))
+			return true
 	return false
 
 # --- Utility ---
@@ -150,8 +153,18 @@ func _create_resource(path: String, type: String, properties: Variant = {}):
 		_emit_output("Error: Failed to save resource. Code: " + str(err))
 
 func _run_tests(test_script_path: String):
+	if executor and "test_runner" in executor and executor.test_runner:
+		var tr = executor.test_runner
+		var res = tr.run_gut_tests(test_script_path)
+		if res.get("success", false):
+			_emit_output("[color=cyan]🧪 Test Runner started (PID: " + str(res.get("pid", 0)) + ", Mode: " + str(res.get("mode", "async")) + ").[/color]\nExecuting tests in background...")
+		else:
+			_emit_output("[color=red]Error starting tests: " + str(res.get("error", "Unknown error")) + "[/color]")
+		return
+
+	# Fallback if TestRunner not instantiated
 	var exe_path = OS.get_executable_path()
-	var args = []
+	var args = ["--headless"]
 	if test_script_path != "":
 		if not test_script_path.begins_with("res://"):
 			_emit_output("Error: Test script path must start with res://")
@@ -162,21 +175,60 @@ func _run_tests(test_script_path: String):
 		if FileAccess.file_exists("res://addons/gut/gut_cmdln.gd"):
 			args.append("-s")
 			args.append("res://addons/gut/gut_cmdln.gd")
-		elif FileAccess.file_exists("res://addons/gdUnit4/runtest.gd"):
-			args.append("-s")
-			args.append("res://addons/gdUnit4/runtest.gd")
+			args.append("-gexit")
 		else:
-			_emit_output("Error: No test script provided and no known test runner found (GUT/GdUnit4).")
+			_emit_output("Error: No test runner found and no test script provided.")
 			return
-			
-	args.append("--headless")
-	var msg = "Running tests (non-blocking): " + exe_path + " " + str(args)
 	var pid = OS.create_process(exe_path, args)
-	if pid == -1:
-		_emit_output("Error: Failed to start test process.")
+	_emit_output("Tests started (PID: " + str(pid) + ")")
+
+func _get_lsp_diagnostics(path: String, source_code: String = ""):
+	if not path.begins_with("res://"):
+		_emit_output("Error: Path must start with res://")
 		return
-	msg += " | Test process started (PID: " + str(pid) + "). Check the Godot console for results."
-	_emit_output(msg)
+		
+	var code = source_code
+	if code == "":
+		if not FileAccess.file_exists(path):
+			_emit_output("Error: File not found at " + path)
+			return
+		var f = FileAccess.open(path, FileAccess.READ)
+		if f:
+			code = f.get_as_text()
+			f.close()
+		else:
+			_emit_output("Error: Could not open file at " + path)
+			return
+
+	# 1. Try LSP Client if available and connected
+	if executor and "lsp_client" in executor and executor.lsp_client:
+		var lsp = executor.lsp_client
+		if lsp.is_ready():
+			lsp.notify_did_open(path, code)
+			var diags = lsp.get_cached_diagnostics(path)
+			if diags.is_empty():
+				_emit_output("✅ [b]LSP Diagnostics for " + path.get_file() + ":[/b] No errors or warnings detected.")
+			else:
+				var msg = "⚠️ [b]LSP Diagnostics for " + path.get_file() + ":[/b]\n"
+				for d in diags:
+					var line = d.get("range", {}).get("start", {}).get("line", 0) + 1
+					var sev = d.get("severity", 1)
+					var sev_str = "ERROR" if sev == 1 else ("WARNING" if sev == 2 else "INFO")
+					var message = d.get("message", "")
+					msg += "• [L" + str(line) + "][" + sev_str + "] " + message + "\n"
+				_emit_output(msg)
+			return
+
+	# 2. Fallback to Native GDScript static syntax check
+	var LSPClientScript = load("res://addons/gamedev_ai/lsp_client.gd")
+	if LSPClientScript:
+		var result = LSPClientScript.check_syntax_native(code, path)
+		if result.get("valid", false):
+			_emit_output("✅ [b]Native GDScript Syntax Check for " + path.get_file() + ":[/b] Valid syntax (0 errors).")
+		else:
+			_emit_output("❌ [b]Native GDScript Syntax Check for " + path.get_file() + ":[/b]\n" + result.get("message", "Syntax error"))
+	else:
+		_emit_output("LSP Client not available.")
 
 func _get_class_info(cls_name: String):
 	if not ClassDB.class_exists(cls_name):

@@ -21,7 +21,13 @@ var current_session_id: String = ""
 var _timeout_timer: Timer
 var _retry_count: int = 0
 
-const MAX_HISTORY_TURNS = 100 
+const DEFAULT_MAX_HISTORY_TURNS = 24
+const DEFAULT_MAX_BUFFER_CHARS = 64000 # ~16k tokens
+const MAX_SINGLE_TOOL_OUTPUT_CHARS = 3500
+
+var max_history_turns: int = DEFAULT_MAX_HISTORY_TURNS
+var max_buffer_chars: int = DEFAULT_MAX_BUFFER_CHARS
+
 const HISTORY_DIR = "res://.gamedev_ai/history/"
 const REQUEST_TIMEOUT_SECS = 360.0
 const MAX_RETRIES = 2
@@ -51,6 +57,71 @@ func new_session():
 	clear_history()
 	current_session_id = str(Time.get_unix_time_from_system()).replace(".", "_")
 	save_session()
+
+# ===================== BUFFER & PRUNING MANAGEMENT =====================
+
+func estimate_history_tokens() -> int:
+	var total_chars = _calculate_history_chars()
+	return int(total_chars / 4.0)
+
+func prune_history():
+	# 1. Truncate oversized raw tool outputs in older turns
+	_sanitize_old_tool_outputs()
+	
+	# 2. Limit by turn count
+	if history.size() > max_history_turns:
+		var has_system = (not history.is_empty() and history[0].get("role") == "system")
+		while history.size() > max_history_turns:
+			var remove_idx = 1 if has_system else 0
+			if remove_idx < history.size():
+				history.remove_at(remove_idx)
+			else:
+				break
+				
+	# 3. Limit by total character/token budget (Sliding Window)
+	var total_chars = _calculate_history_chars()
+	var has_sys = (not history.is_empty() and history[0].get("role") == "system")
+	
+	while total_chars > max_buffer_chars and history.size() > (2 if has_sys else 1):
+		var remove_idx = 1 if has_sys else 0
+		history.remove_at(remove_idx)
+		total_chars = _calculate_history_chars()
+		
+	# 4. Clean orphan tool/function responses to maintain role sequence integrity
+	_clean_orphan_roles()
+
+func _calculate_history_chars() -> int:
+	var chars = 0
+	for entry in history:
+		chars += JSON.stringify(entry).length()
+	return chars
+
+func _sanitize_old_tool_outputs():
+	# If history has more than 4 entries, truncate large outputs from earlier tool turns
+	var limit_idx = max(0, history.size() - 4)
+	for i in range(limit_idx):
+		var msg = history[i]
+		if msg.get("role") in ["function", "tool"]:
+			if msg.has("content") and msg["content"] is String and msg["content"].length() > MAX_SINGLE_TOOL_OUTPUT_CHARS:
+				msg["content"] = msg["content"].substr(0, MAX_SINGLE_TOOL_OUTPUT_CHARS) + "... [Output truncated by buffer manager]"
+			elif msg.has("parts"):
+				for p in msg["parts"]:
+					if p is Dictionary and p.has("functionResponse") and p["functionResponse"].has("response"):
+						var resp = str(p["functionResponse"]["response"])
+						if resp.length() > MAX_SINGLE_TOOL_OUTPUT_CHARS:
+							p["functionResponse"]["response"] = {"result": resp.substr(0, MAX_SINGLE_TOOL_OUTPUT_CHARS) + "... [Output truncated]"}
+
+func _clean_orphan_roles():
+	# Ensure history does not start with an orphan function/tool response
+	var start_idx = 1 if (not history.is_empty() and history[0].get("role") == "system") else 0
+	while history.size() > start_idx:
+		var role = history[start_idx].get("role", "")
+		if role in ["function", "tool"]:
+			history.remove_at(start_idx)
+		else:
+			break
+
+# ===================== PERSISTENCE =====================
 
 func _ensure_history_dir():
 	if not DirAccess.dir_exists_absolute(HISTORY_DIR):
@@ -85,6 +156,7 @@ func load_session(session_id: String) -> bool:
 		history = data.get("history", [])
 		transcript = data.get("transcript", [])
 		current_session_id = data.get("id", session_id)
+		prune_history()
 		return true
 	return false
 

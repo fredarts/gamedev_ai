@@ -54,8 +54,22 @@ const _TOOL_REQUIRED_ARGS = {
 	"semantic_search": ["query"],
 	"analyze_node_children": ["node_path"],
 	"audit_scene": [],
-	"audit_script": ["path"]
+	"audit_script": ["path"],
+	"get_lsp_diagnostics": ["path"],
+	"generate_sfx": ["preset"],
+	"play_sfx_preview": ["preset"],
+	"generate_shader": ["preset"],
+	"apply_shader_to_node": [],
+	"get_shader_presets_list": [],
+	"configure_tileset_atlas": ["texture_path"],
+	"build_tilemap_layout": ["layout_matrix"],
+	"paint_terrain_cells": ["terrain_set", "terrain_id", "cell_coordinates"],
+	"read_tilemap_layout": [],
+	"clear_tilemap_region": []
 }
+
+var test_runner: RefCounted
+var lsp_client: RefCounted
 
 func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
 	if not _TOOL_REQUIRED_ARGS.has(tool_name):
@@ -73,7 +87,7 @@ func _validate_args(tool_name: String, args: Dictionary) -> Dictionary:
 	# Type-specific validations
 	if args.has("path") and args["path"] is String:
 		var path: String = args["path"]
-		if tool_name in ["create_script", "edit_script", "read_file", "patch_script", "remove_file", "list_dir", "create_resource"]:
+		if tool_name in ["create_script", "edit_script", "read_file", "patch_script", "remove_file", "list_dir", "create_resource", "get_lsp_diagnostics"]:
 			if not path.begins_with("res://"):
 				return {"valid": false, "error": "Parameter 'path' must start with 'res://'. Got: '" + path + "'"}
 				
@@ -100,22 +114,40 @@ func _init():
 
 func setup(undo_redo: EditorUndoRedoManager):
 	_undo_redo = undo_redo
-	_handlers.clear()
-	var ScriptTools = load("res://addons/gamedev_ai/tools/script_tools.gd")
-	var NodeTools = load("res://addons/gamedev_ai/tools/node_tools.gd")
-	var FileTools = load("res://addons/gamedev_ai/tools/file_tools.gd")
-	var ProjectTools = load("res://addons/gamedev_ai/tools/project_tools.gd")
-	var MemoryTools = load("res://addons/gamedev_ai/tools/memory_tools.gd")
-	var DBTools = load("res://addons/gamedev_ai/tools/db_tools.gd")
-	var AuditTools = load("res://addons/gamedev_ai/tools/audit_tools.gd")
 	
-	_handlers.append(ScriptTools.new())
-	_handlers.append(NodeTools.new())
-	_handlers.append(FileTools.new())
-	_handlers.append(ProjectTools.new())
-	_handlers.append(MemoryTools.new())
-	_handlers.append(DBTools.new())
-	_handlers.append(AuditTools.new())
+	# Initialize LSP Client
+	var LSPClientScript = load("res://addons/gamedev_ai/lsp_client.gd")
+	if LSPClientScript:
+		lsp_client = LSPClientScript.new()
+		lsp_client.connect_to_lsp()
+	
+	# Initialize Test Runner
+	var TestRunnerScript = load("res://addons/gamedev_ai/test_runner.gd")
+	if TestRunnerScript:
+		test_runner = TestRunnerScript.new()
+	
+	_handlers.clear()
+	var ScriptToolsScript = load("res://addons/gamedev_ai/tools/script_tools.gd")
+	var NodeToolsScript = load("res://addons/gamedev_ai/tools/node_tools.gd")
+	var FileToolsScript = load("res://addons/gamedev_ai/tools/file_tools.gd")
+	var ProjectToolsScript = load("res://addons/gamedev_ai/tools/project_tools.gd")
+	var MemoryToolsScript = load("res://addons/gamedev_ai/tools/memory_tools.gd")
+	var DBToolsScript = load("res://addons/gamedev_ai/tools/db_tools.gd")
+	var AuditToolsScript = load("res://addons/gamedev_ai/tools/audit_tools.gd")
+	var AudioToolsScript = load("res://addons/gamedev_ai/tools/audio_tools.gd")
+	var ShaderToolsScript = load("res://addons/gamedev_ai/tools/shader_tools.gd")
+	var TileMapToolsScript = load("res://addons/gamedev_ai/tools/tilemap_tools.gd")
+	
+	if ScriptToolsScript: _handlers.append(ScriptToolsScript.new())
+	if NodeToolsScript: _handlers.append(NodeToolsScript.new())
+	if FileToolsScript: _handlers.append(FileToolsScript.new())
+	if ProjectToolsScript: _handlers.append(ProjectToolsScript.new())
+	if MemoryToolsScript: _handlers.append(MemoryToolsScript.new())
+	if DBToolsScript: _handlers.append(DBToolsScript.new())
+	if AuditToolsScript: _handlers.append(AuditToolsScript.new())
+	if AudioToolsScript: _handlers.append(AudioToolsScript.new())
+	if ShaderToolsScript: _handlers.append(ShaderToolsScript.new())
+	if TileMapToolsScript: _handlers.append(TileMapToolsScript.new())
 	
 	for h in _handlers:
 		h.setup(self)
@@ -126,15 +158,30 @@ func init_vector_db(node: Node):
 	vector_db.setup(node)
 	vector_db.db_output.connect(func(out): tool_output.emit(out))
 
-func start_composite_action(name: String):
+func start_composite_action(name: String, custom_context: Object = null):
+	begin_batch_transaction(name, custom_context)
+
+func begin_batch_transaction(name: String, custom_context: Object = null):
 	if _undo_redo and _composite_action_name == "":
 		_composite_action_name = name
-		# Force history 0 (Global) by using self as context
-		_undo_redo.create_action(name, UndoRedo.MERGE_DISABLE, self)
+		var ctx = custom_context
+		if ctx == null:
+			if Engine.is_editor_hint():
+				ctx = EditorInterface.get_edited_scene_root()
+			if ctx == null:
+				ctx = self
+		_undo_redo.create_action(name, UndoRedo.MERGE_DISABLE, ctx)
 
 func commit_composite_action():
+	commit_batch_transaction()
+
+func commit_batch_transaction():
 	if _undo_redo and _composite_action_name != "":
 		_undo_redo.commit_action()
+		_composite_action_name = ""
+
+func abort_batch_transaction():
+	if _undo_redo and _composite_action_name != "":
 		_composite_action_name = ""
 
 func cancel_pending_action():
