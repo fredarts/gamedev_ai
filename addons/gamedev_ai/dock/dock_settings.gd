@@ -24,6 +24,7 @@ var language_label: Label
 var custom_prompt_input: TextEdit
 var font_size_minus_btn: Button
 var font_size_plus_btn: Button
+var chat_preset_selector: OptionButton
 
 var vector_db_file_list: RichTextLabel
 var scan_changes_btn: Button
@@ -70,6 +71,7 @@ func setup(dock_owner: Node, p_locale_manager, p_tool_executor, p_ai_provider, n
 	custom_prompt_input = nodes.get("custom_prompt_input")
 	font_size_minus_btn = nodes.get("font_size_minus_btn")
 	font_size_plus_btn = nodes.get("font_size_plus_btn")
+	chat_preset_selector = nodes.get("chat_preset_selector")
 	
 	vector_db_file_list = nodes.get("vector_db_file_list")
 	scan_changes_btn = nodes.get("scan_changes_btn")
@@ -91,6 +93,8 @@ func setup(dock_owner: Node, p_locale_manager, p_tool_executor, p_ai_provider, n
 func _connect_signals():
 	if preset_selector and not preset_selector.item_selected.is_connected(_on_preset_selected):
 		preset_selector.item_selected.connect(_on_preset_selected)
+	if chat_preset_selector and not chat_preset_selector.item_selected.is_connected(_on_chat_preset_selected):
+		chat_preset_selector.item_selected.connect(_on_chat_preset_selected)
 	if add_preset_btn and not add_preset_btn.pressed.is_connected(_on_add_preset_pressed):
 		add_preset_btn.pressed.connect(_on_add_preset_pressed)
 	if edit_preset_btn and not edit_preset_btn.pressed.is_connected(_on_edit_preset_pressed):
@@ -200,16 +204,22 @@ func _save_presets():
 	settings.set_setting("gamedev_ai/active_preset", active_preset_name)
 
 func _update_preset_selector():
-	if not preset_selector: return
-	preset_selector.clear()
-	var idx = 0
-	var active_idx = 0
-	for p_name in presets.keys():
-		preset_selector.add_item(p_name)
-		if p_name == active_preset_name:
-			active_idx = idx
-		idx += 1
-	preset_selector.select(active_idx)
+	var selectors = []
+	if preset_selector: selectors.append(preset_selector)
+	if chat_preset_selector: selectors.append(chat_preset_selector)
+	if selectors.is_empty(): return
+	
+	for sel in selectors:
+		sel.clear()
+		var idx = 0
+		var active_idx = 0
+		for p_name in presets.keys():
+			sel.add_item(p_name)
+			if p_name == active_preset_name:
+				active_idx = idx
+			idx += 1
+		if sel.get_item_count() > 0:
+			sel.select(active_idx)
 
 func _apply_active_preset():
 	var config = presets.get(active_preset_name, {})
@@ -240,9 +250,19 @@ func _update_field_visibilities(prov: int):
 		url_input.placeholder_text = "Default: http://localhost:11434/v1" if is_local else "Default: https://openrouter.ai/api/v1"
 
 func _on_preset_selected(index: int):
-	active_preset_name = preset_selector.get_item_text(index)
+	if preset_selector and index >= 0 and index < preset_selector.get_item_count():
+		active_preset_name = preset_selector.get_item_text(index)
 	_save_presets()
 	_apply_active_preset()
+	_update_preset_selector()
+
+func _on_chat_preset_selected(index: int):
+	if not chat_preset_selector or index < 0 or index >= chat_preset_selector.get_item_count(): return
+	var p_name = chat_preset_selector.get_item_text(index)
+	var keys = presets.keys()
+	var s_idx = keys.find(p_name)
+	if s_idx != -1:
+		_on_preset_selected(s_idx)
 
 func _on_add_preset_pressed():
 	var base_name = "New Preset"

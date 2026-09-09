@@ -159,7 +159,8 @@ func _ready():
 		"vector_db_file_list": vector_db_file_list, "scan_changes_btn": scan_changes_btn, "index_codebase_btn": index_codebase_btn,
 		"index_confirm_dialog": index_confirm_dialog, "index_result_dialog": index_result_dialog,
 		"enhance_prompt_btn": enhance_prompt_btn, "enhance_preview_dialog": enhance_preview_dialog,
-		"enhance_preview_label": enhance_preview_label
+		"enhance_preview_label": enhance_preview_label,
+		"chat_preset_selector": chat_preset_selector
 	}
 	settings_ctrl.preset_changed.connect(func(cfg): preset_changed.emit(cfg))
 	settings_ctrl.settings_updated.connect(func(): settings_updated.emit())
@@ -250,38 +251,57 @@ func _on_tab_changed(tab: int):
 # ===================== VISUAL THEME & CARDS =====================
 
 func _apply_custom_theme():
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.09, 0.12)
+	# Root Dock Panel - Deep slate obsidian background with subtle margin
+	var panel_style = _create_glass_style(Color(0.06, 0.07, 0.09, 1.0), Color(1, 1, 1, 0.06), 0)
+	panel_style.content_margin_left = 6
+	panel_style.content_margin_right = 6
+	panel_style.content_margin_top = 4
+	panel_style.content_margin_bottom = 6
 	add_theme_stylebox_override("panel", panel_style)
 	
-	var input_style = StyleBoxFlat.new()
-	input_style.bg_color = Color(0.12, 0.13, 0.17)
-	input_style.border_color = Color(0.2, 0.22, 0.3)
-	input_style.border_width_left = 1
-	input_style.border_width_right = 1
-	input_style.border_width_top = 1
-	input_style.border_width_bottom = 1
-	input_style.corner_radius_top_left = 8
-	input_style.corner_radius_top_right = 8
-	input_style.corner_radius_bottom_left = 8
-	input_style.corner_radius_bottom_right = 8
-	input_style.content_margin_left = 16
-	input_style.content_margin_right = 16
-	input_style.content_margin_top = 12
-	input_style.content_margin_bottom = 35
-	input_field.add_theme_stylebox_override("normal", input_style)
-	input_field.add_theme_stylebox_override("focus", input_style)
+	# TabContainer Glass Styling with generous breathing room
+	_style_tab_container($TabContainer)
 	
-	var send_style = StyleBoxFlat.new()
-	send_style.bg_color = Color(0.15, 0.6, 0.35)
-	send_style.corner_radius_top_left = 20
-	send_style.corner_radius_top_right = 20
-	send_style.corner_radius_bottom_right = 20
-	send_style.corner_radius_bottom_left = 20
+	# Chat Preset Selector - Stable width and clean placement
+	if chat_preset_selector:
+		chat_preset_selector.custom_minimum_size = Vector2(135, 28)
+		chat_preset_selector.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	
+	# Chat Input - Floating Glass Card with inset breathing room
+	var input_style = _create_glass_style(Color(0.08, 0.10, 0.14, 0.85), Color(1, 1, 1, 0.10), 10, 6, Color(0, 0, 0, 0.35))
+	input_style.content_margin_left = 14
+	input_style.content_margin_right = 14
+	input_style.content_margin_top = 12
+	input_style.content_margin_bottom = 44
+	input_field.add_theme_stylebox_override("normal", input_style)
+	
+	var input_focus = input_style.duplicate()
+	input_focus.border_color = Color(0.25, 0.55, 0.95, 0.70)
+	input_focus.shadow_color = Color(0.12, 0.32, 0.80, 0.25)
+	input_field.add_theme_stylebox_override("focus", input_focus)
+	
+	# Settings Custom Prompt Input - Match Glass Card style
+	if custom_prompt_input:
+		var prompt_style = _create_glass_style(Color(0.08, 0.10, 0.14, 0.80), Color(1, 1, 1, 0.09), 8, 4, Color(0, 0, 0, 0.25))
+		prompt_style.content_margin_left = 12
+		prompt_style.content_margin_right = 12
+		prompt_style.content_margin_top = 10
+		prompt_style.content_margin_bottom = 10
+		custom_prompt_input.add_theme_stylebox_override("normal", prompt_style)
+		var prompt_focus = prompt_style.duplicate()
+		prompt_focus.border_color = Color(0.25, 0.55, 0.95, 0.65)
+		custom_prompt_input.add_theme_stylebox_override("focus", prompt_focus)
+	
+	# Send Button - Modern Electric Blue Pill/Circle
+	var send_style = _create_glass_style(Color(0.20, 0.48, 0.92, 0.95), Color(0.45, 0.70, 1.0, 0.50), 20, 4, Color(0.1, 0.3, 0.8, 0.30))
 	send_button.add_theme_stylebox_override("normal", send_style)
-	send_button.add_theme_stylebox_override("hover", send_style)
+	var send_hover = send_style.duplicate()
+	send_hover.bg_color = Color(0.26, 0.56, 1.0, 1.0)
+	send_hover.border_color = Color(0.6, 0.8, 1.0, 0.70)
+	send_button.add_theme_stylebox_override("hover", send_hover)
 	send_button.add_theme_stylebox_override("pressed", send_style)
 	
+	# Load SVG Icons
 	var icon_path = "res://addons/gamedev_ai/assets/icons/"
 	new_chat_button.icon = _load_svg_icon(icon_path + "plus.svg", "ffffff", 0.75)
 	history_button.icon = _load_svg_icon(icon_path + "history.svg", "ffffff", 0.75)
@@ -291,38 +311,190 @@ func _apply_custom_theme():
 	magic_actions_btn.icon = _load_svg_icon(icon_path + "magic.svg", "ffffff", 0.75)
 	prompt_settings_btn.icon = _load_svg_icon(icon_path + "settings.svg", "ffffff", 0.75)
 	
-	_style_solid_button(execute_plan_btn, Color(0.2, 0.6, 0.3))
-	_style_solid_button(_apply_diff_btn, Color(0.2, 0.6, 0.3))
-	_style_solid_button(_skip_diff_btn, Color(0.4, 0.4, 0.45))
-	_style_solid_button(tts_play_btn, Color(0.3, 0.4, 0.5))
-	_style_solid_button(tts_stop_btn, Color(0.5, 0.3, 0.3))
-	_style_solid_button(_file_clear_btn, Color(0.5, 0.3, 0.3))
-	_style_solid_button(font_size_minus_btn, Color(0.3, 0.35, 0.4))
-	_style_solid_button(font_size_plus_btn, Color(0.3, 0.35, 0.4))
-	_style_solid_button(new_chat_button, Color(0.3, 0.35, 0.4))
-	_style_solid_button(history_button, Color(0.3, 0.35, 0.4))
+	# Clean button text to avoid emoji duplication with SVG icons
+	new_chat_button.text = "New"
+	history_button.text = "History"
+	summarize_btn.text = "Save"
 	
-	_style_solid_button(init_repo_btn, Color(0.2, 0.6, 0.3))
-	_style_solid_button(set_remote_btn, Color(0.25, 0.35, 0.5))
-	_style_solid_button(pull_btn, Color(0.25, 0.35, 0.5))
-	_style_solid_button(refresh_git_btn, Color(0.3, 0.4, 0.5))
-	_style_solid_button(auto_generate_commit_btn, Color(0.4, 0.3, 0.6))
-	_style_solid_button(commit_sync_btn, Color(0.2, 0.6, 0.3))
-	_style_solid_button(checkout_branch_btn, Color(0.25, 0.35, 0.5))
+	# Chat Header Buttons
+	_style_glass_button(new_chat_button, "primary", 6)
+	_style_glass_button(history_button, "secondary", 6)
+	_style_glass_button(summarize_btn, "secondary", 6)
+	_style_glass_button(font_size_minus_btn, "secondary", 4)
+	_style_glass_button(font_size_plus_btn, "secondary", 4)
 	
-	_style_solid_button(shader_recompile_btn, Color(0.25, 0.45, 0.6))
-	_style_solid_button(shader_randomize_btn, Color(0.5, 0.35, 0.6))
-	_style_solid_button(shader_apply_btn, Color(0.2, 0.6, 0.35))
-	_style_solid_button(shader_save_btn, Color(0.3, 0.5, 0.35))
+	# Toolbar Icon Buttons (inside input container)
+	_style_glass_button(add_file_btn, "icon", 6)
+	_style_glass_button(prompt_settings_btn, "icon", 6)
 	
-	_style_ghost_danger_button(undo_changes_btn)
-	_style_ghost_danger_button(force_pull_btn)
-	_style_ghost_danger_button(force_push_btn)
+	# Chat Utility & Actions
+	_style_glass_button(magic_actions_btn, "secondary", 8)
+	_style_glass_button(execute_plan_btn, "primary", 6)
+	_style_glass_button(_apply_diff_btn, "primary", 6)
+	_style_glass_button(_skip_diff_btn, "secondary", 6)
+	_style_glass_button(tts_play_btn, "secondary", 6)
+	_style_glass_button(tts_stop_btn, "danger", 6)
+	_style_glass_button(_file_clear_btn, "danger", 6)
+	
+	# Hide raw selection status if empty
+	if selection_status and selection_status.text == "No selection":
+		selection_status.visible = false
+	
+	# Git Tab Buttons
+	_style_glass_button(init_repo_btn, "primary", 8)
+	_style_glass_button(set_remote_btn, "secondary", 6)
+	_style_glass_button(pull_btn, "secondary", 6)
+	_style_glass_button(refresh_git_btn, "secondary", 6)
+	_style_glass_button(auto_generate_commit_btn, "secondary", 6)
+	_style_glass_button(commit_sync_btn, "primary", 8)
+	_style_glass_button(checkout_branch_btn, "secondary", 6)
+	
+	_style_glass_button(undo_changes_btn, "danger", 6)
+	_style_glass_button(force_pull_btn, "danger", 6)
+	_style_glass_button(force_push_btn, "danger", 6)
+	
+	# Shader Studio Buttons - Harmonized Palette
+	_style_glass_button(shader_apply_btn, "primary", 6)
+	_style_glass_button(shader_recompile_btn, "secondary", 6)
+	_style_glass_button(shader_randomize_btn, "secondary", 6)
+	_style_glass_button(shader_save_btn, "secondary", 6)
+	
+	# Settings Tab Buttons
+	_style_glass_button(enhance_prompt_btn, "primary", 6)
+	_style_glass_button(scan_changes_btn, "secondary", 6)
+	_style_glass_button(index_codebase_btn, "primary", 6)
+	_style_glass_button(edit_preset_btn, "secondary", 6)
+	_style_glass_button(close_edit_btn, "success", 6)
+	
+	var add_preset_btn = find_child("AddPresetBtn", true, false)
+	var del_preset_btn = find_child("DelPresetBtn", true, false)
+	if add_preset_btn: _style_glass_button(add_preset_btn, "secondary", 6)
+	if del_preset_btn: _style_glass_button(del_preset_btn, "danger", 6)
+	
+	# Glass Input styling for Commit message & Shader code
+	if commit_msg_input:
+		var commit_style = _create_glass_style(Color(0.08, 0.10, 0.14, 0.80), Color(1, 1, 1, 0.09), 8, 4, Color(0, 0, 0, 0.25))
+		commit_style.content_margin_left = 12
+		commit_style.content_margin_right = 12
+		commit_style.content_margin_top = 8
+		commit_style.content_margin_bottom = 8
+		commit_msg_input.add_theme_stylebox_override("normal", commit_style)
+		var commit_focus = commit_style.duplicate()
+		commit_focus.border_color = Color(0.25, 0.55, 0.95, 0.65)
+		commit_msg_input.add_theme_stylebox_override("focus", commit_focus)
+		
+	if shader_code_edit:
+		var code_style = _create_glass_style(Color(0.06, 0.07, 0.10, 0.85), Color(1, 1, 1, 0.08), 8, 4, Color(0, 0, 0, 0.30))
+		code_style.content_margin_left = 10
+		code_style.content_margin_right = 10
+		code_style.content_margin_top = 10
+		code_style.content_margin_bottom = 10
+		shader_code_edit.add_theme_stylebox_override("normal", code_style)
+		shader_code_edit.add_theme_stylebox_override("focus", code_style)
+
+	# Glass status containers
+	var status_bg = _create_glass_style(Color(0.07, 0.08, 0.12, 0.70), Color(1, 1, 1, 0.06), 8, 2, Color(0, 0, 0, 0.15))
+	status_bg.content_margin_left = 12
+	status_bg.content_margin_right = 12
+	status_bg.content_margin_top = 10
+	status_bg.content_margin_bottom = 10
+	if git_status_label:
+		git_status_label.add_theme_stylebox_override("normal", status_bg)
+	if vector_db_file_list:
+		vector_db_file_list.add_theme_stylebox_override("normal", status_bg)
+	if shader_status_label:
+		var stat_bg = _create_glass_style(Color(0.08, 0.10, 0.15, 0.75), Color(0.2, 0.5, 0.9, 0.30), 6)
+		stat_bg.content_margin_left = 10
+		stat_bg.content_margin_right = 10
+		stat_bg.content_margin_top = 6
+		stat_bg.content_margin_bottom = 6
+		shader_status_label.add_theme_stylebox_override("normal", stat_bg)
+		
+	# LineEdit Glass Styling
+	var line_edit_style = _create_glass_style(Color(0.09, 0.11, 0.15, 0.75), Color(1, 1, 1, 0.08), 6)
+	line_edit_style.content_margin_left = 10
+	line_edit_style.content_margin_right = 10
+	line_edit_style.content_margin_top = 6
+	line_edit_style.content_margin_bottom = 6
+	var line_edit_focus = line_edit_style.duplicate()
+	line_edit_focus.border_color = Color(0.25, 0.55, 0.95, 0.65)
+	for le in [remote_url_input, branch_name_input, preset_name_input, api_input, url_input, model_input]:
+		if is_instance_valid(le):
+			le.add_theme_stylebox_override("normal", line_edit_style)
+			le.add_theme_stylebox_override("focus", line_edit_focus)
+
+	# OptionButton Glass Styling
+	var opt_style = _create_glass_style(Color(0.12, 0.15, 0.22, 0.70), Color(1, 1, 1, 0.09), 6)
+	opt_style.content_margin_left = 10
+	opt_style.content_margin_right = 10
+	opt_style.content_margin_top = 6
+	opt_style.content_margin_bottom = 6
+	var opt_hover = opt_style.duplicate()
+	opt_hover.bg_color = Color(0.16, 0.20, 0.30, 0.85)
+	opt_hover.border_color = Color(1, 1, 1, 0.18)
+	for opt in [preset_selector, chat_preset_selector, language_selector, provider_selector, shader_category_selector, shader_preset_selector, shader_mode_selector]:
+		if is_instance_valid(opt):
+			opt.add_theme_stylebox_override("normal", opt_style)
+			opt.add_theme_stylebox_override("hover", opt_hover)
+			opt.add_theme_stylebox_override("pressed", opt_style)
+			opt.add_theme_stylebox_override("focus", opt_hover)
 	
 	$TabContainer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for child in $TabContainer.get_children():
 		if child is Control:
 			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+func _create_glass_style(bg_color: Color, border_color: Color = Color(1, 1, 1, 0.08), corner_radius: int = 8, shadow_size: int = 0, shadow_color: Color = Color(0, 0, 0, 0.25)) -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_color = border_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(corner_radius)
+	if shadow_size > 0:
+		style.shadow_size = shadow_size
+		style.shadow_color = shadow_color
+		style.shadow_offset = Vector2(0, 2)
+	return style
+
+func _style_tab_container(tabs: TabContainer):
+	if not is_instance_valid(tabs): return
+	
+	var panel = _create_glass_style(Color(0.06, 0.07, 0.09, 0.95), Color(1, 1, 1, 0.05), 8)
+	panel.content_margin_left = 12
+	panel.content_margin_right = 12
+	panel.content_margin_top = 10
+	panel.content_margin_bottom = 12
+	tabs.add_theme_stylebox_override("panel", panel)
+	
+	tabs.add_theme_constant_override("side_margin", 8)
+	
+	var tab_selected = StyleBoxFlat.new()
+	tab_selected.bg_color = Color(0.14, 0.17, 0.25, 0.85)
+	tab_selected.border_color = Color(0.35, 0.60, 1.0, 0.85)
+	tab_selected.border_width_bottom = 2
+	tab_selected.corner_radius_top_left = 6
+	tab_selected.corner_radius_top_right = 6
+	tab_selected.content_margin_left = 14
+	tab_selected.content_margin_right = 14
+	tab_selected.content_margin_top = 8
+	tab_selected.content_margin_bottom = 8
+	tabs.add_theme_stylebox_override("tab_selected", tab_selected)
+	
+	var tab_unselected = StyleBoxFlat.new()
+	tab_unselected.bg_color = Color(0.08, 0.10, 0.14, 0.45)
+	tab_unselected.border_color = Color(1, 1, 1, 0.04)
+	tab_unselected.border_width_bottom = 1
+	tab_unselected.corner_radius_top_left = 6
+	tab_unselected.corner_radius_top_right = 6
+	tab_unselected.content_margin_left = 14
+	tab_unselected.content_margin_right = 14
+	tab_unselected.content_margin_top = 8
+	tab_unselected.content_margin_bottom = 8
+	tabs.add_theme_stylebox_override("tab_unselected", tab_unselected)
+	
+	var tab_hovered = tab_unselected.duplicate()
+	tab_hovered.bg_color = Color(0.18, 0.22, 0.32, 0.70)
+	tabs.add_theme_stylebox_override("tab_hovered", tab_hovered)
 
 func _load_svg_icon(path: String, color_hex: String, scale: float = 1.0) -> Texture2D:
 	if not FileAccess.file_exists(path): return null
@@ -335,54 +507,82 @@ func _load_svg_icon(path: String, color_hex: String, scale: float = 1.0) -> Text
 		return ImageTexture.create_from_image(img)
 	return null
 
-func _style_solid_button(btn: Control, bg_color: Color, corner: int = 6):
+func _style_glass_button(btn: Control, variant: String = "secondary", corner: int = 6):
 	if not is_instance_valid(btn): return
+	
 	var normal = StyleBoxFlat.new()
-	normal.bg_color = bg_color
-	normal.corner_radius_top_left = corner
-	normal.corner_radius_top_right = corner
-	normal.corner_radius_bottom_right = corner
-	normal.corner_radius_bottom_left = corner
+	normal.set_corner_radius_all(corner)
+	normal.set_border_width_all(1)
 	normal.content_margin_left = 12
 	normal.content_margin_right = 12
 	normal.content_margin_top = 6
 	normal.content_margin_bottom = 6
 	
 	var hover = normal.duplicate()
-	hover.bg_color = bg_color.lightened(0.2)
 	var pressed = normal.duplicate()
-	pressed.bg_color = bg_color.darkened(0.2)
+	var font_color = Color(0.90, 0.93, 0.98)
+	
+	match variant:
+		"primary":
+			normal.bg_color = Color(0.20, 0.44, 0.88, 0.90)
+			normal.border_color = Color(0.40, 0.65, 1.0, 0.45)
+			normal.shadow_size = 4
+			normal.shadow_color = Color(0.1, 0.3, 0.8, 0.25)
+			normal.shadow_offset = Vector2(0, 2)
+			
+			hover.bg_color = Color(0.25, 0.52, 0.98, 1.0)
+			hover.border_color = Color(0.55, 0.75, 1.0, 0.70)
+			hover.shadow_size = 6
+			hover.shadow_color = Color(0.15, 0.35, 0.85, 0.35)
+			
+			pressed.bg_color = Color(0.15, 0.36, 0.76, 1.0)
+			font_color = Color.WHITE
+		"success":
+			normal.bg_color = Color(0.10, 0.45, 0.30, 0.75)
+			normal.border_color = Color(0.25, 0.80, 0.55, 0.40)
+			
+			hover.bg_color = Color(0.14, 0.55, 0.36, 0.90)
+			hover.border_color = Color(0.35, 0.90, 0.65, 0.60)
+			
+			pressed.bg_color = Color(0.08, 0.36, 0.24, 0.95)
+			font_color = Color.WHITE
+		"danger":
+			normal.bg_color = Color(0.85, 0.25, 0.30, 0.08)
+			normal.border_color = Color(0.85, 0.30, 0.35, 0.35)
+			
+			hover.bg_color = Color(0.85, 0.25, 0.30, 0.20)
+			hover.border_color = Color(0.95, 0.40, 0.45, 0.70)
+			
+			pressed.bg_color = Color(0.65, 0.15, 0.20, 0.30)
+			font_color = Color(0.96, 0.55, 0.58)
+		"icon":
+			normal.bg_color = Color(0.14, 0.17, 0.24, 0.55)
+			normal.border_color = Color(1.0, 1.0, 1.0, 0.08)
+			normal.content_margin_left = 6
+			normal.content_margin_right = 6
+			normal.content_margin_top = 4
+			normal.content_margin_bottom = 4
+			
+			hover.bg_color = Color(0.20, 0.25, 0.35, 0.85)
+			hover.border_color = Color(1.0, 1.0, 1.0, 0.20)
+			
+			pressed.bg_color = Color(0.11, 0.13, 0.18, 0.95)
+		_: # "secondary" (Default Glass)
+			normal.bg_color = Color(0.13, 0.16, 0.23, 0.65)
+			normal.border_color = Color(1.0, 1.0, 1.0, 0.09)
+			normal.shadow_size = 2
+			normal.shadow_color = Color(0, 0, 0, 0.18)
+			normal.shadow_offset = Vector2(0, 1)
+			
+			hover.bg_color = Color(0.18, 0.23, 0.32, 0.85)
+			hover.border_color = Color(1.0, 1.0, 1.0, 0.18)
+			
+			pressed.bg_color = Color(0.10, 0.12, 0.17, 0.95)
+			font_color = Color(0.90, 0.93, 0.98)
 	
 	btn.add_theme_stylebox_override("normal", normal)
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.add_theme_stylebox_override("pressed", pressed)
 	btn.add_theme_stylebox_override("focus", hover)
-	btn.add_theme_color_override("font_color", Color.WHITE)
+	btn.add_theme_color_override("font_color", font_color)
 
-func _style_ghost_danger_button(btn: Control):
-	if not is_instance_valid(btn): return
-	var normal = StyleBoxFlat.new()
-	normal.bg_color = Color(0, 0, 0, 0)
-	normal.border_color = Color(0.8, 0.25, 0.25, 0.6)
-	normal.border_width_left = 1
-	normal.border_width_right = 1
-	normal.border_width_top = 1
-	normal.border_width_bottom = 1
-	normal.corner_radius_top_left = 6
-	normal.corner_radius_top_right = 6
-	normal.corner_radius_bottom_left = 6
-	normal.corner_radius_bottom_right = 6
-	normal.content_margin_left = 12
-	normal.content_margin_right = 12
-	normal.content_margin_top = 6
-	normal.content_margin_bottom = 6
-	
-	var hover = normal.duplicate()
-	hover.bg_color = Color(0.7, 0.2, 0.2, 0.15)
-	hover.border_color = Color(0.9, 0.3, 0.3, 0.8)
-	
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", hover)
-	btn.add_theme_stylebox_override("focus", hover)
-	btn.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))

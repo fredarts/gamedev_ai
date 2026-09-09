@@ -220,16 +220,12 @@ func _setup_regexes():
 func _setup_command_popup():
 	command_popup = PopupMenu.new()
 	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.11, 0.12, 0.15, 0.98)
-	panel_style.border_width_left = 1
-	panel_style.border_width_top = 1
-	panel_style.border_width_right = 1
-	panel_style.border_width_bottom = 1
-	panel_style.border_color = Color(0.3, 0.5, 0.9, 0.6)
-	panel_style.corner_radius_top_left = 6
-	panel_style.corner_radius_top_right = 6
-	panel_style.corner_radius_bottom_left = 6
-	panel_style.corner_radius_bottom_right = 6
+	panel_style.bg_color = Color(0.09, 0.11, 0.16, 0.95)
+	panel_style.set_border_width_all(1)
+	panel_style.border_color = Color(0.3, 0.5, 0.9, 0.45)
+	panel_style.set_corner_radius_all(8)
+	panel_style.shadow_size = 6
+	panel_style.shadow_color = Color(0, 0, 0, 0.35)
 	command_popup.add_theme_stylebox_override("panel", panel_style)
 	command_popup.transparent_bg = true
 	_dock_owner.add_child(command_popup)
@@ -352,25 +348,32 @@ func _update_send_button_state(is_req: bool):
 		send_button.icon = _get_button_icon("stop")
 		send_button.tooltip_text = "Stop AI generation"
 		var stop_style = StyleBoxFlat.new()
-		stop_style.bg_color = Color(0.85, 0.22, 0.22)
-		stop_style.corner_radius_top_left = 20
-		stop_style.corner_radius_top_right = 20
-		stop_style.corner_radius_bottom_right = 20
-		stop_style.corner_radius_bottom_left = 20
+		stop_style.bg_color = Color(0.82, 0.22, 0.28, 0.90)
+		stop_style.border_color = Color(1.0, 0.4, 0.45, 0.50)
+		stop_style.set_border_width_all(1)
+		stop_style.set_corner_radius_all(20)
+		stop_style.shadow_size = 4
+		stop_style.shadow_color = Color(0.8, 0.2, 0.3, 0.30)
 		send_button.add_theme_stylebox_override("normal", stop_style)
-		send_button.add_theme_stylebox_override("hover", stop_style)
+		var stop_hover = stop_style.duplicate()
+		stop_hover.bg_color = Color(0.92, 0.26, 0.32, 1.0)
+		send_button.add_theme_stylebox_override("hover", stop_hover)
 		send_button.add_theme_stylebox_override("pressed", stop_style)
 	else:
 		send_button.icon = _get_button_icon("send")
 		send_button.tooltip_text = "Send your message to the AI"
 		var send_style = StyleBoxFlat.new()
-		send_style.bg_color = Color(0.15, 0.6, 0.35)
-		send_style.corner_radius_top_left = 20
-		send_style.corner_radius_top_right = 20
-		send_style.corner_radius_bottom_right = 20
-		send_style.corner_radius_bottom_left = 20
+		send_style.bg_color = Color(0.20, 0.48, 0.92, 0.95)
+		send_style.border_color = Color(0.45, 0.70, 1.0, 0.50)
+		send_style.set_border_width_all(1)
+		send_style.set_corner_radius_all(20)
+		send_style.shadow_size = 4
+		send_style.shadow_color = Color(0.1, 0.3, 0.8, 0.30)
 		send_button.add_theme_stylebox_override("normal", send_style)
-		send_button.add_theme_stylebox_override("hover", send_style)
+		var send_hover = send_style.duplicate()
+		send_hover.bg_color = Color(0.26, 0.56, 1.0, 1.0)
+		send_hover.border_color = Color(0.6, 0.8, 1.0, 0.70)
+		send_button.add_theme_stylebox_override("hover", send_hover)
 		send_button.add_theme_stylebox_override("pressed", send_style)
 
 func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_mode: bool = false):
@@ -421,7 +424,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_
 	var final_prompt = prompt_text
 	if not selection.is_empty() and not is_execute_plan:
 		final_prompt = "Selection Context (File: " + selection.path + "):\n```gdscript\n" + selection.text + "\n```\n\nCommand: " + prompt_text
-		_add_to_chat("[i]Using selection from " + selection.path.get_file() + "...[/i]\n")
+		_add_to_chat("[color=#60a5fa]📎 [b]Context:[/b][/color] [color=#94a3b8]" + selection.path.get_file() + "...[/color]\n")
 	
 	var context_str = ""
 	if context_enabled and context_manager:
@@ -480,7 +483,7 @@ func _is_game_running() -> bool:
 func _log_user_message(msg: String, token_count: int = -1, insert_index: int = -1):
 	var header = ""
 	if token_count != -1:
-		header += "\n[right][i][color=gray](Est. Tokens: ~" + str(token_count) + ")[/color][/i][/right]\n"
+		header += "[right][color=#64748b][font_size=11]⚡ ~" + str(token_count) + " tokens[/font_size][/color][/right]\n"
 	_add_to_chat(header + msg + "\n", "user", insert_index)
 
 func _add_to_chat(bbcode: String, role: String = "system", insert_index: int = -1):
@@ -505,12 +508,42 @@ func _create_chat_bubble(role: String, insert_index: int = -1):
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style = StyleBoxFlat.new()
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
+	style.set_border_width_all(1)
+	
+	if role == "user":
+		# Translucent obsidian slate with subtle glass rim and soft glow
+		style.bg_color = Color(0.13, 0.16, 0.24, 0.85)
+		style.border_color = Color(0.35, 0.55, 0.90, 0.30)
+		style.set_corner_radius_all(12)
+		style.content_margin_left = 14
+		style.content_margin_right = 14
+		style.content_margin_top = 12
+		style.content_margin_bottom = 12
+		style.shadow_size = 4
+		style.shadow_color = Color(0, 0, 0, 0.25)
+		style.shadow_offset = Vector2(0, 2)
+	elif role == "ai":
+		# Sleek dark glass card
+		style.bg_color = Color(0.09, 0.11, 0.16, 0.70)
+		style.border_color = Color(1.0, 1.0, 1.0, 0.08)
+		style.set_corner_radius_all(12)
+		style.content_margin_left = 14
+		style.content_margin_right = 14
+		style.content_margin_top = 12
+		style.content_margin_bottom = 12
+		style.shadow_size = 4
+		style.shadow_color = Color(0, 0, 0, 0.18)
+		style.shadow_offset = Vector2(0, 2)
+	else:
+		# System / info pill banner
+		style.bg_color = Color(0.10, 0.13, 0.18, 0.60)
+		style.border_color = Color(0.3, 0.5, 0.8, 0.25)
+		style.set_corner_radius_all(8)
+		style.content_margin_left = 12
+		style.content_margin_right = 12
+		style.content_margin_top = 6
+		style.content_margin_bottom = 6
+		
 	panel.add_theme_stylebox_override("panel", style)
 	
 	var inner_hbox = HBoxContainer.new()
@@ -535,13 +568,6 @@ func _create_chat_bubble(role: String, insert_index: int = -1):
 		label.add_theme_font_size_override("italics_font_size", _current_font_size)
 		label.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
 		label.add_theme_font_size_override("mono_font_size", _current_font_size)
-		
-	if role == "user":
-		style.bg_color = Color(0.18, 0.22, 0.3)
-	elif role == "ai":
-		style.bg_color = Color(0.13, 0.14, 0.18)
-	else:
-		style.bg_color = Color(0.10, 0.10, 0.12)
 		
 	inner_hbox.add_child(text_vbox)
 	panel.add_child(inner_hbox)
@@ -1009,19 +1035,19 @@ func _refresh_thumbnails():
 		btn.add_theme_font_size_override("font_size", 11)
 		
 		var style = StyleBoxFlat.new()
-		style.bg_color = Color(0.18, 0.22, 0.28, 0.95)
-		style.border_color = Color(0.35, 0.45, 0.55, 0.8)
+		style.bg_color = Color(0.13, 0.16, 0.23, 0.85)
+		style.border_color = Color(1.0, 1.0, 1.0, 0.12)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(6)
 		style.content_margin_left = 8
 		style.content_margin_right = 8
-		style.content_margin_top = 2
-		style.content_margin_bottom = 2
+		style.content_margin_top = 3
+		style.content_margin_bottom = 3
 		btn.add_theme_stylebox_override("normal", style)
 		
 		var style_hover = style.duplicate()
-		style_hover.bg_color = Color(0.32, 0.18, 0.22, 0.95)
-		style_hover.border_color = Color(0.85, 0.35, 0.35, 0.9)
+		style_hover.bg_color = Color(0.85, 0.25, 0.30, 0.20)
+		style_hover.border_color = Color(0.95, 0.40, 0.45, 0.70)
 		btn.add_theme_stylebox_override("hover", style_hover)
 		
 		var idx = i

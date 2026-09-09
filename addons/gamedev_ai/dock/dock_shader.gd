@@ -189,7 +189,7 @@ func load_preset(preset_name: String):
 	_rebuild_uniform_controls()
 	
 	if _status_label:
-		_status_label.text = "[color=cyan]Loaded preset: [b]" + p_data.get("name", preset_name) + "[/b] (" + p_type + ")[/color]"
+		_status_label.text = "[color=#38bdf8]● [b]" + p_data.get("name", preset_name) + "[/b][/color] [color=#94a3b8](" + p_type + ")[/color]"
 
 func _rebuild_uniform_controls():
 	if not _uniforms_container:
@@ -309,7 +309,7 @@ func _on_randomize_pressed():
 			_current_material.set_shader_parameter(u_name, rnd_val)
 	_rebuild_uniform_controls()
 	if _status_label:
-		_status_label.text = "[color=yellow]🎲 Parameters mutated with random values.[/color]"
+		_status_label.text = "[color=#f59e0b]🎲 Parameters mutated with random values.[/color]"
 
 func _on_apply_to_selection_pressed():
 	if not Engine.is_editor_hint():
@@ -317,7 +317,7 @@ func _on_apply_to_selection_pressed():
 	var selection = EditorInterface.get_selection().get_selected_nodes()
 	if selection.is_empty():
 		if _status_label:
-			_status_label.text = "[color=red]⚠️ No node selected in the Scene Tree. Please select a Sprite2D or MeshInstance3D first.[/color]"
+			_status_label.text = "[color=#f43f5e]⚠️ No node selected in the Scene Tree. Please select a Sprite2D or MeshInstance3D first.[/color]"
 		return
 		
 	var target = selection[0]
@@ -334,7 +334,7 @@ func _on_apply_to_selection_pressed():
 		else:
 			target.material = _current_material
 		if _status_label:
-			_status_label.text = "[color=green]✅ Applied shader to 2D node [b]" + target.name + "[/b]![/color]"
+			_status_label.text = "[color=#10b981]✓ Applied shader to 2D node [b]" + target.name + "[/b]![/color]"
 	elif target is GeometryInstance3D:
 		var old_mat = target.material_override
 		if ur:
@@ -345,10 +345,10 @@ func _on_apply_to_selection_pressed():
 		else:
 			target.material_override = _current_material
 		if _status_label:
-			_status_label.text = "[color=green]✅ Applied shader to 3D node [b]" + target.name + "[/b]![/color]"
+			_status_label.text = "[color=#10b981]✓ Applied shader to 3D node [b]" + target.name + "[/b]![/color]"
 	else:
 		if _status_label:
-			_status_label.text = "[color=orange]Node '" + target.name + "' is neither CanvasItem nor GeometryInstance3D.[/color]"
+			_status_label.text = "[color=#f43f5e]⚠️ Selected node is not a CanvasItem or GeometryInstance3D.[/color]"
 
 func _on_save_shader_pressed():
 	var timestamp = str(Time.get_unix_time_from_system()).split(".")[0]

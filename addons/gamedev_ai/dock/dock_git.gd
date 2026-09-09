@@ -104,7 +104,7 @@ func set_ai_provider(provider):
 func update_git_status():
 	if not git_manager: return
 	if not git_manager.is_git_repo():
-		git_status_label.text = locale_manager.tr("no_git_repo")
+		git_status_label.text = "[center][color=#64748b]\n\n[font_size=20]📦[/font_size]\n\n[b]" + locale_manager.tr("no_git_repo") + "[/b]\n[font_size=12][color=#475569]Use o botão para inicializar o controle de versão neste projeto.[/color][/font_size][/color][/center]"
 		init_repo_btn.visible = true
 		remote_container.visible = false
 		pull_btn.disabled = true
@@ -122,13 +122,13 @@ func update_git_status():
 			remote_url_input.text = current_remote
 			
 		var branch = git_manager.git_get_current_branch()
-		branch_label.text = locale_manager.tr("current_branch") + "[b]" + branch + "[/b]"
+		branch_label.text = locale_manager.tr("current_branch") + "[color=#60a5fa][b]" + branch + "[/b][/color]"
 			
 		var status = git_manager.git_status()
 		if status.strip_edges() == "":
-			git_status_label.text = "[color=green]" + locale_manager.tr("working_tree_clean") + "[/color]"
+			git_status_label.text = "[center][color=#10b981]✓ " + locale_manager.tr("working_tree_clean") + "[/color][/center]"
 		else:
-			git_status_label.text = locale_manager.tr("pending_changes") + "\n" + status
+			git_status_label.text = "[color=#60a5fa][b]" + locale_manager.tr("pending_changes") + "[/b][/color]\n" + status
 
 func _set_git_busy(busy: bool):
 	pull_btn.disabled = busy
