@@ -92,11 +92,22 @@ var _cached_tts_stream: AudioStreamWAV = null
 var _is_dragging_tts_slider: bool = false
 
 # Regexes & Popups
+var _regex_code_block: RegEx
 var _regex_bold_italic: RegEx
 var _regex_bold: RegEx
 var _regex_italic: RegEx
+var _regex_strike: RegEx
 var _regex_code: RegEx
 var _regex_suggest: RegEx
+var _regex_md_link: RegEx
+var _regex_hr: RegEx
+var _regex_h4: RegEx
+var _regex_h3: RegEx
+var _regex_h2: RegEx
+var _regex_h1: RegEx
+var _regex_blockquote: RegEx
+var _regex_list_nested: RegEx
+var _regex_list_item: RegEx
 var command_popup: PopupMenu
 
 func setup(dock_owner: Node, p_ai_provider, p_context_manager, p_tool_executor, p_memory_manager, p_locale_manager, nodes: Dictionary):
@@ -153,6 +164,8 @@ func set_ai_provider(provider):
 			ai_provider.audio_received.disconnect(_on_audio_received)
 		if ai_provider.error_occurred.is_connected(_on_ai_error):
 			ai_provider.error_occurred.disconnect(_on_ai_error)
+		if ai_provider.status_changed.is_connected(_on_ai_status_changed):
+			ai_provider.status_changed.disconnect(_on_ai_status_changed)
 
 	ai_provider = provider
 	if ai_provider:
@@ -164,21 +177,45 @@ func set_ai_provider(provider):
 			ai_provider.audio_received.connect(_on_audio_received)
 		if not ai_provider.error_occurred.is_connected(_on_ai_error):
 			ai_provider.error_occurred.connect(_on_ai_error)
+		if not ai_provider.status_changed.is_connected(_on_ai_status_changed):
+			ai_provider.status_changed.connect(_on_ai_status_changed)
 	if orchestrator:
 		orchestrator.setup(ai_provider, _tool_executor)
 
 
 func _setup_regexes():
-	_regex_bold_italic = RegEx.new()
-	_regex_bold_italic.compile("\\*\\*\\*(.+?)\\*\\*\\*")
-	_regex_bold = RegEx.new()
-	_regex_bold.compile("\\*\\*(.+?)\\*\\*")
-	_regex_italic = RegEx.new()
-	_regex_italic.compile("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)")
-	_regex_code = RegEx.new()
-	_regex_code.compile("`([^`]+)`")
+	_regex_code_block = RegEx.new()
+	_regex_code_block.compile("```[a-zA-Z0-9_-]*\\r?\\n([\\s\\S]*?)```")
 	_regex_suggest = RegEx.new()
 	_regex_suggest.compile("\\[SUGGEST:\\s*(.+?)\\]")
+	_regex_md_link = RegEx.new()
+	_regex_md_link.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)")
+	_regex_bold_italic = RegEx.new()
+	_regex_bold_italic.compile("(\\*\\*\\*|___)(.+?)\\1")
+	_regex_bold = RegEx.new()
+	_regex_bold.compile("(\\*\\*|__)(.+?)\\1")
+	_regex_italic = RegEx.new()
+	_regex_italic.compile("(?<![*_])([*_])(?![*_])(.+?)(?<![*_])\\1(?![*_])")
+	_regex_strike = RegEx.new()
+	_regex_strike.compile("~~(.+?)~~")
+	_regex_code = RegEx.new()
+	_regex_code.compile("`([^`\\n]+)`")
+	_regex_hr = RegEx.new()
+	_regex_hr.compile("^[ \\t]*([*\\-_][ \\t]*){3,}[ \\t]*$")
+	_regex_h4 = RegEx.new()
+	_regex_h4.compile("^####\\s+(.+)$")
+	_regex_h3 = RegEx.new()
+	_regex_h3.compile("^###\\s+(.+)$")
+	_regex_h2 = RegEx.new()
+	_regex_h2.compile("^##\\s+(.+)$")
+	_regex_h1 = RegEx.new()
+	_regex_h1.compile("^#\\s+(.+)$")
+	_regex_blockquote = RegEx.new()
+	_regex_blockquote.compile("^>\\s*(.+)$")
+	_regex_list_nested = RegEx.new()
+	_regex_list_nested.compile("^([ \\t]{2,})[-*+]\\s+(.+)$")
+	_regex_list_item = RegEx.new()
+	_regex_list_item.compile("^[-*+]\\s+(.+)$")
 
 func _setup_command_popup():
 	command_popup = PopupMenu.new()
@@ -273,14 +310,68 @@ func set_font_size(new_size: int):
 			label.add_theme_font_size_override("bold_italics_font_size", _current_font_size)
 			label.add_theme_font_size_override("mono_font_size", _current_font_size)
 
-# ===================== PROMPT SENDING =====================
+# ===================== PROMPT SENDING & STOPPING =====================
 
 func _on_send_pressed():
+	if (ai_provider and ai_provider.is_requesting) or not batch_queue.is_empty():
+		_stop_ai_generation()
+		return
+		
 	if input_field == null: return
 	var text = input_field.text.strip_edges()
 	if text == "" and _attached_files.is_empty() and _dropped_files.is_empty():
 		return
 	_process_send(text)
+
+func _stop_ai_generation():
+	_is_stopped = true
+	batch_queue.clear()
+	batch_results.clear()
+	current_tool_context = {}
+	if ai_provider:
+		ai_provider.cancel_request()
+	_update_send_button_state(false)
+	_add_to_chat("\n[color=orange][b]⏹️ AI generation stopped by user.[/b][/color]\n", "system")
+
+func _on_ai_status_changed(is_req: bool):
+	_update_send_button_state(is_req)
+
+func _get_button_icon(icon_name: String) -> Texture2D:
+	if _dock_owner and _dock_owner.has_method("_load_svg_icon"):
+		return _dock_owner._load_svg_icon("res://addons/gamedev_ai/assets/icons/" + icon_name + ".svg", "ffffff", 0.75)
+	var path = "res://addons/gamedev_ai/assets/icons/" + icon_name + ".svg"
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null
+
+func _update_send_button_state(is_req: bool):
+	if not send_button or not is_instance_valid(send_button):
+		return
+		
+	if is_req:
+		send_button.icon = _get_button_icon("stop")
+		send_button.tooltip_text = "Stop AI generation"
+		var stop_style = StyleBoxFlat.new()
+		stop_style.bg_color = Color(0.85, 0.22, 0.22)
+		stop_style.corner_radius_top_left = 20
+		stop_style.corner_radius_top_right = 20
+		stop_style.corner_radius_bottom_right = 20
+		stop_style.corner_radius_bottom_left = 20
+		send_button.add_theme_stylebox_override("normal", stop_style)
+		send_button.add_theme_stylebox_override("hover", stop_style)
+		send_button.add_theme_stylebox_override("pressed", stop_style)
+	else:
+		send_button.icon = _get_button_icon("send")
+		send_button.tooltip_text = "Send your message to the AI"
+		var send_style = StyleBoxFlat.new()
+		send_style.bg_color = Color(0.15, 0.6, 0.35)
+		send_style.corner_radius_top_left = 20
+		send_style.corner_radius_top_right = 20
+		send_style.corner_radius_bottom_right = 20
+		send_style.corner_radius_bottom_left = 20
+		send_button.add_theme_stylebox_override("normal", send_style)
+		send_button.add_theme_stylebox_override("hover", send_style)
+		send_button.add_theme_stylebox_override("pressed", send_style)
 
 func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_mode: bool = false):
 	if _is_game_running() and not is_watch_mode:
@@ -345,11 +436,14 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_
 	var text_attachments = ""
 	for att in _attached_files:
 		if att["type"] == "image":
+			var raw = att.get("raw_bytes", PackedByteArray())
+			var b64 = Marshalls.raw_to_base64(raw) if not raw.is_empty() else ""
 			images.append({
 				"filename": att["filename"],
-				"mime_type": att["mime_type"],
-				"raw_bytes": att["raw_bytes"],
-				"image_obj": att["image_obj"]
+				"mime_type": att.get("mime_type", "image/png"),
+				"raw_bytes": raw,
+				"data": b64,
+				"image_obj": att.get("image_obj", null)
 			})
 		elif att["type"] == "text":
 			text_attachments += "\n\n--- Attached Reference File: " + att["filename"] + " ---\n" + att.get("text_content", "")
@@ -479,12 +573,17 @@ func _toggle_block(id: int):
 		data.bubble_ref.text = raw
 
 func _on_response_received(response: String):
+	_update_send_button_state(false)
 	if _dock_owner and _dock_owner.git_ctrl and _dock_owner.git_ctrl.handle_ai_commit_response(response):
 		return
 	_last_ai_response_text = response
 	_add_to_chat(_markdown_to_bbcode(response), "ai")
 
 func _on_tool_calls(tool_calls: Array):
+	if _is_stopped:
+		_update_send_button_state(false)
+		return
+	_update_send_button_state(true)
 	batch_queue = tool_calls.duplicate()
 	batch_results.clear()
 	_batch_total = tool_calls.size()
@@ -554,6 +653,7 @@ func _on_image_captured(image_path: String):
 	_attach_file_from_path(image_path)
 
 func _on_ai_error(error: String):
+	_update_send_button_state(false)
 	if _dock_owner and _dock_owner.git_ctrl and _dock_owner.git_ctrl.handle_ai_commit_error():
 		return
 	_add_to_chat("\n[color=red]Error: " + error + "[/color]\n")
@@ -573,10 +673,69 @@ func handle_engine_log(entry: Dictionary):
 
 func _markdown_to_bbcode(text: String) -> String:
 	var out = text
-	if _regex_bold_italic: out = _regex_bold_italic.sub(out, "[b][i]$1[/i][/b]", true)
-	if _regex_bold: out = _regex_bold.sub(out, "[b]$1[/b]", true)
-	if _regex_italic: out = _regex_italic.sub(out, "[i]$1[/i]", true)
-	if _regex_code: out = _regex_code.sub(out, "[code]$1[/code]", true)
+	
+	# 1. Extract and preserve multiline code blocks
+	var code_blocks: Array = []
+	if _regex_code_block:
+		var matches = _regex_code_block.search_all(out)
+		for i in range(matches.size() - 1, -1, -1):
+			var m = matches[i]
+			var code_content = m.get_string(1)
+			# Escape bbcode brackets inside code block
+			code_content = code_content.replace("[", "[lb]")
+			var formatted_block = "\n[code][bgcolor=#181b22][color=#c9d1d9]" + code_content + "[/color][/bgcolor][/code]\n"
+			var placeholder = "@@@CODE_BLOCK_" + str(i) + "@@@"
+			code_blocks.append({"placeholder": placeholder, "content": formatted_block})
+			out = out.substr(0, m.get_start()) + placeholder + out.substr(m.get_end())
+	
+	# 2. Convert clickable suggestions [SUGGEST: ...] -> [url=suggest:...]
+	if _regex_suggest:
+		out = _regex_suggest.sub(out, "\n[indent][color=#58a6ff]💡 [url=suggest:$1][b][u]$1[/u][/b][/url][/color][/indent]", true)
+	
+	# 3. Convert Markdown Links [text](url) -> [url=url][color=...][u]text[/u][/color][/url]
+	if _regex_md_link:
+		out = _regex_md_link.sub(out, "[url=$2][color=#58a6ff][u]$1[/u][/color][/url]", true)
+	
+	# 4. Line-by-line formatting (Headers, Lists, Blockquotes, HR)
+	var lines = out.split("\n")
+	var processed_lines: Array = []
+	for line in lines:
+		var pline = line
+		if _regex_hr and _regex_hr.search(pline):
+			pline = "[color=#30363d]────────────────────────────────────────[/color]"
+		elif _regex_h1 and _regex_h1.search(pline):
+			pline = _regex_h1.sub(pline, "[font_size=18][b][color=#ffffff]$1[/color][/b][/font_size]")
+		elif _regex_h2 and _regex_h2.search(pline):
+			pline = _regex_h2.sub(pline, "[font_size=16][b][color=#79c0ff]$1[/color][/b][/font_size]")
+		elif _regex_h3 and _regex_h3.search(pline):
+			pline = _regex_h3.sub(pline, "[font_size=15][b][color=#a5d6ff]$1[/color][/b][/font_size]")
+		elif _regex_h4 and _regex_h4.search(pline):
+			pline = _regex_h4.sub(pline, "[b][color=#e6edf3]$1[/color][/b]")
+		elif _regex_blockquote and _regex_blockquote.search(pline):
+			pline = _regex_blockquote.sub(pline, "[indent][color=#8b949e][i]$1[/i][/color][/indent]")
+		elif _regex_list_nested and _regex_list_nested.search(pline):
+			pline = _regex_list_nested.sub(pline, "[indent]  • $2[/indent]")
+		elif _regex_list_item and _regex_list_item.search(pline):
+			pline = _regex_list_item.sub(pline, "  • $1")
+		processed_lines.append(pline)
+	out = "\n".join(processed_lines)
+	
+	# 5. Inline formatting (Code, Bold, Italic, Strikethrough)
+	if _regex_code:
+		out = _regex_code.sub(out, "[code][color=#7ee787]$1[/color][/code]", true)
+	if _regex_bold_italic:
+		out = _regex_bold_italic.sub(out, "[b][i]$2[/i][/b]", true)
+	if _regex_bold:
+		out = _regex_bold.sub(out, "[b]$2[/b]", true)
+	if _regex_italic:
+		out = _regex_italic.sub(out, "[i]$2[/i]", true)
+	if _regex_strike:
+		out = _regex_strike.sub(out, "[s]$1[/s]", true)
+	
+	# 6. Restore preserved code blocks
+	for item in code_blocks:
+		out = out.replace(item["placeholder"], item["content"])
+	
 	return out
 
 const MAX_UI_BLOCK_LINES = 16
@@ -732,6 +891,43 @@ func _on_input_gui_input(event: InputEvent):
 			if not event.shift_pressed:
 				_dock_owner.get_viewport().set_input_as_handled()
 				_on_send_pressed()
+				return
+		elif event.keycode == KEY_V and (event.ctrl_pressed or event.meta_pressed):
+			if _try_paste_image_from_clipboard():
+				_dock_owner.get_viewport().set_input_as_handled()
+				return
+
+func _try_paste_image_from_clipboard() -> bool:
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_CLIPBOARD):
+		return false
+	if not DisplayServer.clipboard_has_image():
+		return false
+	var img = DisplayServer.clipboard_get_image()
+	if img == null or img.is_empty():
+		return false
+		
+	# Resize if too large to optimize tokens and bandwidth
+	if img.get_width() > 1920 or img.get_height() > 1080:
+		var scale_factor = min(1920.0 / img.get_width(), 1080.0 / img.get_height())
+		img.resize(int(img.get_width() * scale_factor), int(img.get_height() * scale_factor))
+		
+	var png_bytes = img.save_png_to_buffer()
+	if png_bytes.is_empty():
+		return false
+		
+	var timestamp = Time.get_datetime_dict_from_system()
+	var filename = "pasted_image_%02d%02d%02d.png" % [timestamp.hour, timestamp.minute, timestamp.second]
+	
+	_attached_files.append({
+		"type": "image",
+		"filename": filename,
+		"mime_type": "image/png",
+		"image_obj": img,
+		"raw_bytes": png_bytes
+	})
+	_refresh_thumbnails()
+	_add_to_chat("\n[color=green][i]🖼️ Image pasted from clipboard: " + filename + "[/i][/color]\n")
+	return true
 
 func _on_input_text_changed():
 	var text = input_field.text
