@@ -236,7 +236,7 @@ tooltip_text = "Send your message to the AI"
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-custom_minimum_size = Vector2(0, 95)
+custom_minimum_size = Vector2(0, 32)
 horizontal_scroll_mode = 1
 vertical_scroll_mode = 0
 

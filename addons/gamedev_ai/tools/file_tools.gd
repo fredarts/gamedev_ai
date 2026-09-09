@@ -12,7 +12,7 @@ func execute(tool_name: String, args: Dictionary) -> bool:
 			_list_dir(args.get("path"))
 			return true
 		"read_file":
-			_read_file(args.get("path"))
+			_read_file(args.get("path"), args.get("start_line", 1), args.get("end_line", -1))
 			return true
 		"find_file":
 			_find_file(args.get("pattern"))
@@ -126,18 +126,39 @@ func _list_dir(path: String):
 	else:
 		_emit_output("Error: Could not open directory " + path)
 
-func _read_file(path: String):
+func _read_file(path: String, start_line = 1, end_line = -1):
 	if not path.begins_with("res://"):
 		_emit_output("Error: Path must start with res://")
 		return
 	var file = FileAccess.open(path, FileAccess.READ)
-	if file:
+	if not file:
+		var err = FileAccess.get_open_error()
+		_emit_output("Error: Could not open file " + path + ". Code: " + str(err))
+		return
+		
+	var start_l = max(1, int(start_line)) if start_line != null else 1
+	var end_l = int(end_line) if end_line != null else -1
+	
+	if start_l == 1 and end_l <= 0:
 		var content = file.get_as_text()
 		file.close()
 		_emit_output("Content of " + path + ":\n" + content)
-	else:
-		var err = FileAccess.get_open_error()
-		_emit_output("Error: Could not open file " + path + ". Code: " + str(err))
+		return
+
+	var lines = []
+	var line_num = 0
+	while not file.eof_reached():
+		line_num += 1
+		var line = file.get_line()
+		if line_num >= start_l and (end_l <= 0 or line_num <= end_l):
+			lines.append(str(line_num) + ": " + line)
+		if end_l > 0 and line_num >= end_l:
+			break
+	file.close()
+	
+	var actual_end = line_num if (end_l <= 0 or end_l > line_num) else end_l
+	var header = "Content of " + path + " (lines " + str(start_l) + " to " + str(actual_end) + "):\n"
+	_emit_output(header + "\n".join(lines))
 
 func _find_file(pattern: String):
 	var contents = _recursive_find("res://", pattern)

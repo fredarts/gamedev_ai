@@ -143,11 +143,15 @@ func _send_request(tools: Array = []):
 	
 	is_requesting = true
 	_start_timeout()
+	var clean_model = model_name.strip_edges()
+	print_rich("[color=cyan]🤖 Gamedev AI: Sending request to [b]" + base_url + "[/b] (model: [b]" + clean_model + "[/b])...[/color]")
 	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
 	if error != OK:
 		_stop_timeout()
 		is_requesting = false
-		error_occurred.emit("Failed to send request: " + str(error))
+		var err_str = "Failed to send HTTP request (code: " + str(error) + ")"
+		print_rich("[color=red]❌ Gamedev AI: " + err_str + "[/color]")
+		error_occurred.emit(err_str)
 
 func _fix_schema_types(schema: Dictionary):
 	if schema.has("type") and typeof(schema["type"]) == TYPE_STRING:
@@ -177,9 +181,12 @@ func _on_request_completed(_result, response_code, _headers, body):
 			_send_request(_last_tools)
 			return
 		_retry_count = 0
-		error_occurred.emit("API Error: " + str(response_code) + " - " + str(json))
+		var err_str = "API Error (" + str(response_code) + "): " + str(json)
+		print_rich("[color=red]❌ Gamedev AI: " + err_str + "[/color]")
+		error_occurred.emit(err_str)
 		is_requesting = false
 		return
+
 		
 	_retry_count = 0
 	var json = JSON.parse_string(body.get_string_from_utf8())

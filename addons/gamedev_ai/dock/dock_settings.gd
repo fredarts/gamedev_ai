@@ -81,10 +81,12 @@ func setup(dock_owner: Node, p_locale_manager, p_tool_executor, p_ai_provider, n
 	enhance_preview_label = nodes.get("enhance_preview_label")
 	
 	_connect_signals()
+	_populate_provider_selector()
 	_load_presets()
 	_populate_language_selector()
 	_apply_locale()
 	_load_saved_font_size()
+	set_ai_provider(p_ai_provider)
 
 func _connect_signals():
 	if preset_selector and not preset_selector.item_selected.is_connected(_on_preset_selected):
@@ -163,7 +165,14 @@ func _save_font_size():
 	var settings = EditorInterface.get_editor_settings()
 	settings.set_setting("gamedev_ai/font_size", _current_font_size)
 
-# ===================== PRESETS =====================
+# ===================== PRESETS & PROVIDERS =====================
+
+func _populate_provider_selector():
+	if not provider_selector: return
+	provider_selector.clear()
+	provider_selector.add_item("Google Gemini", 0)
+	provider_selector.add_item("OpenRouter (Claude/DeepSeek/GPT)", 1)
+	provider_selector.add_item("Local (Ollama/LM Studio)", 2)
 
 func _load_presets():
 	var settings = EditorInterface.get_editor_settings()
@@ -206,11 +215,14 @@ func _apply_active_preset():
 	var config = presets.get(active_preset_name, {})
 	var prov = config.get("provider", 0)
 	
-	if provider_selector: provider_selector.select(prov)
-	if api_input: api_input.text = config.get("api_key", "")
-	if base_url_supported(prov) and url_input:
+	if provider_selector:
+		provider_selector.select(prov)
+	if api_input:
+		api_input.text = config.get("api_key", "")
+	if url_input:
 		url_input.text = config.get("base_url", "")
-	if model_input: model_input.text = config.get("model_name", "")
+	if model_input:
+		model_input.text = config.get("model_name", "")
 	
 	_update_field_visibilities(prov)
 	preset_changed.emit(config)
@@ -220,10 +232,12 @@ func base_url_supported(prov: int) -> bool:
 
 func _update_field_visibilities(prov: int):
 	var is_local = (prov == 2)
+	if settings_bar:
+		settings_bar.visible = (prov != 0)
 	if api_input:
 		api_input.placeholder_text = "Not required for Local models" if is_local else "Enter API Key"
 	if url_input:
-		url_input.placeholder_text = "Default: http://localhost:11434/v1" if is_local else "Default: provider official endpoint"
+		url_input.placeholder_text = "Default: http://localhost:11434/v1" if is_local else "Default: https://openrouter.ai/api/v1"
 
 func _on_preset_selected(index: int):
 	active_preset_name = preset_selector.get_item_text(index)
@@ -237,7 +251,7 @@ func _on_add_preset_pressed():
 	while presets.has(new_name):
 		new_name = base_name + " (" + str(counter) + ")"
 		counter += 1
-	presets[new_name] = {"provider": 0, "api_key": "", "base_url": "", "model_name": ""}
+	presets[new_name] = {"provider": 1, "api_key": "", "base_url": "https://openrouter.ai/api/v1", "model_name": ""}
 	active_preset_name = new_name
 	_save_presets()
 	_update_preset_selector()
@@ -277,8 +291,13 @@ func _on_rename_preset(new_name: String):
 func _on_provider_type_changed(index: int):
 	if presets.has(active_preset_name):
 		presets[active_preset_name]["provider"] = index
+		if index == 1 and presets[active_preset_name].get("base_url", "") == "":
+			presets[active_preset_name]["base_url"] = "https://openrouter.ai/api/v1"
+		elif index == 2 and presets[active_preset_name].get("base_url", "") == "":
+			presets[active_preset_name]["base_url"] = "http://localhost:11434/v1"
 		_save_presets()
 		_apply_active_preset()
+
 
 func _on_config_changed(_text = ""):
 	if presets.has(active_preset_name):
@@ -302,12 +321,12 @@ func _populate_language_selector():
 	if not language_selector or not locale_manager: return
 	language_selector.clear()
 	var locales = locale_manager.get_available_locales()
-	var current = locale_manager.current_locale
+	var current = locale_manager.get_locale()
 	var select_idx = 0
 	for i in range(locales.size()):
 		var loc = locales[i]
-		language_selector.add_item(loc.name, i)
-		if loc.code == current:
+		language_selector.add_item(loc.get("name", ""), i)
+		if loc.get("code", "") == current:
 			select_idx = i
 	language_selector.select(select_idx)
 
@@ -315,9 +334,10 @@ func _on_language_changed(index: int):
 	if not locale_manager: return
 	var locales = locale_manager.get_available_locales()
 	if index >= 0 and index < locales.size():
-		locale_manager.set_locale(locales[index].code)
+		var code = locales[index].get("code", "en")
+		locale_manager.set_locale(code)
 		var settings = EditorInterface.get_editor_settings()
-		settings.set_setting("gamedev_ai/language", locales[index].code)
+		settings.set_setting("gamedev_ai/language", code)
 		_apply_locale()
 		if ai_provider:
 			ai_provider.response_language_instruction = locale_manager.get_ai_language_instruction()

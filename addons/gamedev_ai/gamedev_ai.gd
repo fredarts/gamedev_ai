@@ -85,6 +85,9 @@ building systems, refactoring scripts, and debugging your game in real-time.
 	print_rich(banner)
 
 func _set_provider(config: Dictionary):
+	if ai_provider and ai_provider.has_method("cleanup"):
+		ai_provider.cleanup()
+		
 	var index = config.get("provider", 0)
 	
 	if index == 0:

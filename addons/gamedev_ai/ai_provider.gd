@@ -21,9 +21,9 @@ var current_session_id: String = ""
 var _timeout_timer: Timer
 var _retry_count: int = 0
 
-const DEFAULT_MAX_HISTORY_TURNS = 24
-const DEFAULT_MAX_BUFFER_CHARS = 64000 # ~16k tokens
-const MAX_SINGLE_TOOL_OUTPUT_CHARS = 3500
+const DEFAULT_MAX_HISTORY_TURNS = 120
+const DEFAULT_MAX_BUFFER_CHARS = 1000000 # ~250k tokens
+const MAX_SINGLE_TOOL_OUTPUT_CHARS = 12000
 
 var max_history_turns: int = DEFAULT_MAX_HISTORY_TURNS
 var max_buffer_chars: int = DEFAULT_MAX_BUFFER_CHARS
@@ -34,9 +34,9 @@ const MAX_RETRIES = 2
 
 func setup(node: Node):
 	http_request = HTTPRequest.new()
+	http_request.use_threads = true
 	node.add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
-	http_request.use_threads = true
 	
 	_timeout_timer = Timer.new()
 	_timeout_timer.one_shot = true
@@ -64,28 +64,48 @@ func estimate_history_tokens() -> int:
 	var total_chars = _calculate_history_chars()
 	return int(total_chars / 4.0)
 
+func _get_active_prompt_index() -> int:
+	for idx in range(history.size() - 1, -1, -1):
+		var item = history[idx]
+		if item is Dictionary and item.get("role") == "user":
+			var is_func_resp = false
+			for p in item.get("parts", []):
+				if p is Dictionary and p.has("functionResponse"):
+					is_func_resp = true
+					break
+			if not is_func_resp:
+				return idx
+	return 0
+
 func prune_history():
-	# 1. Truncate oversized raw tool outputs in older turns
+	# 1. Truncate oversized raw tool outputs in older turns (before active prompt)
 	_sanitize_old_tool_outputs()
 	
-	# 2. Limit by turn count
+	# 2. Limit by turn count (never prune past the active user prompt)
 	if history.size() > max_history_turns:
 		var has_system = (not history.is_empty() and history[0].get("role") == "system")
+		var min_keep_idx = _get_active_prompt_index()
 		while history.size() > max_history_turns:
 			var remove_idx = 1 if has_system else 0
-			if remove_idx < history.size():
+			if remove_idx < min_keep_idx:
 				history.remove_at(remove_idx)
+				min_keep_idx -= 1
 			else:
 				break
 				
-	# 3. Limit by total character/token budget (Sliding Window)
+	# 3. Limit by total character/token budget (Sliding Window, never prune past active prompt)
 	var total_chars = _calculate_history_chars()
 	var has_sys = (not history.is_empty() and history[0].get("role") == "system")
+	var min_keep = _get_active_prompt_index()
 	
 	while total_chars > max_buffer_chars and history.size() > (2 if has_sys else 1):
 		var remove_idx = 1 if has_sys else 0
-		history.remove_at(remove_idx)
-		total_chars = _calculate_history_chars()
+		if remove_idx < min_keep:
+			history.remove_at(remove_idx)
+			min_keep -= 1
+			total_chars = _calculate_history_chars()
+		else:
+			break
 		
 	# 4. Clean orphan tool/function responses to maintain role sequence integrity
 	_clean_orphan_roles()
@@ -97,26 +117,44 @@ func _calculate_history_chars() -> int:
 	return chars
 
 func _sanitize_old_tool_outputs():
-	# If history has more than 4 entries, truncate large outputs from earlier tool turns
-	var limit_idx = max(0, history.size() - 4)
-	for i in range(limit_idx):
+	# Only sanitize tool outputs from previous completed turns (strictly before active prompt)
+	# This ensures any file read in the CURRENT active request stays 100% full-fidelity.
+	var active_idx = _get_active_prompt_index()
+	for i in range(active_idx):
 		var msg = history[i]
-		if msg.get("role") in ["function", "tool"]:
+		if not (msg is Dictionary):
+			continue
+		var role = msg.get("role", "")
+		# OpenAI format tool response
+		if role in ["function", "tool"]:
 			if msg.has("content") and msg["content"] is String and msg["content"].length() > MAX_SINGLE_TOOL_OUTPUT_CHARS:
-				msg["content"] = msg["content"].substr(0, MAX_SINGLE_TOOL_OUTPUT_CHARS) + "... [Output truncated by buffer manager]"
-			elif msg.has("parts"):
-				for p in msg["parts"]:
-					if p is Dictionary and p.has("functionResponse") and p["functionResponse"].has("response"):
-						var resp = str(p["functionResponse"]["response"])
-						if resp.length() > MAX_SINGLE_TOOL_OUTPUT_CHARS:
-							p["functionResponse"]["response"] = {"result": resp.substr(0, MAX_SINGLE_TOOL_OUTPUT_CHARS) + "... [Output truncated]"}
+				msg["content"] = msg["content"].substr(0, MAX_SINGLE_TOOL_OUTPUT_CHARS) + "\n... [Historical tool output truncated]"
+		# Gemini format tool response (role is user with parts containing functionResponse)
+		if msg.has("parts") and msg["parts"] is Array:
+			for p in msg["parts"]:
+				if p is Dictionary and p.has("functionResponse") and p["functionResponse"] is Dictionary:
+					var fr = p["functionResponse"]
+					if fr.has("response"):
+						var resp_obj = fr["response"]
+						if resp_obj is Dictionary and resp_obj.has("result"):
+							var res_str = str(resp_obj["result"])
+							if res_str.length() > MAX_SINGLE_TOOL_OUTPUT_CHARS:
+								resp_obj["result"] = res_str.substr(0, MAX_SINGLE_TOOL_OUTPUT_CHARS) + "\n... [Historical tool output truncated]"
+						elif resp_obj is String and resp_obj.length() > MAX_SINGLE_TOOL_OUTPUT_CHARS:
+							fr["response"] = {"result": resp_obj.substr(0, MAX_SINGLE_TOOL_OUTPUT_CHARS) + "\n... [Historical tool output truncated]"}
 
 func _clean_orphan_roles():
-	# Ensure history does not start with an orphan function/tool response
+	# Ensure history does not start with an orphan function/tool response or orphan model turn
 	var start_idx = 1 if (not history.is_empty() and history[0].get("role") == "system") else 0
 	while history.size() > start_idx:
-		var role = history[start_idx].get("role", "")
-		if role in ["function", "tool"]:
+		var item = history[start_idx]
+		var role = item.get("role", "")
+		var is_func_resp = false
+		for p in item.get("parts", []):
+			if p is Dictionary and p.has("functionResponse"):
+				is_func_resp = true
+				break
+		if role in ["function", "tool"] or is_func_resp:
 			history.remove_at(start_idx)
 		else:
 			break
@@ -221,6 +259,13 @@ func cancel_request():
 		http_request.cancel_request()
 	_retry_count = 0
 	is_requesting = false
+
+func cleanup():
+	cancel_request()
+	if http_request and is_instance_valid(http_request):
+		http_request.queue_free()
+	if _timeout_timer and is_instance_valid(_timeout_timer):
+		_timeout_timer.queue_free()
 
 func _start_timeout():
 	if _timeout_timer:

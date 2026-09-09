@@ -161,10 +161,10 @@ func _ready():
 		"enhance_prompt_btn": enhance_prompt_btn, "enhance_preview_dialog": enhance_preview_dialog,
 		"enhance_preview_label": enhance_preview_label
 	}
-	settings_ctrl.setup(self, locale_manager, _tool_executor, ai_provider, settings_nodes)
 	settings_ctrl.preset_changed.connect(func(cfg): preset_changed.emit(cfg))
 	settings_ctrl.settings_updated.connect(func(): settings_updated.emit())
 	settings_ctrl.font_size_changed.connect(func(size): chat_ctrl.set_font_size(size))
+	settings_ctrl.setup(self, locale_manager, _tool_executor, ai_provider, settings_nodes)
 	
 	var chat_nodes = {
 		"chat_scroll": chat_scroll, "chat_vbox": chat_vbox, "input_field": input_field, "send_button": send_button,

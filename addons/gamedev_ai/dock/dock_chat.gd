@@ -48,6 +48,8 @@ var _chat_log_bbcode: String = ""
 var _attached_files: Array[Dictionary] = []
 var _dropped_files: Array[String] = []
 var _history_ids: Array = []
+var _history_offset: int = 0
+const HISTORY_LIMIT: int = 15
 var _pending_history_entries: Array = []
 var _load_more_btn: Button = null
 
@@ -99,7 +101,6 @@ var command_popup: PopupMenu
 
 func setup(dock_owner: Node, p_ai_provider, p_context_manager, p_tool_executor, p_memory_manager, p_locale_manager, nodes: Dictionary):
 	_dock_owner = dock_owner
-	ai_provider = p_ai_provider
 	context_manager = p_context_manager
 	_tool_executor = p_tool_executor
 	_memory_manager = p_memory_manager
@@ -140,22 +141,32 @@ func setup(dock_owner: Node, p_ai_provider, p_context_manager, p_tool_executor, 
 	_connect_signals()
 	_connect_tool_executor()
 	_setup_orchestrator()
+	set_ai_provider(p_ai_provider)
 
 func set_ai_provider(provider):
+	if ai_provider and ai_provider != provider:
+		if ai_provider.response_received.is_connected(_on_response_received):
+			ai_provider.response_received.disconnect(_on_response_received)
+		if ai_provider.tool_call_received.is_connected(_on_tool_calls):
+			ai_provider.tool_call_received.disconnect(_on_tool_calls)
+		if ai_provider.audio_received.is_connected(_on_audio_received):
+			ai_provider.audio_received.disconnect(_on_audio_received)
+		if ai_provider.error_occurred.is_connected(_on_ai_error):
+			ai_provider.error_occurred.disconnect(_on_ai_error)
+
 	ai_provider = provider
 	if ai_provider:
-		if not ai_provider.chunk_received.is_connected(_on_chunk_received):
-			ai_provider.chunk_received.connect(_on_chunk_received)
-		if not ai_provider.tool_call_requested.is_connected(_on_tool_call):
-			ai_provider.tool_call_requested.connect(_on_tool_call)
-		if not ai_provider.tool_calls_requested.is_connected(_on_tool_calls):
-			ai_provider.tool_calls_requested.connect(_on_tool_calls)
-		if not ai_provider.request_completed.is_connected(_on_request_completed):
-			ai_provider.request_completed.connect(_on_request_completed)
+		if not ai_provider.response_received.is_connected(_on_response_received):
+			ai_provider.response_received.connect(_on_response_received)
+		if not ai_provider.tool_call_received.is_connected(_on_tool_calls):
+			ai_provider.tool_call_received.connect(_on_tool_calls)
 		if not ai_provider.audio_received.is_connected(_on_audio_received):
 			ai_provider.audio_received.connect(_on_audio_received)
 		if not ai_provider.error_occurred.is_connected(_on_ai_error):
 			ai_provider.error_occurred.connect(_on_ai_error)
+	if orchestrator:
+		orchestrator.setup(ai_provider, _tool_executor)
+
 
 func _setup_regexes():
 	_regex_bold_italic = RegEx.new()
@@ -331,6 +342,7 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_
 		if not screenshot.is_empty():
 			images.append(screenshot)
 			
+	var text_attachments = ""
 	for att in _attached_files:
 		if att["type"] == "image":
 			images.append({
@@ -339,10 +351,34 @@ func _process_send(prompt_text: String, is_execute_plan: bool = false, is_watch_
 				"raw_bytes": att["raw_bytes"],
 				"image_obj": att["image_obj"]
 			})
+		elif att["type"] == "text":
+			text_attachments += "\n\n--- Attached Reference File: " + att["filename"] + " ---\n" + att.get("text_content", "")
 	
-	var tools_list = _tool_executor.get_tools() if _tool_executor else []
+	if text_attachments != "":
+		final_prompt += text_attachments
+		
+	# Clear attached files and hide the UI preview so it doesn't persist across messages
+	_attached_files.clear()
+	_refresh_thumbnails()
+	_on_clear_dropped_files()
+	
+	var tools_list = _get_filtered_tools()
 	if ai_provider:
 		ai_provider.send_prompt(final_prompt, context_str, tools_list, images)
+	else:
+		_add_to_chat("\n[color=red]Error: AI Provider is not configured. Please check your settings in Configurações.[/color]\n", "system")
+
+func _get_filtered_tools() -> Array:
+	var tools = []
+	if _tool_executor:
+		tools = _tool_executor.get_tool_definitions()
+		if not screenshot_enabled:
+			var filtered = []
+			for t in tools:
+				if t.get("name") != "capture_editor_screenshot":
+					filtered.append(t)
+			return filtered
+	return tools
 
 func _is_game_running() -> bool:
 	return EditorInterface.is_playing_scene()
@@ -442,20 +478,74 @@ func _toggle_block(id: int):
 		var raw = data.bubble_ref.get_meta("raw_bbcode", "")
 		data.bubble_ref.text = raw
 
-func _on_chunk_received(chunk: String):
-	_add_to_chat(_markdown_to_bbcode(chunk), "ai")
+func _on_response_received(response: String):
+	if _dock_owner and _dock_owner.git_ctrl and _dock_owner.git_ctrl.handle_ai_commit_response(response):
+		return
+	_last_ai_response_text = response
+	_add_to_chat(_markdown_to_bbcode(response), "ai")
 
-func _on_tool_call(tool_name: String, args: Dictionary):
-	_append_collapsible_block("Tool Call: " + tool_name, JSON.stringify(args, "  "), "yellow", false)
+func _on_tool_calls(tool_calls: Array):
+	batch_queue = tool_calls.duplicate()
+	batch_results.clear()
+	_batch_total = tool_calls.size()
+	
+	if not batch_queue.is_empty():
+		var first_tool = batch_queue[0]
+		var action_name = "AI Batch: " + first_tool.get("name", "Unknown")
+		if _tool_executor and _tool_executor.has_method("start_composite_action"):
+			_tool_executor.start_composite_action(action_name)
+			
+		_process_next_batch_item()
+
+func _process_next_batch_item():
+	if _is_stopped:
+		return
+	if batch_queue.is_empty():
+		return
+		
+	var call_data = batch_queue.pop_front()
+	current_tool_context = call_data 
+	
+	var tool_name = call_data.get("name", "")
+	var args = call_data.get("args", {})
+	
+	var step = _batch_total - batch_queue.size()
+	var progress = "[" + str(step) + "/" + str(_batch_total) + "] " if _batch_total > 1 else ""
+	
+	var arg_str = JSON.stringify(args, "  ")
+	_append_collapsible_block(progress + "Tool Call: " + tool_name, arg_str, "yellow", false)
+		
 	if _tool_executor:
 		_tool_executor.execute_tool(tool_name, args)
 
-func _on_tool_calls(calls: Array):
-	for call in calls:
-		_on_tool_call(call.get("name", ""), call.get("args", {}))
-
 func _on_tool_output(output):
-	_append_collapsible_block("Tool Result", str(output), "dodgerblue", false)
+	if _is_stopped:
+		return
+		
+	var out_str = str(output)
+	var line_count = out_str.count("\n") + 1
+	var label = "Tool Output " + ("(" + str(line_count) + " lines)" if line_count > 1 else "")
+	_append_collapsible_block(label, out_str, "dodgerblue", false)
+	
+	if not current_tool_context.is_empty() and ai_provider:
+		var tool_id = current_tool_context.get("id", "")
+		var response_part = ai_provider.generate_tool_response(current_tool_context.get("name", ""), out_str, tool_id)
+		batch_results.append(response_part)
+		current_tool_context = {}
+	
+	if not batch_queue.is_empty():
+		if _dock_owner and _dock_owner.is_inside_tree():
+			await _dock_owner.get_tree().process_frame
+		_process_next_batch_item()
+	else:
+		if ai_provider and not batch_results.is_empty():
+			_add_to_chat("\n[i]" + locale_manager.tr("sending_batch_results") + "[/i]\n")
+			var tools = _get_filtered_tools()
+			ai_provider.send_tool_responses(batch_results, tools, [])
+			batch_results.clear()
+			
+		if _tool_executor and _tool_executor.has_method("commit_composite_action"):
+			_tool_executor.commit_composite_action()
 
 func _on_confirmation_needed(message: String, tool_name: String, args: Dictionary):
 	_append_collapsible_block("Confirmation Required", message, "orange", true)
@@ -463,11 +553,11 @@ func _on_confirmation_needed(message: String, tool_name: String, args: Dictionar
 func _on_image_captured(image_path: String):
 	_attach_file_from_path(image_path)
 
-func _on_request_completed():
-	pass
-
 func _on_ai_error(error: String):
+	if _dock_owner and _dock_owner.git_ctrl and _dock_owner.git_ctrl.handle_ai_commit_error():
+		return
 	_add_to_chat("\n[color=red]Error: " + error + "[/color]\n")
+
 
 func handle_engine_log(entry: Dictionary):
 	if not watch_mode_enabled: return
@@ -489,12 +579,27 @@ func _markdown_to_bbcode(text: String) -> String:
 	if _regex_code: out = _regex_code.sub(out, "[code]$1[/code]", true)
 	return out
 
+const MAX_UI_BLOCK_LINES = 16
+const MAX_UI_BLOCK_CHARS = 1000
+
 func _append_collapsible_block(label: String, content: String, color: String, expanded: bool):
 	var id = _next_block_id
 	_next_block_id += 1
 	var safe_content = content.replace("[", "[lb]")
 	_block_data[id] = {"label": label, "content": safe_content, "color": color, "expanded": expanded}
-	_add_to_chat("\n[color=" + color + "]⚙ " + label + ":[/color]\n[indent]" + safe_content + "[/indent]\n")
+	
+	var lines = safe_content.split("\n")
+	var display_text = safe_content
+	if lines.size() > MAX_UI_BLOCK_LINES or safe_content.length() > MAX_UI_BLOCK_CHARS:
+		var preview_lines = []
+		var count = mini(lines.size(), 8)
+		for i in range(count):
+			preview_lines.append(lines[i])
+		var omitted = lines.size() - count
+		preview_lines.append("... [i][color=gray](+ " + str(omitted) + " lines hidden from preview - full data sent to AI)[/color][/i]")
+		display_text = "\n".join(preview_lines)
+		
+	_add_to_chat("\n[color=" + color + "]⚙ " + label + ":[/color]\n[indent]" + display_text + "[/indent]\n")
 
 # ===================== CHAT CONTROLS & POPUPS =====================
 
@@ -507,6 +612,8 @@ func _on_new_chat_pressed():
 	_block_data.clear()
 	_attached_files.clear()
 	_refresh_thumbnails()
+	if ai_provider:
+		ai_provider.new_session()
 	_add_to_chat("[i]" + locale_manager.tr("new_chat_started") + "[/i]\n")
 
 func _on_summarize_pressed():
@@ -516,10 +623,84 @@ func _on_summarize_pressed():
 		ai_provider.send_prompt(prompt, "", [], [])
 
 func _on_history_popup_about_to_show():
-	pass
+	_history_offset = 0
+	_refresh_history_list()
 
-func _on_history_item_pressed(_id: int):
-	pass
+func _refresh_history_list():
+	if not history_button: return
+	var popup = history_button.get_popup()
+	popup.clear()
+	if ai_provider == null:
+		popup.add_item("No AI Provider configured", 0)
+		popup.set_item_disabled(0, true)
+		return
+		
+	_history_ids = ai_provider.list_sessions(0, HISTORY_LIMIT)
+	if _history_ids.is_empty():
+		popup.add_item(locale_manager.tr("no_history_saved") if locale_manager else "No chat history saved", 0)
+		popup.set_item_disabled(0, true)
+		return
+
+	for i in range(_history_ids.size()):
+		var session = _history_ids[i]
+		var title = session.get("title", "Chat " + str(i + 1))
+		popup.add_item(title, i)
+		
+	if _history_ids.size() == HISTORY_LIMIT:
+		popup.add_separator()
+		popup.add_item("🔄 " + (locale_manager.tr("load_more") if locale_manager else "Load more..."), 9999)
+
+func _load_more_history():
+	if ai_provider == null: return
+	_history_offset += HISTORY_LIMIT
+	var new_sessions = ai_provider.list_sessions(_history_offset, HISTORY_LIMIT)
+	if new_sessions.is_empty(): return
+	
+	var popup = history_button.get_popup()
+	var item_cnt = popup.item_count
+	if item_cnt >= 2 and popup.get_item_id(item_cnt - 1) == 9999:
+		popup.remove_item(item_cnt - 1)
+		popup.remove_item(item_cnt - 2)
+		
+	for session in new_sessions:
+		var idx = _history_ids.size()
+		_history_ids.append(session)
+		var title = session.get("title", "Chat " + str(idx + 1))
+		popup.add_item(title, idx)
+
+func _on_history_item_pressed(id: int):
+	if id == 9999:
+		_load_more_history()
+		return
+		
+	if id >= 0 and id < _history_ids.size():
+		var session = _history_ids[id]
+		var session_id = session.get("id", "")
+		if session_id != "" and ai_provider and ai_provider.load_session(session_id):
+			_rebuild_chat_from_transcript()
+			_add_to_chat("\n[color=gray]" + locale_manager.tr("chat_loaded") + session.get("title", "") + " ---[/color]\n")
+
+func _rebuild_chat_from_transcript():
+	for child in chat_vbox.get_children():
+		child.queue_free()
+	_chat_log_bbcode = ""
+	_current_bubble = null
+	_current_role = ""
+	_block_data.clear()
+	_attached_files.clear()
+	_refresh_thumbnails()
+		
+	if ai_provider == null or not ("transcript" in ai_provider):
+		return
+		
+	var all_entries = ai_provider.transcript
+	for entry in all_entries:
+		var role = entry.get("role", "user")
+		var text = entry.get("text", "")
+		if role == "user":
+			_log_user_message(text)
+		else:
+			_add_to_chat(_markdown_to_bbcode(text) + "\n", "ai")
 
 func _on_execute_plan_pressed():
 	if _plan_pending:
@@ -617,30 +798,60 @@ func _attach_file_from_path(path: String):
 			_add_to_chat("\n[color=green][i]File attached: " + filename + "[/i][/color]\n")
 
 func _refresh_thumbnails():
-	if not _thumbnail_list: return
+	if not _thumbnail_list or not _image_preview_scroll: return
 	for child in _thumbnail_list.get_children(): child.queue_free()
 	_image_preview_scroll.visible = not _attached_files.is_empty()
+	_image_preview_scroll.custom_minimum_size = Vector2(0, 30)
+	
 	for i in range(_attached_files.size()):
 		var att = _attached_files[i]
-		var label = Button.new()
-		label.text = "📎 " + att["filename"]
-		label.pressed.connect(func(): _remove_attached_file(i))
-		_thumbnail_list.add_child(label)
+		var btn = Button.new()
+		var icon = "🖼️ " if att.get("type") == "image" else "📎 "
+		btn.text = icon + att["filename"] + " ✕"
+		btn.tooltip_text = "Click to remove " + att["filename"]
+		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		btn.add_theme_font_size_override("font_size", 11)
+		
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color(0.18, 0.22, 0.28, 0.95)
+		style.border_color = Color(0.35, 0.45, 0.55, 0.8)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(6)
+		style.content_margin_left = 8
+		style.content_margin_right = 8
+		style.content_margin_top = 2
+		style.content_margin_bottom = 2
+		btn.add_theme_stylebox_override("normal", style)
+		
+		var style_hover = style.duplicate()
+		style_hover.bg_color = Color(0.32, 0.18, 0.22, 0.95)
+		style_hover.border_color = Color(0.85, 0.35, 0.35, 0.9)
+		btn.add_theme_stylebox_override("hover", style_hover)
+		
+		var idx = i
+		btn.pressed.connect(func(): _remove_attached_file(idx))
+		_thumbnail_list.add_child(btn)
 
 func _remove_attached_file(index: int):
 	if index >= 0 and index < _attached_files.size():
 		_attached_files.remove_at(index)
 		_refresh_thumbnails()
 
-func _can_drop_data_fw(_pos, data, _ctrl) -> bool:
-	return typeof(data) == TYPE_DICTIONARY and (data.has("files") or data.has("nodes") or data.has("type"))
+func _can_drop_data_fw(_pos = null, data = null, _ctrl = null) -> bool:
+	if typeof(data) != TYPE_DICTIONARY:
+		return false
+	return data.has("files") or data.has("nodes") or data.has("type")
 
-func _drop_data_fw(_pos, data, _ctrl):
+func _drop_data_fw(_pos = null, data = null, _ctrl = null):
+	if typeof(data) != TYPE_DICTIONARY:
+		return
 	if data.has("files"):
-		for f in data["files"]: _attach_file_from_path(f)
+		for f in data["files"]:
+			_attach_file_from_path(str(f))
 	elif data.has("nodes"):
 		for n in data["nodes"]:
-			input_field.text += " $" + str(n)
+			if input_field:
+				input_field.text += " $" + str(n)
 
 func _on_clear_dropped_files():
 	_dropped_files.clear()

@@ -59,6 +59,7 @@ func setup(dock_owner: Node, p_git_manager, p_ai_provider, p_locale_manager, nod
 	force_push_confirm_dialog = nodes.get("force_push_confirm_dialog")
 	
 	_connect_signals()
+	set_ai_provider(p_ai_provider)
 	update_git_status()
 
 func _connect_signals():

@@ -343,6 +343,9 @@ func _scan_fs():
 	EditorInterface.get_resource_filesystem().scan()
 
 
+func get_tools() -> Array:
+	return get_tool_definitions()
+
 func get_tool_definitions() -> Array:
 	return [
 		{
@@ -456,11 +459,13 @@ func get_tool_definitions() -> Array:
 		},
 		{
 			"name": "read_file",
-			"description": "Reads the content of a file.",
+			"description": "Reads the content of a file. Supports optional line slice reading via start_line and end_line for large files.",
 			"parameters": {
 				"type": "OBJECT",
 				"properties": {
-					"path": {"type": "STRING", "description": "The file path (res://...)."}
+					"path": {"type": "STRING", "description": "The file path (res://...)."},
+					"start_line": {"type": "INTEGER", "description": "Optional starting line number (1-indexed). Defaults to 1."},
+					"end_line": {"type": "INTEGER", "description": "Optional ending line number (1-indexed, inclusive). Defaults to -1 (end of file)."}
 				},
 				"required": ["path"]
 			}

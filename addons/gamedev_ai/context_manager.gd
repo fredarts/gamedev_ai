@@ -5,6 +5,28 @@ var _project_index_cache: String = ""
 var _project_index_cache_time: float = 0.0
 const _PROJECT_INDEX_CACHE_TTL: float = 30.0 # seconds
 
+func build_context() -> String:
+	var parts: Array = []
+	
+	var script = get_current_script()
+	if script != "" and script != "No script selected.":
+		parts.append("### Active Script in Editor:\n" + script)
+		
+	var scene = get_scene_tree_dump()
+	if scene != "" and scene != "No scene opened.":
+		parts.append("### Current Edited Scene Tree:\n" + scene)
+		
+	var eng_info = get_engine_version_context().strip_edges()
+	if eng_info != "":
+		parts.append("### Engine & Project Info:\n" + eng_info)
+		
+	var proj_idx = get_project_index().strip_edges()
+	if proj_idx != "":
+		parts.append(proj_idx)
+		
+	return "\n\n".join(parts)
+
+
 func get_engine_version_string() -> String:
 	var info = Engine.get_version_info()
 	var version = str(info.major) + "." + str(info.minor) + "." + str(info.patch)
