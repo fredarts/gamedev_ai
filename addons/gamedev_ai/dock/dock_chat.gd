@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name DockChat
 
 var _dock_owner: Node
 var ai_provider

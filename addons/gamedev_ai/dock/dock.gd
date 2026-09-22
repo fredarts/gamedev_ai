@@ -1,12 +1,18 @@
 @tool
 extends VBoxContainer
 
+const DockChat = preload("res://addons/gamedev_ai/dock/dock_chat.gd")
+const DockDiff = preload("res://addons/gamedev_ai/dock/dock_diff.gd")
+const DockGit = preload("res://addons/gamedev_ai/dock/dock_git.gd")
+const DockSettings = preload("res://addons/gamedev_ai/dock/dock_settings.gd")
+const DockShader = preload("res://addons/gamedev_ai/dock/dock_shader.gd")
+
 # Controller Modules
-var chat_ctrl: DockChat
-var diff_ctrl: DockDiff
-var git_ctrl: DockGit
-var settings_ctrl: DockSettings
-var shader_ctrl: DockShader
+var chat_ctrl: RefCounted
+var diff_ctrl: RefCounted
+var git_ctrl: RefCounted
+var settings_ctrl: RefCounted
+var shader_ctrl: RefCounted
 
 # Managers & Providers
 var gemini_client

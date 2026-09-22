@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name LSPClient
 
 signal connected_to_lsp()
 signal disconnected_from_lsp()

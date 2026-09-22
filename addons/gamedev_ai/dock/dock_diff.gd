@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name DockDiff
 
 var _dock_owner: Node
 var _tool_executor

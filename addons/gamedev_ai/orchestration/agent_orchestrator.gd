@@ -1,10 +1,12 @@
 @tool
 extends RefCounted
-class_name AgentOrchestrator
+
+const Blackboard = preload("res://addons/gamedev_ai/orchestration/blackboard.gd")
+const PersonaConfig = preload("res://addons/gamedev_ai/orchestration/persona_config.gd")
 
 signal stage_started(role: int, role_name: String)
 signal stage_completed(role: int, role_name: String, summary: String)
-signal pipeline_completed(blackboard: Blackboard)
+signal pipeline_completed(blackboard: RefCounted)
 signal pipeline_failed(error_msg: String)
 signal pipeline_paused()
 signal pipeline_resumed()
@@ -23,7 +25,7 @@ enum State {
 }
 
 var current_state: int = State.IDLE
-var blackboard: Blackboard
+var blackboard: RefCounted
 var ai_provider: RefCounted
 var tool_executor: RefCounted
 
@@ -206,6 +208,10 @@ func on_stage_completed_by_ai(summary: String):
 			_handle_qa_evaluation()
 
 func _extract_artifact_report(text: String) -> Dictionary:
+	if text.strip_edges().is_empty():
+		return {}
+
+	# Strategy 1: HTML Comment format <!-- ARTIFACT_REPORT { ... } -->
 	var start_tag = "<!-- ARTIFACT_REPORT"
 	var end_tag = "-->"
 	var start_idx = text.find(start_tag)
@@ -214,10 +220,38 @@ func _extract_artifact_report(text: String) -> Dictionary:
 		var end_idx = text.find(end_tag, content_start)
 		if end_idx != -1:
 			var json_str = text.substr(content_start, end_idx - content_start).strip_edges()
-			var json = JSON.new()
-			if json.parse(json_str) == OK and json.data is Dictionary:
-				return json.data
+			var parsed = JSON.parse_string(json_str)
+			if parsed is Dictionary and _is_valid_artifact_report(parsed):
+				return parsed
+
+	# Strategy 2: Markdown fenced code blocks (```json ... ``` or ``` ... ```)
+	var regex = RegEx.new()
+	regex.compile("```(?:json)?\\s*([\\s\\S]*?)```")
+	var matches = regex.search_all(text)
+	for m in matches:
+		var block_content = m.get_string(1).strip_edges()
+		if block_content.begins_with("{") and block_content.ends_with("}"):
+			var parsed = JSON.parse_string(block_content)
+			if parsed is Dictionary and _is_valid_artifact_report(parsed):
+				return parsed
+
+	# Strategy 3: Scan for outer JSON object with report signature keys
+	var first_brace = text.find("{")
+	var last_brace = text.rfind("}")
+	if first_brace != -1 and last_brace > first_brace:
+		var raw_candidate = text.substr(first_brace, (last_brace - first_brace) + 1).strip_edges()
+		var parsed = JSON.parse_string(raw_candidate)
+		if parsed is Dictionary and _is_valid_artifact_report(parsed):
+			return parsed
+
 	return {}
+
+func _is_valid_artifact_report(data: Dictionary) -> bool:
+	var report_keys = ["resources", "scenes", "scripts", "signals_connected", "test_suites"]
+	for k in report_keys:
+		if data.has(k) and data[k] is Array:
+			return true
+	return false
 
 func _integrate_artifact_report(report: Dictionary):
 	# Register resources

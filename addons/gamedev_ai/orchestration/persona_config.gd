@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name PersonaConfig
 
 enum Role {
 	ARCHITECT,
@@ -48,13 +47,22 @@ static func get_allowed_tools(role: int) -> Array[String]:
 			return [
 				"create_scene", "add_node", "remove_node", "instance_scene",
 				"set_property", "set_theme_override", "analyze_node_children",
-				"read_file", "list_dir", "get_class_info"
+				"read_file", "list_dir", "get_class_info",
+				"create_animation", "setup_spritesheet_animation", "add_animation_event_track",
+				"inspect_animation_player", "create_state_machine", "create_blend_space_2d",
+				"connect_state_machine_transition", "inspect_animation_tree", "setup_character_animation_suite",
+				"configure_tileset_atlas", "build_tilemap_layout", "paint_terrain_cells", "read_tilemap_layout", "clear_tilemap_region",
+				"generate_ui_theme", "create_responsive_ui_component", "apply_theme_to_scene", "inspect_theme"
 			]
 		Role.CODER:
 			return [
 				"read_file", "patch_script", "edit_script", "create_script",
 				"connect_signal", "disconnect_signal", "get_lsp_diagnostics",
-				"grep_search", "view_file_outline", "get_class_info"
+				"grep_search", "view_file_outline", "get_class_info",
+				"create_animation", "setup_spritesheet_animation", "add_animation_event_track",
+				"inspect_animation_player", "create_state_machine", "create_blend_space_2d",
+				"connect_state_machine_transition", "inspect_animation_tree", "setup_character_animation_suite",
+				"generate_ui_theme", "create_responsive_ui_component", "apply_theme_to_scene", "inspect_theme"
 			]
 		Role.QA_TESTER:
 			return [

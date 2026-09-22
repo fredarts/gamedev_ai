@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name SFXSynthesizer
 
 enum Waveform {
 	SINE,

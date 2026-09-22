@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name Blackboard
 
 var task_description: String = ""
 var resources: Array[Dictionary] = [] # [{path, class_name, description}]

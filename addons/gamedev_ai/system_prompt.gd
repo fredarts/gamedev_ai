@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name SystemPrompt
 
 static func get_system_instruction(engine_version: String = "Godot 4.x", custom_instructions: String = "", response_language_instruction: String = "", transcript: Array = [], screenshot_enabled: bool = false) -> String:
 	var active_persona = "Godot Expert"

@@ -1,6 +1,5 @@
 @tool
-extends BaseToolHandler
-class_name AudioTools
+extends "res://addons/gamedev_ai/tools/base_tool_handler.gd"
 
 var _preview_player: AudioStreamPlayer
 

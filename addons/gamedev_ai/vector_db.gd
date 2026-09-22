@@ -85,19 +85,27 @@ func _prepare_request(text: String) -> Dictionary:
 				"parts": [{"text": text}]
 			}
 		})
-	else: # OpenAI / OpenRouter / Local (all OpenAI-compatible)
+	else: # OpenAI / OpenRouter / Local / NVIDIA NIM (all OpenAI-compatible)
 		if base_url != "":
-			url = base_url
-			if not url.ends_with("/"): url += "/"
-			url += "v1/embeddings"
+			var clean_base = base_url.strip_edges()
+			if clean_base.ends_with("/"):
+				clean_base = clean_base.substr(0, clean_base.length() - 1)
+			if clean_base.ends_with("/v1"):
+				url = clean_base + "/embeddings"
+			else:
+				url = clean_base + "/v1/embeddings"
 		else:
 			url = "https://api.openai.com/v1/embeddings"
 			
 		if api_key != "":
 			headers.append("Authorization: Bearer " + api_key)
 			
+		var embed_model = "text-embedding-3-small"
+		if provider == 3 or "nvidia" in base_url.to_lower():
+			embed_model = "nvidia/nv-embedqa-e5-v5"
+			
 		body = JSON.stringify({
-			"model": "text-embedding-3-small",
+			"model": embed_model,
 			"input": text
 		})
 		

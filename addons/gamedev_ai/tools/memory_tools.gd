@@ -1,6 +1,5 @@
 @tool
-extends BaseToolHandler
-class_name MemoryTools
+extends "res://addons/gamedev_ai/tools/base_tool_handler.gd"
 
 func execute(tool_name: String, args: Dictionary) -> bool:
 	match tool_name:

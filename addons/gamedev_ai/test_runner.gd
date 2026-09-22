@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name TestRunner
 
 signal test_output(line: String)
 signal tests_finished(summary: Dictionary)

@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name SFXPresets
 
 static func get_preset_names() -> Array[String]:
 	return [

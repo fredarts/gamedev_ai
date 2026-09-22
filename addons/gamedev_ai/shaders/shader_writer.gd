@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name ShaderWriter
 
 static func save_shader_and_material(shader_path: String, shader_code: String, custom_uniforms: Dictionary = {}) -> Dictionary:
 	var result = {

@@ -140,9 +140,11 @@ func get_selection_info() -> Dictionary:
 	# Current editor has a 'code_edit' property in Godot 4
 	var code_edit = current_editor.get_base_editor()
 	if code_edit and code_edit is CodeEdit and code_edit.has_selection():
+		var current_script = script_editor.get_current_script()
+		var script_path = current_script.resource_path if current_script else ""
 		return {
 			"text": code_edit.get_selected_text(),
-			"path": script_editor.get_current_script().resource_path
+			"path": script_path
 		}
 	return {}
 

@@ -8,6 +8,7 @@ signal image_captured(image_path: String)
 
 var _undo_redo: EditorUndoRedoManager
 var memory_manager
+var debugger_plugin: RefCounted
 var _composite_action_name: String = ""
 var _pending_confirm_tool: String = ""
 var vector_db
@@ -65,7 +66,27 @@ const _TOOL_REQUIRED_ARGS = {
 	"build_tilemap_layout": ["layout_matrix"],
 	"paint_terrain_cells": ["terrain_set", "terrain_id", "cell_coordinates"],
 	"read_tilemap_layout": [],
-	"clear_tilemap_region": []
+	"clear_tilemap_region": [],
+	"create_animation": ["player_node_path", "animation_name"],
+	"setup_spritesheet_animation": ["player_node_path", "animation_name", "start_frame", "frame_count"],
+	"add_animation_event_track": ["player_node_path", "animation_name", "timestamp"],
+	"inspect_animation_player": ["player_node_path"],
+	"create_state_machine": ["tree_node_path", "states"],
+	"create_blend_space_2d": ["tree_node_path", "state_name", "blend_points"],
+	"connect_state_machine_transition": ["tree_node_path", "from_state", "to_state"],
+	"inspect_animation_tree": ["tree_node_path"],
+	"setup_character_animation_suite": ["parent_path", "sprite_node_path"],
+	"generate_ui_theme": ["preset_or_name"],
+	"create_responsive_ui_component": ["component_type"],
+	"apply_theme_to_scene": ["theme_path"],
+	"inspect_theme": [],
+	"omni_eval": ["code"],
+	"omni_manage": ["action"],
+	"get_runtime_errors": [],
+	"get_runtime_status": [],
+	"generate_procedural_dungeon": [],
+	"scaffold_autotile_bitmasks": ["tileset_path"],
+	"get_atlas_image": []
 }
 
 var test_runner: RefCounted
@@ -137,6 +158,9 @@ func setup(undo_redo: EditorUndoRedoManager):
 	var AudioToolsScript = load("res://addons/gamedev_ai/tools/audio_tools.gd")
 	var ShaderToolsScript = load("res://addons/gamedev_ai/tools/shader_tools.gd")
 	var TileMapToolsScript = load("res://addons/gamedev_ai/tools/tilemap_tools.gd")
+	var AnimationToolsScript = load("res://addons/gamedev_ai/tools/animation_tools.gd")
+	var UIThemeToolsScript = load("res://addons/gamedev_ai/tools/ui_theme_tools.gd")
+	var OmniToolsScript = load("res://addons/gamedev_ai/tools/omni_tools.gd")
 	
 	if ScriptToolsScript: _handlers.append(ScriptToolsScript.new())
 	if NodeToolsScript: _handlers.append(NodeToolsScript.new())
@@ -148,6 +172,9 @@ func setup(undo_redo: EditorUndoRedoManager):
 	if AudioToolsScript: _handlers.append(AudioToolsScript.new())
 	if ShaderToolsScript: _handlers.append(ShaderToolsScript.new())
 	if TileMapToolsScript: _handlers.append(TileMapToolsScript.new())
+	if AnimationToolsScript: _handlers.append(AnimationToolsScript.new())
+	if UIThemeToolsScript: _handlers.append(UIThemeToolsScript.new())
+	if OmniToolsScript: _handlers.append(OmniToolsScript.new())
 	
 	for h in _handlers:
 		h.setup(self)
@@ -179,6 +206,10 @@ func commit_batch_transaction():
 	if _undo_redo and _composite_action_name != "":
 		_undo_redo.commit_action()
 		_composite_action_name = ""
+		if Engine.is_editor_hint():
+			var root = EditorInterface.get_edited_scene_root()
+			if root and not root.scene_file_path.is_empty():
+				EditorInterface.save_scene()
 
 func abort_batch_transaction():
 	if _undo_redo and _composite_action_name != "":
@@ -269,7 +300,7 @@ func _create_file_undoable(path: String, content: String):
 			pass
 		
 		# Save using ResourceSaver, which avoids the "modified outside" popup
-		var err = ResourceSaver.save(script)
+		var err = ResourceSaver.save(script, path)
 		if err != OK:
 			tool_output.emit("Warning: Helper failed to save open script: " + str(err))
 	else:
@@ -727,6 +758,433 @@ func get_tool_definitions() -> Array:
 					"path": {"type": "STRING", "description": "The path to the script to audit (res://...)."}
 				},
 				"required": ["path"]
+			}
+		},
+		{
+			"name": "get_lsp_diagnostics",
+			"description": "Inspects a GDScript file via Godot's built-in LSP server to detect compilation errors, type mismatches, and syntax warnings.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"path": {"type": "STRING", "description": "The resource path (res://...) to the GDScript file."}
+				},
+				"required": ["path"]
+			}
+		},
+		{
+			"name": "generate_sfx",
+			"description": "Synthesizes a retro procedural sound effect (16-bit 44.1kHz WAV) using the sfxr synthesis engine and saves it to res://.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"preset": {"type": "STRING", "description": "Sound preset name (e.g. 'laser', 'coin', 'jump', 'explosion', 'powerup', 'hit', 'blip', 'select')."},
+					"path": {"type": "STRING", "description": "Optional destination path (e.g. 'res://audio/sfx/laser.wav')."},
+					"params": {"type": "OBJECT", "description": "Optional dictionary of custom synthesis parameters to override preset defaults."}
+				},
+				"required": ["preset"]
+			}
+		},
+		{
+			"name": "play_sfx_preview",
+			"description": "Synthesizes and plays an immediate in-editor audio preview of a procedural sound effect without saving to disk.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"preset": {"type": "STRING", "description": "Sound preset name (e.g. 'laser', 'coin', 'jump', 'explosion', 'powerup', 'hit', 'blip', 'select')."},
+					"params": {"type": "OBJECT", "description": "Optional dictionary of custom synthesis parameters to override preset defaults."}
+				},
+				"required": ["preset"]
+			}
+		},
+		{
+			"name": "generate_shader",
+			"description": "Generates a .gdshader file with uniforms, visual effects, and helper code based on a preset or custom GLSL/Godot shading language code.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"preset": {"type": "STRING", "description": "Shader preset name (e.g. 'hit_flash', 'dissolve', 'outline', 'water_2d', 'chromatic_aberration', 'vignette', 'pixelate', 'glitch')."},
+					"path": {"type": "STRING", "description": "Optional save path (res://.../shader.gdshader)."},
+					"custom_code": {"type": "STRING", "description": "Optional custom shader source code."},
+					"uniforms": {"type": "OBJECT", "description": "Optional dictionary of default uniform values."}
+				},
+				"required": ["preset"]
+			}
+		},
+		{
+			"name": "apply_shader_to_node",
+			"description": "Creates or updates a ShaderMaterial with the specified shader and applies it to a CanvasItem or GeometryInstance3D node in the active scene.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"node_path": {"type": "STRING", "description": "Path to the target node in the scene tree."},
+					"shader_path": {"type": "STRING", "description": "Path to the .gdshader resource file."},
+					"preset": {"type": "STRING", "description": "Optional shader preset name if creating on the fly."},
+					"uniforms": {"type": "OBJECT", "description": "Optional dictionary of uniform parameters to assign to the material."}
+				}
+			}
+		},
+		{
+			"name": "get_shader_presets_list",
+			"description": "Returns the complete list of available built-in 2D and 3D shader presets and their configurable uniforms."
+		},
+		{
+			"name": "configure_tileset_atlas",
+			"description": "Creates and configures a new TileSet resource (.tres) from a spritesheet texture, setting up tile size, atlas source, terrain sets, peering bits, and physics collision polygons.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"texture_path": {"type": "STRING", "description": "Resource path to the spritesheet texture (res://...)."},
+					"tile_size": {"type": "ARRAY", "description": "Tile width and height in pixels as [width, height], e.g. [16, 16].", "items": {"type": "INTEGER"}},
+					"save_path": {"type": "STRING", "description": "Save path for the .tres file (e.g. 'res://tilesets/dungeon_tileset.tres')."},
+					"terrain_set_config": {"type": "OBJECT", "description": "Optional configuration for autotile terrain sets and peering bits."},
+					"physics_config": {"type": "OBJECT", "description": "Optional physics collision layers and polygon vertices."}
+				},
+				"required": ["texture_path"]
+			}
+		},
+		{
+			"name": "build_tilemap_layout",
+			"description": "Paints a layout matrix of tiles onto a TileMapLayer node in the active scene. (Godot 4.3+ standard)",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"layer_node_path": {"type": "STRING", "description": "Path to the TileMapLayer node in the scene tree (e.g. 'GroundLayer' or '.')."},
+					"layout_matrix": {"type": "ARRAY", "description": "Array of tile entries, either dictionaries {'pos': [x,y], 'atlas': [ax,ay], 'source_id': 0} or arrays [x, y, ax, ay]."},
+					"source_id": {"type": "INTEGER", "description": "Default TileSet atlas source ID (usually 0)."}
+				},
+				"required": ["layout_matrix"]
+			}
+		},
+		{
+			"name": "paint_terrain_cells",
+			"description": "Paints autotile terrain connecting cells on a TileMapLayer using Godot's terrain system.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"layer_node_path": {"type": "STRING", "description": "Path to the TileMapLayer node."},
+					"terrain_set": {"type": "INTEGER", "description": "The terrain set index (usually 0)."},
+					"terrain_id": {"type": "INTEGER", "description": "The terrain ID within the set to paint with."},
+					"cell_coordinates": {"type": "ARRAY", "description": "Array of [x, y] cell coordinates to paint with terrain."},
+					"ignore_empty_terrains": {"type": "BOOLEAN", "description": "Whether to ignore empty surrounding terrain bits (default true)."}
+				},
+				"required": ["terrain_set", "terrain_id", "cell_coordinates"]
+			}
+		},
+		{
+			"name": "read_tilemap_layout",
+			"description": "Inspects and reads existing placed tiles, bounding box, and cell coordinates from a TileMapLayer node.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"layer_node_path": {"type": "STRING", "description": "Path to the TileMapLayer node (e.g. 'GroundLayer' or '.')."},
+					"bounding_box": {"type": "ARRAY", "description": "Optional region filter as [min_x, min_y, max_x, max_y]."}
+				}
+			}
+		},
+		{
+			"name": "clear_tilemap_region",
+			"description": "Clears all tiles or a specific rectangular region / array of coordinates from a TileMapLayer node.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"layer_node_path": {"type": "STRING", "description": "Path to the TileMapLayer node."},
+					"rect": {"type": "ARRAY", "description": "Optional bounding rectangle [x, y, width, height] to clear."},
+					"cell_coordinates": {"type": "ARRAY", "description": "Optional array of specific [x, y] coordinates to erase."}
+				}
+			}
+		},
+		{
+			"name": "create_animation",
+			"description": "Creates or updates an animation in an AnimationPlayer node with track keys (values, properties, methods, transforms), snapping, and loop modes.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"player_node_path": {"type": "STRING", "description": "Path to the AnimationPlayer node (e.g. 'AnimationPlayer' or 'Player/AnimationPlayer')."},
+					"animation_name": {"type": "STRING", "description": "Name of the animation (e.g. 'walk_down', 'attack', 'jump')."},
+					"library_name": {"type": "STRING", "description": "Optional animation library name. Leave empty for default library."},
+					"length": {"type": "NUMBER", "description": "Duration in seconds (e.g. 0.8)."},
+					"loop_mode": {"type": "STRING", "description": "Loop mode: 'none', 'linear', or 'pingpong'."},
+					"tracks": {"type": "ARRAY", "description": "Array of track dictionaries containing 'node_path', 'property', 'track_type', 'update_mode', and 'keys'."}
+				},
+				"required": ["player_node_path", "animation_name"]
+			}
+		},
+		{
+			"name": "setup_spritesheet_animation",
+			"description": "Automatically generates a 2D spritesheet animation for a Sprite2D node with discrete frame index tracks, configurable FPS, and auto-generated RESET track.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"player_node_path": {"type": "STRING", "description": "Path to the AnimationPlayer node."},
+					"sprite_node_path": {"type": "STRING", "description": "Path to the Sprite2D node (e.g. 'Sprite2D')."},
+					"animation_name": {"type": "STRING", "description": "Name of the animation (e.g. 'idle', 'run', 'attack')."},
+					"start_frame": {"type": "INTEGER", "description": "Starting frame index on the spritesheet."},
+					"frame_count": {"type": "INTEGER", "description": "Number of sequential frames in the animation."},
+					"fps": {"type": "NUMBER", "description": "Playback frames per second (default: 10.0)."},
+					"loop_mode": {"type": "STRING", "description": "Loop mode: 'linear', 'none', or 'pingpong'."},
+					"auto_create_reset": {"type": "BOOLEAN", "description": "Whether to auto-create the essential RESET track (default: true)."}
+				},
+				"required": ["player_node_path", "animation_name", "start_frame", "frame_count"]
+			}
+		},
+		{
+			"name": "add_animation_event_track",
+			"description": "Inserts method call events (e.g. _enable_hitbox()) or discrete property changes into an existing animation at a specific timestamp.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"player_node_path": {"type": "STRING", "description": "Path to the AnimationPlayer node."},
+					"animation_name": {"type": "STRING", "description": "Target animation name."},
+					"library_name": {"type": "STRING", "description": "Optional library name."},
+					"event_type": {"type": "STRING", "description": "'method' or 'property'."},
+					"target_node_path": {"type": "STRING", "description": "Relative path to the node receiving the call or property change."},
+					"timestamp": {"type": "NUMBER", "description": "Timeline position in seconds (e.g. 0.35)."},
+					"method_name_or_property": {"type": "STRING", "description": "Method name to call or property to set."},
+					"method_args_or_value": {"type": "STRING", "description": "Arguments array for method or value for property."}
+				},
+				"required": ["player_node_path", "animation_name", "timestamp"]
+			}
+		},
+		{
+			"name": "inspect_animation_player",
+			"description": "Inspects an AnimationPlayer node, returning a detailed list of all libraries, animations, tracks, durations, and key counts.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"player_node_path": {"type": "STRING", "description": "Path to the AnimationPlayer node."}
+				},
+				"required": ["player_node_path"]
+			}
+		},
+		{
+			"name": "create_state_machine",
+			"description": "Creates or updates an AnimationTree node with an AnimationNodeStateMachine root, arranging state nodes with clean visual graph layout.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"tree_node_path": {"type": "STRING", "description": "Path to the AnimationTree node (e.g. 'AnimationTree')."},
+					"anim_player_path": {"type": "STRING", "description": "Relative path to the AnimationPlayer (default: '../AnimationPlayer')."},
+					"states": {"type": "ARRAY", "description": "Array of state dictionaries: [{'name': 'idle', 'animation': 'idle'}, {'name': 'walk', 'animation': 'walk'}]."},
+					"transitions": {"type": "ARRAY", "description": "Array of transition dictionaries with 'from', 'to', 'advance_mode', 'advance_condition', 'advance_expression', 'xfade_time'."},
+					"start_state": {"type": "STRING", "description": "Initial state name (e.g. 'idle')."},
+					"set_active": {"type": "BOOLEAN", "description": "Whether to activate the AnimationTree (default: true)."}
+				},
+				"required": ["tree_node_path", "states"]
+			}
+		},
+		{
+			"name": "create_blend_space_2d",
+			"description": "Creates an AnimationNodeBlendSpace2D for multi-directional movement (4D/8D) and adds it to an AnimationTree StateMachine.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"tree_node_path": {"type": "STRING", "description": "Path to the AnimationTree node."},
+					"state_name": {"type": "STRING", "description": "Name for the BlendSpace2D state (e.g. 'MoveSpace')."},
+					"blend_points": {"type": "ARRAY", "description": "Array of points: [{'pos': [0, 1], 'animation': 'walk_down'}, {'pos': [0, -1], 'animation': 'walk_up'}]."},
+					"blend_mode": {"type": "STRING", "description": "'interpolated' or 'discrete'."},
+					"min_space": {"type": "ARRAY", "description": "[min_x, min_y] (default: [-1, -1])."},
+					"max_space": {"type": "ARRAY", "description": "[max_x, max_y] (default: [1, 1])."}
+				},
+				"required": ["tree_node_path", "state_name", "blend_points"]
+			}
+		},
+		{
+			"name": "connect_state_machine_transition",
+			"description": "Connects or updates a transition between two states in an AnimationTree StateMachine with crossfade, switch mode, and GDScript advance_expression / advance_condition.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"tree_node_path": {"type": "STRING", "description": "Path to the AnimationTree node."},
+					"from_state": {"type": "STRING", "description": "Origin state name."},
+					"to_state": {"type": "STRING", "description": "Destination state name."},
+					"advance_condition": {"type": "STRING", "description": "Optional boolean condition parameter name (e.g. 'is_moving')."},
+					"advance_expression": {"type": "STRING", "description": "Optional GDScript expression evaluated in real-time (e.g. 'velocity.length() > 5.0')."},
+					"advance_mode": {"type": "STRING", "description": "'auto', 'enabled', or 'disabled'."},
+					"xfade_time": {"type": "NUMBER", "description": "Smooth crossfade time in seconds (default: 0.15)."},
+					"switch_mode": {"type": "STRING", "description": "'immediate', 'at_end', or 'sync'."}
+				},
+				"required": ["tree_node_path", "from_state", "to_state"]
+			}
+		},
+		{
+			"name": "inspect_animation_tree",
+			"description": "Inspects an AnimationTree node, returning its StateMachine nodes, graph layout positions, blend spaces, and active transitions.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"tree_node_path": {"type": "STRING", "description": "Path to the AnimationTree node."}
+				},
+				"required": ["tree_node_path"]
+			}
+		},
+		{
+			"name": "setup_character_animation_suite",
+			"description": "Constructs a complete character animation suite in a single command: AnimationPlayer, RESET track, all spritesheet animations (idle, walk, run, jump, attack, hurt, death), AnimationTree with StateMachine, and fully wired transitions.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"parent_path": {"type": "STRING", "description": "Path to character root node (e.g. '.' or 'Player')."},
+					"sprite_node_path": {"type": "STRING", "description": "Relative path to Sprite2D node."},
+					"animations_config": {"type": "OBJECT", "description": "Optional custom dictionary mapping animation names to start_frame, frame_count, fps, and loop."},
+					"state_machine_config": {"type": "OBJECT", "description": "Optional custom transitions configuration."},
+					"auto_create_tree": {"type": "BOOLEAN", "description": "Whether to create and link the AnimationTree (default: true)."},
+					"generate_helper_script": {"type": "BOOLEAN", "description": "Whether to generate helper playback control boilerplate (default: false)."}
+				},
+				"required": ["parent_path", "sprite_node_path"]
+			}
+		},
+		{
+			"name": "generate_ui_theme",
+			"description": "Generates a complete production-grade Godot Theme resource (.tres) with curated color palettes, StyleBoxFlat styles (Button, Panel, LineEdit, ProgressBar, HSlider, TabContainer), corner radiuses, and shadows.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"preset_or_name": {"type": "STRING", "description": "Preset name: 'glassmorphism', 'cyberpunk', 'fantasy_gold', 'cozy_pastel', 'retro_pixel', or 'custom'."},
+					"save_path": {"type": "STRING", "description": "Optional save path (e.g. 'res://themes/my_theme.tres')."},
+					"colors": {"type": "OBJECT", "description": "Optional custom color overrides: {'primary_color': '#3B82F6', 'bg_color': '#0F172A', 'accent_color': '#10B981', 'text_color': '#FFFFFF'}."},
+					"metrics": {"type": "OBJECT", "description": "Optional custom metrics: {'corner_radius': 10, 'border_width': 1, 'shadow_size': 8}."},
+					"set_as_project_theme": {"type": "BOOLEAN", "description": "Whether to set as global game theme in ProjectSettings.gui/theme/custom (default: true)."}
+				},
+				"required": ["preset_or_name"]
+			}
+		},
+		{
+			"name": "create_responsive_ui_component",
+			"description": "Generates or instantiates a fully responsive production UI component scene (.tscn) with proper layout containers and anchor presets: 'hud', 'pause_menu', 'inventory_grid', 'dialogue_box', or 'main_menu'.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"component_type": {"type": "STRING", "description": "Component type: 'hud', 'pause_menu', 'inventory_grid', 'dialogue_box', or 'main_menu'."},
+					"save_path": {"type": "STRING", "description": "Optional save path for the .tscn scene file."},
+					"theme_path": {"type": "STRING", "description": "Optional path to the .tres theme to bind to the root component."},
+					"parent_node_path": {"type": "STRING", "description": "Optional parent node path if instantiating directly into the active scene."}
+				},
+				"required": ["component_type"]
+			}
+		},
+		{
+			"name": "apply_theme_to_scene",
+			"description": "Applies a Theme (.tres) resource to a specific Control node tree in the active scene.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"theme_path": {"type": "STRING", "description": "Resource path to the Theme (.tres) file."},
+					"node_path": {"type": "STRING", "description": "Path to the target Control node (default: '.')."}
+				},
+				"required": ["theme_path"]
+			}
+		},
+		{
+			"name": "inspect_theme",
+			"description": "Inspects a Theme resource (.tres), reporting all configured Control types and custom style overrides.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"theme_path": {"type": "STRING", "description": "Optional path to Theme file. If omitted, checks ProjectSettings global theme."}
+				}
+			}
+		},
+		{
+			"name": "omni_eval",
+			"description": "Dynamically evaluates a snippet of GDScript or a mathematical/logical expression in real-time, executing safely in the context of the active scene or a specified target node.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"code": {"type": "STRING", "description": "The GDScript code block or expression to evaluate dynamically."},
+					"context_node_path": {"type": "STRING", "description": "Optional node path to bind as the execution context/self (default: active scene root)."}
+				},
+				"required": ["code"]
+			}
+		},
+		{
+			"name": "omni_manage",
+			"description": "Universal Godot reflection and invocation tool. Directly call any method on any node, inspect ClassDB APIs (methods, properties, signals, enums), or read/write properties dynamically without predefined tool limits.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"action": {"type": "STRING", "description": "Action to perform: 'call_method', 'get_property', 'set_property', 'inspect_class', 'list_methods', or 'list_properties'."},
+					"target_path": {"type": "STRING", "description": "Path to the target node in the active scene tree (required for call_method, get_property, set_property)."},
+					"method_name": {"type": "STRING", "description": "Method name to invoke when action is 'call_method'."},
+					"args": {"type": "ARRAY", "description": "Arguments array to pass to the method."},
+					"property": {"type": "STRING", "description": "Property name when action is 'get_property' or 'set_property'."},
+					"value": {"type": "STRING", "description": "Value to assign when action is 'set_property'."},
+					"class_name": {"type": "STRING", "description": "Godot class name to inspect when action is 'inspect_class' (e.g. 'CharacterBody2D', 'TileMapLayer', 'RigidBody3D')."}
+				},
+				"required": ["action"]
+			}
+		},
+		{
+			"name": "get_runtime_errors",
+			"description": "Fetches recent runtime errors, exceptions, and stack traces recorded by the Godot Debugger while the game is running (F5/F6).",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"clear_after_read": {"type": "BOOLEAN", "description": "If true, clears the error buffer after retrieving."}
+				}
+			}
+		},
+		{
+			"name": "get_runtime_status",
+			"description": "Queries Godot's runtime execution status (is game running, paused at breakpoint, or stopped, plus debug statistics).",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {}
+			}
+		},
+		{
+			"name": "generate_procedural_dungeon",
+			"description": "Generates a complete procedural dungeon or cave level on a TileMapLayer in a single call. Algorithms: 'bsp' (rooms & binary space split), 'rooms_and_corridors' (classic roguelike), 'cellular' (natural organic caverns), or 'drunkard_walk' (winding catacombs). Supports direct tile placement or Godot 4 autotile terrain connection.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"layer_node_path": {"type": "STRING", "description": "Path to the target TileMapLayer node (default: '.')."},
+					"algorithm": {"type": "STRING", "description": "Algorithm to use: 'bsp', 'rooms_and_corridors', 'cellular', or 'drunkard_walk' (default: 'bsp')."},
+					"width": {"type": "INTEGER", "description": "Dungeon width in tiles (default: 40)."},
+					"height": {"type": "INTEGER", "description": "Dungeon height in tiles (default: 30)."},
+					"room_min_size": {"type": "INTEGER", "description": "Minimum room dimension in tiles (default: 5)."},
+					"room_max_size": {"type": "INTEGER", "description": "Maximum room dimension in tiles (default: 10)."},
+					"max_rooms": {"type": "INTEGER", "description": "Maximum number of rooms to generate (default: 8)."},
+					"seed": {"type": "INTEGER", "description": "Optional RNG seed for deterministic generation (-1 for random)."},
+					"source_id": {"type": "INTEGER", "description": "TileSet source ID (default: 0)."},
+					"floor_tile": {"type": "ARRAY", "description": "Atlas coordinate for floor tiles [col, row] (default: [0, 0])."},
+					"wall_tile": {"type": "ARRAY", "description": "Atlas coordinate for wall tiles [col, row] (default: [1, 0])."},
+					"use_terrain_autotile": {"type": "BOOLEAN", "description": "If true, connects tiles using Godot 4's set_cells_terrain_connect instead of static atlas IDs."},
+					"terrain_set": {"type": "INTEGER", "description": "Terrain set index if use_terrain_autotile is true (default: 0)."},
+					"terrain_id": {"type": "INTEGER", "description": "Terrain ID index if use_terrain_autotile is true (default: 0)."}
+				}
+			}
+		},
+		{
+			"name": "scaffold_autotile_bitmasks",
+			"description": "Scaffolds standard terrain autotile 8-bit peering bitmasks across an atlas region in a TileSet (.tres) resource. Templates: 'simple_box' (3x3 - 9 tiles), 'kenney_3x3_minimal' (4x4 - 16 tiles), or 'rpgmaker_47' (full Wang 47 autotile format).",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"tileset_path": {"type": "STRING", "description": "Path to the TileSet (.tres) file."},
+					"source_id": {"type": "INTEGER", "description": "TileSetAtlasSource ID (default: 0)."},
+					"terrain_set": {"type": "INTEGER", "description": "Terrain set index (default: 0)."},
+					"terrain_id": {"type": "INTEGER", "description": "Terrain index ID (default: 0)."},
+					"template": {"type": "STRING", "description": "Template layout: 'simple_box', 'kenney_3x3_minimal', or 'rpgmaker_47'."},
+					"offset_col": {"type": "INTEGER", "description": "Starting column offset in the atlas (default: 0)."},
+					"offset_row": {"type": "INTEGER", "description": "Starting row offset in the atlas (default: 0)."}
+				},
+				"required": ["tileset_path"]
+			}
+		},
+		{
+			"name": "get_atlas_image",
+			"description": "Inspects a spritesheet or TileSet atlas texture, returning a Base64-encoded PNG with an optional grid overlay showing tile coordinate lines (col, row), enabling multimodal LLMs to visually inspect sprites.",
+			"parameters": {
+				"type": "OBJECT",
+				"properties": {
+					"texture_path": {"type": "STRING", "description": "Path to the image/spritesheet texture file (e.g. res://assets/dungeon.png)."},
+					"tileset_path": {"type": "STRING", "description": "Alternative: path to a TileSet resource (.tres) to inspect."},
+					"source_id": {"type": "INTEGER", "description": "TileSet source ID when using tileset_path (default: 0)."},
+					"tile_width": {"type": "INTEGER", "description": "Tile width for grid overlay (default: 16)."},
+					"tile_height": {"type": "INTEGER", "description": "Tile height for grid overlay (default: 16)."},
+					"max_size": {"type": "INTEGER", "description": "Maximum dimension for image scaling to reduce token size (default: 512)."},
+					"grid_overlay": {"type": "BOOLEAN", "description": "Whether to draw red tile grid lines over the image (default: true)."}
+				}
 			}
 		}
 	]

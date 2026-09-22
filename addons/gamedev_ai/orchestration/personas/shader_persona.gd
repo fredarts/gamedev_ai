@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name ShaderPersona
 
 static func get_system_prompt(engine_version: String = "Godot 4.x") -> String:
 	return """You are the TECHNICAL ARTIST & SHADER SYNTHESIZER persona in a Multi-Agent Game Development Team for Godot (""" + engine_version + """).

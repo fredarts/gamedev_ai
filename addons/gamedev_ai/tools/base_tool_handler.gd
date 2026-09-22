@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name BaseToolHandler
 
 var executor: RefCounted
 
@@ -60,3 +59,22 @@ func _duplicate_value(val: Variant) -> Variant:
 	elif val is Resource and val.has_method("duplicate"):
 		return val.duplicate(true)
 	return val
+
+func _create_undo_action(action_name: String, custom_context: Object = null):
+	var ur = _get_undo_redo()
+	if ur:
+		var ctx = custom_context if custom_context else _get_scene_context()
+		ur.create_action(action_name, UndoRedo.MERGE_DISABLE, ctx)
+
+func _commit_undo_action():
+	var ur = _get_undo_redo()
+	if ur:
+		ur.commit_action()
+		_mark_scene_dirty()
+
+func _mark_scene_dirty():
+	if Engine.is_editor_hint():
+		var root = EditorInterface.get_edited_scene_root()
+		if root and not root.scene_file_path.is_empty():
+			EditorInterface.mark_scene_as_unsaved()
+

@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name ShaderSynthesizer
 
 static func create_shader_material(shader_code: String, custom_uniforms: Dictionary = {}) -> ShaderMaterial:
 	var UniformParserScript = load("res://addons/gamedev_ai/shaders/uniform_parser.gd")

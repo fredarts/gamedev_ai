@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name LocaleManager
 
 var _current_locale: String = "en"
 

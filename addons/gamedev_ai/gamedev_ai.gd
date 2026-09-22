@@ -7,6 +7,9 @@ var context_manager
 var tool_executor
 var memory_manager
 var logger
+var mcp_protocol
+var mcp_server
+var debugger_plugin
 
 func _enter_tree():
 	# Preload script classes
@@ -14,6 +17,9 @@ func _enter_tree():
 	var ToolExecutor = preload("res://addons/gamedev_ai/tool_executor.gd")
 	var LoggerScript = preload("res://addons/gamedev_ai/logger.gd")
 	var MemoryMgr = preload("res://addons/gamedev_ai/memory_manager.gd")
+	var MCPProtocolScript = preload("res://addons/gamedev_ai/mcp/mcp_protocol.gd")
+	var MCPServerScript = preload("res://addons/gamedev_ai/mcp/mcp_server.gd")
+	var DebuggerPluginScript = preload("res://addons/gamedev_ai/debugger/ai_debugger_plugin.gd")
 	
 	# Initialize components
 	context_manager = ContextManager.new()
@@ -22,6 +28,16 @@ func _enter_tree():
 	memory_manager = MemoryMgr.new()
 	tool_executor.memory_manager = memory_manager
 	logger = LoggerScript.new()
+	
+	# Initialize Runtime Debugger Plugin
+	if DebuggerPluginScript:
+		debugger_plugin = DebuggerPluginScript.new()
+		add_debugger_plugin(debugger_plugin)
+		tool_executor.debugger_plugin = debugger_plugin
+	
+	# Initialize MCP Protocol and Server
+	mcp_protocol = MCPProtocolScript.new()
+	mcp_protocol.setup(tool_executor, memory_manager, context_manager)
 	
 	# Load UI
 	var DockScene = preload("res://addons/gamedev_ai/dock/dock.tscn")
@@ -47,6 +63,15 @@ func _enter_tree():
 		config = {"provider": 0, "api_key": "", "base_url": "", "model_name": ""}
 	
 	_set_provider(config)
+	
+	# Start MCP Server
+	mcp_server = MCPServerScript.new()
+	var mcp_port = 6543
+	if settings.has_setting("gamedev_ai/mcp_port"):
+		mcp_port = settings.get_setting("gamedev_ai/mcp_port")
+	mcp_server.setup(mcp_protocol, mcp_port)
+	add_child(mcp_server)
+	mcp_server.start()
 	
 	# Setup Dock
 	dock.setup(ai_provider, context_manager, tool_executor)
@@ -130,7 +155,10 @@ func _apply_config_to_provider(provider, config: Dictionary):
 		if prov_index == 2: # Local
 			provider.max_buffer_chars = 32000 # ~8k tokens budget
 			provider.max_history_turns = 16
-		else: # Cloud
+		elif prov_index == 3: # NVIDIA NIM
+			provider.max_buffer_chars = 128000 # ~32k tokens budget
+			provider.max_history_turns = 32
+		else: # Cloud (Gemini / OpenRouter)
 			provider.max_buffer_chars = 64000 # ~16k tokens budget
 			provider.max_history_turns = 24
 
@@ -138,18 +166,34 @@ func _apply_config_to_provider(provider, config: Dictionary):
 		if prov_index == 2: # Local
 			if provider.base_url == "":
 				provider.base_url = "http://localhost:11434/v1"
+		elif prov_index == 3: # NVIDIA NIM
+			if provider.base_url == "":
+				provider.base_url = "https://integrate.api.nvidia.com/v1"
 		elif provider.base_url == "":
 			provider.base_url = "https://api.openai.com/v1"
 		
-		# Set OpenRouter headers
-		provider.custom_headers = {
-			"HTTP-Referer": "https://godot.editor",
-			"X-Title": "Gamedev AI Godot Plugin"
-		}
+		# Set OpenRouter headers if applicable
+		if prov_index == 1 or "openrouter" in provider.base_url.to_lower():
+			provider.custom_headers = {
+				"HTTP-Referer": "https://godot.editor",
+				"X-Title": "Gamedev AI Godot Plugin"
+			}
+		else:
+			provider.custom_headers = {}
 
 func _exit_tree():
+	# Clean up Debugger Plugin
+	if debugger_plugin:
+		remove_debugger_plugin(debugger_plugin)
+		debugger_plugin = null
 
-	# Clean up
+	# Clean up MCP Server
+	if mcp_server:
+		mcp_server.stop()
+		mcp_server.queue_free()
+		mcp_server = null
+
+	# Clean up UI and Logger
 	if dock:
 		remove_control_from_docks(dock)
 		dock.free()

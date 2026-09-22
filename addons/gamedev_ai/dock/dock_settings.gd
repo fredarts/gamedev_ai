@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name DockSettings
 
 var _dock_owner: Node
 var locale_manager
@@ -177,6 +176,7 @@ func _populate_provider_selector():
 	provider_selector.add_item("Google Gemini", 0)
 	provider_selector.add_item("OpenRouter (Claude/DeepSeek/GPT)", 1)
 	provider_selector.add_item("Local (Ollama/LM Studio)", 2)
+	provider_selector.add_item("NVIDIA NIM (Llama 3.3/Nemotron)", 3)
 
 func _load_presets():
 	var settings = EditorInterface.get_editor_settings()
@@ -189,8 +189,19 @@ func _load_presets():
 		presets["Google Gemini"] = {"provider": 0, "api_key": "", "base_url": "", "model_name": "gemini-3.1-pro-preview"}
 		presets["OpenRouter (Claude/DeepSeek)"] = {"provider": 1, "api_key": "", "base_url": "https://openrouter.ai/api/v1", "model_name": "anthropic/claude-3.7-sonnet"}
 		presets["Local (Ollama/LM Studio)"] = {"provider": 2, "api_key": "", "base_url": "http://localhost:11434/v1", "model_name": "llama3"}
+		presets["NVIDIA NIM (Llama 3.3 70B)"] = {"provider": 3, "api_key": "", "base_url": "https://integrate.api.nvidia.com/v1", "model_name": "meta/llama-3.3-70b-instruct"}
 		active_preset_name = "Google Gemini"
 		_save_presets()
+	else:
+		# Ensure NVIDIA preset exists if user already has other presets
+		var has_nvidia = false
+		for p_val in presets.values():
+			if p_val is Dictionary and p_val.get("provider", -1) == 3:
+				has_nvidia = true
+				break
+		if not has_nvidia:
+			presets["NVIDIA NIM (Llama 3.3 70B)"] = {"provider": 3, "api_key": "", "base_url": "https://integrate.api.nvidia.com/v1", "model_name": "meta/llama-3.3-70b-instruct"}
+			_save_presets()
 		
 	if not presets.has(active_preset_name):
 		active_preset_name = presets.keys()[0]
@@ -242,12 +253,23 @@ func base_url_supported(prov: int) -> bool:
 
 func _update_field_visibilities(prov: int):
 	var is_local = (prov == 2)
+	var is_nvidia = (prov == 3)
 	if settings_bar:
 		settings_bar.visible = (prov != 0)
 	if api_input:
-		api_input.placeholder_text = "Not required for Local models" if is_local else "Enter API Key"
+		if is_local:
+			api_input.placeholder_text = "Not required for Local models"
+		elif is_nvidia:
+			api_input.placeholder_text = "Enter NVIDIA API Key (nvapi-...)"
+		else:
+			api_input.placeholder_text = "Enter API Key"
 	if url_input:
-		url_input.placeholder_text = "Default: http://localhost:11434/v1" if is_local else "Default: https://openrouter.ai/api/v1"
+		if is_local:
+			url_input.placeholder_text = "Default: http://localhost:11434/v1"
+		elif is_nvidia:
+			url_input.placeholder_text = "Default: https://integrate.api.nvidia.com/v1"
+		else:
+			url_input.placeholder_text = "Default: https://openrouter.ai/api/v1"
 
 func _on_preset_selected(index: int):
 	if preset_selector and index >= 0 and index < preset_selector.get_item_count():
@@ -311,19 +333,35 @@ func _on_rename_preset(new_name: String):
 func _on_provider_type_changed(index: int):
 	if presets.has(active_preset_name):
 		presets[active_preset_name]["provider"] = index
-		if index == 1 and presets[active_preset_name].get("base_url", "") == "":
+		if index == 1 and (presets[active_preset_name].get("base_url", "") == "" or "nvidia" in presets[active_preset_name].get("base_url", "")):
 			presets[active_preset_name]["base_url"] = "https://openrouter.ai/api/v1"
 		elif index == 2 and presets[active_preset_name].get("base_url", "") == "":
 			presets[active_preset_name]["base_url"] = "http://localhost:11434/v1"
+		elif index == 3 and (presets[active_preset_name].get("base_url", "") == "" or "openrouter.ai" in presets[active_preset_name].get("base_url", "")):
+			presets[active_preset_name]["base_url"] = "https://integrate.api.nvidia.com/v1"
+			if presets[active_preset_name].get("model_name", "") == "":
+				presets[active_preset_name]["model_name"] = "deepseek-ai/deepseek-v4-flash"
 		_save_presets()
 		_apply_active_preset()
 
 
 func _on_config_changed(_text = ""):
 	if presets.has(active_preset_name):
-		if api_input: presets[active_preset_name]["api_key"] = api_input.text.strip_edges()
-		if url_input: presets[active_preset_name]["base_url"] = url_input.text.strip_edges()
-		if model_input: presets[active_preset_name]["model_name"] = model_input.text.strip_edges()
+		var key = api_input.text.strip_edges() if api_input else ""
+		var url = url_input.text.strip_edges() if url_input else ""
+		var model = model_input.text.strip_edges() if model_input else ""
+		
+		# Auto-switch to NVIDIA NIM if user pasted an nvapi- key while on OpenRouter default URL
+		if key.begins_with("nvapi-") and (url == "https://openrouter.ai/api/v1" or url == ""):
+			url = "https://integrate.api.nvidia.com/v1"
+			if url_input: url_input.text = url
+			presets[active_preset_name]["provider"] = 3
+			if provider_selector: provider_selector.select(3)
+			_update_field_visibilities(3)
+		
+		presets[active_preset_name]["api_key"] = key
+		presets[active_preset_name]["base_url"] = url
+		presets[active_preset_name]["model_name"] = model
 		_save_presets()
 		settings_updated.emit()
 

@@ -9,14 +9,22 @@ var _last_tools: Array = []
 
 func setup(node: Node):
 	super.setup(node)
-	
-	# Try to load API key from environment variable
-	var env = OS.get_environment("OPENAI_API_KEY")
-	if env != "":
-		api_key = env
+	_load_env_api_key()
+
+func _load_env_api_key():
+	if api_key != "":
+		return
+	var env_vars = ["NVIDIA_API_KEY", "NVAPI_KEY", "OPENAI_API_KEY"] if "nvidia" in base_url.to_lower() else ["OPENAI_API_KEY", "NVIDIA_API_KEY", "NVAPI_KEY"]
+	for env in env_vars:
+		var val = OS.get_environment(env)
+		if val != "":
+			api_key = val
+			break
 
 func send_prompt(prompt: String, context: String = "", tools: Array = [], files: Array = []):
 	var is_local = ("localhost" in base_url or "127.0.0.1" in base_url or "11434" in base_url)
+	if api_key == "":
+		_load_env_api_key()
 	if api_key == "" and not is_local:
 		error_occurred.emit("API Key is missing.")
 		return
@@ -95,6 +103,13 @@ func _send_request(tools: Array = []):
 	_cancelled = false
 	prune_history()
 	_last_tools = tools
+	
+	# Auto-correct URL if an NVIDIA key (nvapi-*) is used with OpenRouter URL
+	if api_key.begins_with("nvapi-") and "openrouter.ai" in base_url:
+		print_rich("[color=yellow]⚠️ Gamedev AI: Detected NVIDIA API Key (nvapi-*) with OpenRouter URL. Automatically routing to https://integrate.api.nvidia.com/v1[/color]")
+		base_url = "https://integrate.api.nvidia.com/v1"
+		custom_headers = {}
+		
 	var url = base_url + "/chat/completions"
 	var headers = [
 		"Content-Type: application/json",
@@ -122,6 +137,9 @@ func _send_request(tools: Array = []):
 		"model": model_name,
 		"messages": history
 	}
+	
+	if "nvidia" in base_url.to_lower():
+		body["max_tokens"] = 4096
 	
 	if not tools.is_empty():
 		var openai_tools = []
@@ -170,6 +188,7 @@ func _on_request_completed(_result, response_code, _headers, body):
 	_stop_timeout()
 	if _cancelled:
 		return
+	print_rich("[color=cyan]🤖 Gamedev AI: HTTP response received (status: " + str(response_code) + ")[/color]")
 	if response_code != 200:
 		var json = JSON.parse_string(body.get_string_from_utf8())
 		# Retry on transient errors (429 rate limit, 5xx server errors)

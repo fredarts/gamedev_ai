@@ -1,7 +1,7 @@
 @tool
 extends RefCounted
-class_name WAVWriter
 
+## Utility to encode PCM audio
 static func save_wav(path: String, pcm_data: PackedByteArray, sample_rate: int = 44100) -> Error:
 	if not path.begins_with("res://"):
 		return ERR_INVALID_PARAMETER

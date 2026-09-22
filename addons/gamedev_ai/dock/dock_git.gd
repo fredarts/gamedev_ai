@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name DockGit
 
 var _dock_owner: Node
 var git_manager

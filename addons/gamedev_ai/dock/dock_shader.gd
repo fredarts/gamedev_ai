@@ -1,6 +1,10 @@
 @tool
 extends RefCounted
-class_name DockShader
+
+const UniformParser = preload("res://addons/gamedev_ai/shaders/uniform_parser.gd")
+const ShaderPresets = preload("res://addons/gamedev_ai/shaders/shader_presets.gd")
+const ShaderSynthesizer = preload("res://addons/gamedev_ai/shaders/shader_synthesizer.gd")
+const ShaderWriter = preload("res://addons/gamedev_ai/shaders/shader_writer.gd")
 
 var _parent_control: Control
 var _tool_executor: RefCounted

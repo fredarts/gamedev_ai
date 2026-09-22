@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name DockSFX
 
 var _parent_control: Control
 var _player: AudioStreamPlayer

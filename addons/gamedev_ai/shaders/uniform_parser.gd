@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name UniformParser
 
 # Struct / Dictionary representation of a parsed Uniform:
 # {

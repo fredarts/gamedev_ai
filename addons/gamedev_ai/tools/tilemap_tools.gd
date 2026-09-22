@@ -1,6 +1,5 @@
 @tool
-extends BaseToolHandler
-class_name TileMapTools
+extends "res://addons/gamedev_ai/tools/base_tool_handler.gd"
 
 func execute(tool_name: String, args: Dictionary) -> bool:
 	match tool_name:
@@ -41,6 +40,15 @@ func execute(tool_name: String, args: Dictionary) -> bool:
 				args.get("rect", []),
 				args.get("cell_coordinates", [])
 			)
+			return true
+		"generate_procedural_dungeon":
+			_generate_procedural_dungeon(args)
+			return true
+		"scaffold_autotile_bitmasks":
+			_scaffold_autotile_bitmasks(args)
+			return true
+		"get_atlas_image":
+			_get_atlas_image(args)
 			return true
 	return false
 
@@ -214,13 +222,32 @@ func _build_tilemap_layout(layer_node_path: String, layout_matrix: Array, defaul
 	
 	var is_tilemap_layer = target_node.has_method("set_cell")
 	if not is_tilemap_layer:
-		_emit_output("[color=red]Error: Node '" + target_node.name + "' does not support 'set_cell'. Must be a TileMapLayer or TileMap.[/color]")
+		_emit_output("[color=red]Error: Node '" + target_node.name + "' does not support 'set_cell'. Must be a TileMapLayer (Godot 4.3+ standard).[/color]")
 		return
 	
 	var painted_count = 0
 	var min_pos = Vector2i(999999, 999999)
 	var max_pos = Vector2i(-999999, -999999)
 	
+	var ur = _get_undo_redo()
+	var snapshots: Array = []
+	if ur:
+		_create_undo_action("Build TileMap Layout on " + target_node.name)
+		for entry in layout_matrix:
+			var p = Vector2i.ZERO
+			if entry is Dictionary:
+				if entry.has("pos") and entry["pos"] is Array: p = Vector2i(int(entry["pos"][0]), int(entry["pos"][1]))
+				elif entry.has("x") and entry.has("y"): p = Vector2i(int(entry["x"]), int(entry["y"]))
+			elif entry is Array and entry.size() >= 2:
+				p = Vector2i(int(entry[0]), int(entry[1]))
+			snapshots.append({
+				"pos": p,
+				"source_id": target_node.get_cell_source_id(p),
+				"atlas_coords": target_node.get_cell_atlas_coords(p),
+				"alternative_tile": target_node.get_cell_alternative_tile(p)
+			})
+		ur.add_undo_method(self, "_restore_tilemap_cells", target_node, snapshots)
+
 	# Execute painting
 	for entry in layout_matrix:
 		var pos = Vector2i.ZERO
@@ -253,6 +280,8 @@ func _build_tilemap_layout(layer_node_path: String, layout_matrix: Array, defaul
 				alt = int(entry[5])
 		
 		target_node.set_cell(pos, src_id, atlas, alt)
+		if ur:
+			ur.add_do_method(target_node, "set_cell", pos, src_id, atlas, alt)
 		painted_count += 1
 		
 		min_pos.x = min(min_pos.x, pos.x)
@@ -260,7 +289,10 @@ func _build_tilemap_layout(layer_node_path: String, layout_matrix: Array, defaul
 		max_pos.x = max(max_pos.x, pos.x)
 		max_pos.y = max(max_pos.y, pos.y)
 	
-	_save_scene_changes()
+	if ur:
+		_commit_undo_action()
+	else:
+		_save_scene_changes()
 	
 	var msg = "🧱 [b]TileMap Layout Painted Successfully![/b]\n"
 	msg += "• [b]Layer Node:[/b] `" + target_node.name + "` (" + target_node.get_class() + ")\n"
@@ -291,8 +323,26 @@ func _paint_terrain_cells(layer_node_path: String, terrain_set: int, terrain_id:
 		elif coord is Dictionary and coord.has("x") and coord.has("y"):
 			cells_array.append(Vector2i(int(coord["x"]), int(coord["y"])))
 	
+	var ur = _get_undo_redo()
+	if ur:
+		_create_undo_action("Paint Terrain Cells on " + target_node.name)
+		var snapshots: Array = []
+		for c in cells_array:
+			snapshots.append({
+				"pos": c,
+				"source_id": target_node.get_cell_source_id(c),
+				"atlas_coords": target_node.get_cell_atlas_coords(c),
+				"alternative_tile": target_node.get_cell_alternative_tile(c)
+			})
+		ur.add_undo_method(self, "_restore_tilemap_cells", target_node, snapshots)
+		ur.add_do_method(target_node, "set_cells_terrain_connect", cells_array, terrain_set, terrain_id, ignore_empty_terrains)
+	
 	target_node.set_cells_terrain_connect(cells_array, terrain_set, terrain_id, ignore_empty_terrains)
-	_save_scene_changes()
+	
+	if ur:
+		_commit_undo_action()
+	else:
+		_save_scene_changes()
 	
 	var msg = "🌱 [b]Terrain Autotile Connected Successfully![/b]\n"
 	msg += "• [b]Layer Node:[/b] `" + target_node.name + "`\n"
@@ -306,7 +356,7 @@ func _read_tilemap_layout(layer_node_path: String, bounding_box: Array):
 		return
 	
 	if not target_node.has_method("get_used_cells"):
-		_emit_output("[color=red]Error: Node '" + target_node.name + "' is not a TileMapLayer or TileMap.[/color]")
+		_emit_output("[color=red]Error: Node '" + target_node.name + "' is not a TileMapLayer (Godot 4.3+ standard).[/color]")
 		return
 	
 	var used_cells = target_node.get_used_cells()
@@ -367,12 +417,12 @@ func _clear_tilemap_region(layer_node_path: String, rect: Array, cell_coordinate
 		_emit_output("[color=red]Error: Node '" + target_node.name + "' cannot erase cells.[/color]")
 		return
 	
-	var cleared_count = 0
+	var ur = _get_undo_redo()
+	var cells_to_erase: Array[Vector2i] = []
 	if not cell_coordinates.is_empty():
 		for coord in cell_coordinates:
 			if coord is Array and coord.size() >= 2:
-				target_node.erase_cell(Vector2i(int(coord[0]), int(coord[1])))
-				cleared_count += 1
+				cells_to_erase.append(Vector2i(int(coord[0]), int(coord[1])))
 	elif rect.size() >= 4:
 		var rx = int(rect[0])
 		var ry = int(rect[1])
@@ -380,15 +430,354 @@ func _clear_tilemap_region(layer_node_path: String, rect: Array, cell_coordinate
 		var rh = int(rect[3])
 		for y in range(ry, ry + rh):
 			for x in range(rx, rx + rw):
-				target_node.erase_cell(Vector2i(x, y))
-				cleared_count += 1
+				cells_to_erase.append(Vector2i(x, y))
 	else:
-		if target_node.has_method("clear"):
-			cleared_count = target_node.get_used_cells().size()
-			target_node.clear()
+		if target_node.has_method("get_used_cells"):
+			cells_to_erase = target_node.get_used_cells()
+
+	var snapshots: Array = []
+	if ur:
+		_create_undo_action("Clear TileMap Region on " + target_node.name)
+		for p in cells_to_erase:
+			snapshots.append({
+				"pos": p,
+				"source_id": target_node.get_cell_source_id(p),
+				"atlas_coords": target_node.get_cell_atlas_coords(p),
+				"alternative_tile": target_node.get_cell_alternative_tile(p)
+			})
+		ur.add_undo_method(self, "_restore_tilemap_cells", target_node, snapshots)
+
+	var cleared_count = 0
+	for p in cells_to_erase:
+		target_node.erase_cell(p)
+		if ur:
+			ur.add_do_method(target_node, "erase_cell", p)
+		cleared_count += 1
 	
-	_save_scene_changes()
+	if ur:
+		_commit_undo_action()
+	else:
+		_save_scene_changes()
 	_emit_output("🧹 [b]Cleared " + str(cleared_count) + " tiles from '" + target_node.name + "'.[/b]")
+
+func _restore_tilemap_cells(layer_node: Node, cell_snapshots: Array):
+	if not is_instance_valid(layer_node) or not layer_node.has_method("set_cell"):
+		return
+	for snap in cell_snapshots:
+		var p = snap.get("pos", Vector2i.ZERO)
+		var sid = int(snap.get("source_id", -1))
+		var atlas = snap.get("atlas_coords", Vector2i(-1, -1))
+		var alt = int(snap.get("alternative_tile", 0))
+		if sid != -1:
+			layer_node.set_cell(p, sid, atlas, alt)
+		else:
+			layer_node.erase_cell(p)
+	_save_scene_changes()
+
+# --- Procedural Dungeon Generator ---
+
+func _generate_procedural_dungeon(args: Dictionary):
+	var target_node = _resolve_layer_node(args.get("layer_node_path", "."))
+	if not target_node:
+		return
+	
+	var DungeonGen = load("res://addons/gamedev_ai/tools/dungeon_generator.gd")
+	if not DungeonGen:
+		_emit_output("Error: DungeonGenerator script not found at res://addons/gamedev_ai/tools/dungeon_generator.gd")
+		return
+		
+	var algo: String = str(args.get("algorithm", "bsp")).to_lower()
+	var width: int = int(args.get("width", 40))
+	var height: int = int(args.get("height", 30))
+	var min_size: int = int(args.get("room_min_size", 5))
+	var max_size: int = int(args.get("room_max_size", 10))
+	var max_rooms: int = int(args.get("max_rooms", 8))
+	var seed_val: int = int(args.get("seed", -1))
+	var src_id: int = int(args.get("source_id", 0))
+	
+	var floor_coords = args.get("floor_tile", [0, 0])
+	var wall_coords = args.get("wall_tile", [1, 0])
+	var floor_atlas = Vector2i(int(floor_coords[0]), int(floor_coords[1])) if floor_coords is Array and floor_coords.size() >= 2 else Vector2i(0, 0)
+	var wall_atlas = Vector2i(int(wall_coords[0]), int(wall_coords[1])) if wall_coords is Array and wall_coords.size() >= 2 else Vector2i(1, 0)
+	
+	var use_terrain: bool = bool(args.get("use_terrain_autotile", false))
+	var terrain_set: int = int(args.get("terrain_set", 0))
+	var terrain_id: int = int(args.get("terrain_id", 0))
+	
+	var dungeon_data: Dictionary = {}
+	match algo:
+		"bsp":
+			dungeon_data = DungeonGen.generate_bsp(width, height, min_size, max_rooms, seed_val)
+		"rooms_and_corridors", "roguelike":
+			dungeon_data = DungeonGen.generate_rooms_and_corridors(width, height, max_rooms, min_size, max_size, seed_val)
+		"cellular", "caves":
+			var fill_prob = float(args.get("fill_prob", 0.46))
+			var iters = int(args.get("iterations", 4))
+			dungeon_data = DungeonGen.generate_cellular(width, height, fill_prob, iters, seed_val)
+		"drunkard_walk", "tunnels":
+			var floor_ratio = float(args.get("desired_floor_ratio", 0.35))
+			dungeon_data = DungeonGen.generate_drunkard_walk(width, height, floor_ratio, 5000, seed_val)
+		_:
+			_emit_output("Error: Unknown algorithm '" + algo + "'. Valid algorithms: bsp, rooms_and_corridors, cellular, drunkard_walk")
+			return
+			
+	var grid: Array = dungeon_data.get("grid", [])
+	var floor_cells: Array[Vector2i] = []
+	var wall_cells: Array[Vector2i] = []
+	
+	for y in range(height):
+		for x in range(width):
+			var val = grid[y][x]
+			if val == DungeonGen.TILE_FLOOR:
+				floor_cells.append(Vector2i(x, y))
+			elif val == DungeonGen.TILE_WALL:
+				wall_cells.append(Vector2i(x, y))
+				
+	# Capture previous cells for UndoRedo
+	var ur = _get_undo_redo()
+	if ur:
+		_create_undo_action("Generate Procedural Dungeon (" + algo + ") on " + target_node.name)
+		var snapshots: Array = []
+		for y in range(height):
+			for x in range(width):
+				var p = Vector2i(x, y)
+				snapshots.append({
+					"pos": p,
+					"source_id": target_node.get_cell_source_id(p),
+					"atlas_coords": target_node.get_cell_atlas_coords(p),
+					"alternative_tile": target_node.get_cell_alternative_tile(p)
+				})
+		ur.add_undo_method(self, "_restore_tilemap_cells", target_node, snapshots)
+		
+	if use_terrain and target_node.has_method("set_cells_terrain_connect"):
+		target_node.set_cells_terrain_connect(floor_cells, terrain_set, terrain_id, true)
+		if ur:
+			ur.add_do_method(target_node, "set_cells_terrain_connect", floor_cells, terrain_set, terrain_id, true)
+	else:
+		for p in floor_cells:
+			target_node.set_cell(p, src_id, floor_atlas)
+			if ur: ur.add_do_method(target_node, "set_cell", p, src_id, floor_atlas)
+		for p in wall_cells:
+			target_node.set_cell(p, src_id, wall_atlas)
+			if ur: ur.add_do_method(target_node, "set_cell", p, src_id, wall_atlas)
+			
+	if ur:
+		_commit_undo_action()
+	else:
+		_save_scene_changes()
+		
+	var report = {
+		"status": "success",
+		"algorithm": algo,
+		"dimensions": {"width": width, "height": height},
+		"floor_cells_count": floor_cells.size(),
+		"wall_cells_count": wall_cells.size(),
+		"player_spawn": dungeon_data.get("player_spawn", [0, 0]),
+		"exit_stairs": dungeon_data.get("exit_stairs", [0, 0]),
+		"rooms": dungeon_data.get("rooms", []),
+		"target_layer": target_node.name
+	}
+	_emit_output(JSON.stringify(report, "\t"))
+
+# --- Autotile Bitmask Templates ---
+
+func _scaffold_autotile_bitmasks(args: Dictionary):
+	var tileset_path: String = args.get("tileset_path", "")
+	if tileset_path.strip_edges().is_empty():
+		_emit_output("Error: 'tileset_path' cannot be empty.")
+		return
+	if not ResourceLoader.exists(tileset_path):
+		_emit_output("Error: TileSet resource not found at " + tileset_path)
+		return
+	var ts = load(tileset_path)
+	if not ts is TileSet:
+		_emit_output("Error: Resource at " + tileset_path + " is not a TileSet.")
+		return
+		
+	var source_id: int = int(args.get("source_id", 0))
+	if not ts.has_source(source_id) or not ts.get_source(source_id) is TileSetAtlasSource:
+		_emit_output("Error: Source ID " + str(source_id) + " is not a valid TileSetAtlasSource in " + tileset_path)
+		return
+		
+	var src: TileSetAtlasSource = ts.get_source(source_id)
+	var terrain_set: int = int(args.get("terrain_set", 0))
+	var terrain_id: int = int(args.get("terrain_id", 0))
+	var template: String = str(args.get("template", "simple_box")).to_lower().strip_edges()
+	var offset_col: int = int(args.get("offset_col", 0))
+	var offset_row: int = int(args.get("offset_row", 0))
+	
+	while ts.get_terrain_sets_count() <= terrain_set:
+		ts.add_terrain_set()
+	while ts.get_terrains_count(terrain_set) <= terrain_id:
+		ts.add_terrain(terrain_set)
+		
+	var template_map: Array[Dictionary] = []
+	match template:
+		"simple_box":
+			template_map = [
+				{"col": 0, "row": 0, "bits": [0, 1, 2]},
+				{"col": 1, "row": 0, "bits": [0, 1, 2, 3, 4]},
+				{"col": 2, "row": 0, "bits": [2, 3, 4]},
+				{"col": 0, "row": 1, "bits": [6, 7, 0, 1, 2]},
+				{"col": 1, "row": 1, "bits": [0, 1, 2, 3, 4, 5, 6, 7]},
+				{"col": 2, "row": 1, "bits": [6, 5, 4, 3, 2]},
+				{"col": 0, "row": 2, "bits": [6, 7, 0]},
+				{"col": 1, "row": 2, "bits": [4, 5, 6, 7, 0]},
+				{"col": 2, "row": 2, "bits": [6, 5, 4]},
+			]
+		"kenney_3x3_minimal":
+			template_map = [
+				{"col": 0, "row": 0, "bits": [0, 1, 2]},
+				{"col": 1, "row": 0, "bits": [0, 1, 2, 3, 4]},
+				{"col": 2, "row": 0, "bits": [2, 3, 4]},
+				{"col": 3, "row": 0, "bits": [2]},
+				{"col": 0, "row": 1, "bits": [6, 7, 0, 1, 2]},
+				{"col": 1, "row": 1, "bits": [0, 1, 2, 3, 4, 5, 6, 7]},
+				{"col": 2, "row": 1, "bits": [6, 5, 4, 3, 2]},
+				{"col": 3, "row": 1, "bits": [6, 2]},
+				{"col": 0, "row": 2, "bits": [6, 7, 0]},
+				{"col": 1, "row": 2, "bits": [4, 5, 6, 7, 0]},
+				{"col": 2, "row": 2, "bits": [6, 5, 4]},
+				{"col": 3, "row": 2, "bits": [6]},
+				{"col": 0, "row": 3, "bits": [0]},
+				{"col": 1, "row": 3, "bits": [4, 0]},
+				{"col": 2, "row": 3, "bits": [4]},
+				{"col": 3, "row": 3, "bits": []},
+			]
+		"rpgmaker_47":
+			template_map = [
+				{"col": 0, "row": 0, "bits": [0, 1, 2]},
+				{"col": 1, "row": 0, "bits": [0, 1, 2, 3, 4]},
+				{"col": 2, "row": 0, "bits": [2, 3, 4]},
+				{"col": 0, "row": 1, "bits": [6, 7, 0, 1, 2]},
+				{"col": 1, "row": 1, "bits": [0, 1, 2, 3, 4, 5, 6, 7]},
+				{"col": 2, "row": 1, "bits": [6, 5, 4, 3, 2]},
+				{"col": 0, "row": 2, "bits": [6, 7, 0]},
+				{"col": 1, "row": 2, "bits": [4, 5, 6, 7, 0]},
+				{"col": 2, "row": 2, "bits": [6, 5, 4]},
+				{"col": 3, "row": 0, "bits": [2]},
+				{"col": 3, "row": 1, "bits": [6, 2]},
+				{"col": 3, "row": 2, "bits": [6]},
+				{"col": 0, "row": 3, "bits": [0]},
+				{"col": 1, "row": 3, "bits": [4, 0]},
+				{"col": 2, "row": 3, "bits": [4]},
+				{"col": 3, "row": 3, "bits": []},
+				{"col": 4, "row": 0, "bits": [0, 1, 2, 3, 4, 6, 7]},
+				{"col": 5, "row": 0, "bits": [0, 1, 2, 3, 4, 5, 6]},
+				{"col": 4, "row": 1, "bits": [0, 2, 4, 5, 6, 7]},
+				{"col": 5, "row": 1, "bits": [0, 1, 2, 4, 5, 6]},
+			]
+		_:
+			_emit_output("Error: Unknown template '" + template + "'. Valid templates: simple_box, kenney_3x3_minimal, rpgmaker_47")
+			return
+			
+	var count = 0
+	for entry in template_map:
+		var c = int(entry.get("col", 0)) + offset_col
+		var r = int(entry.get("row", 0)) + offset_row
+		var coords = Vector2i(c, r)
+		if not src.has_tile(coords):
+			src.create_tile(coords)
+		var tile_data: TileData = src.get_tile_data(coords, 0)
+		if tile_data:
+			tile_data.set_terrain_set(terrain_set)
+			tile_data.set_terrain(terrain_id)
+			for b in range(8):
+				tile_data.set_terrain_peering_bit(b, -1)
+			for b in entry.get("bits", []):
+				tile_data.set_terrain_peering_bit(int(b), terrain_id)
+			count += 1
+			
+	var err = ResourceSaver.save(ts, tileset_path)
+	if err != OK:
+		_emit_output("Error: Failed to save TileSet at " + tileset_path + " (Code: " + str(err) + ")")
+		return
+		
+	_emit_output(JSON.stringify({
+		"status": "success",
+		"tileset_path": tileset_path,
+		"template": template,
+		"terrain_set": terrain_set,
+		"terrain_id": terrain_id,
+		"tiles_configured": count,
+		"offset": {"col": offset_col, "row": offset_row}
+	}, "\t"))
+
+# --- Spritesheet / Atlas Visual Inspection ---
+
+func _get_atlas_image(args: Dictionary):
+	var tex: Texture2D = null
+	var texture_path: String = args.get("texture_path", "")
+	var tileset_path: String = args.get("tileset_path", "")
+	var source_id: int = int(args.get("source_id", 0))
+	
+	if not texture_path.is_empty():
+		if ResourceLoader.exists(texture_path):
+			tex = load(texture_path)
+	elif not tileset_path.is_empty():
+		if ResourceLoader.exists(tileset_path):
+			var ts = load(tileset_path)
+			if ts is TileSet and ts.has_source(source_id):
+				var src = ts.get_source(source_id)
+				if src is TileSetAtlasSource:
+					tex = src.texture
+					
+	if not tex:
+		_emit_output("Error: Could not load Texture2D from texture_path or TileSet source.")
+		return
+		
+	var img: Image = tex.get_image()
+	if not img:
+		_emit_output("Error: Could not retrieve image data from texture.")
+		return
+		
+	if img.is_compressed():
+		img.decompress()
+		
+	var orig_w = img.get_width()
+	var orig_h = img.get_height()
+	var tile_w = int(args.get("tile_width", 16))
+	var tile_h = int(args.get("tile_height", 16))
+	var max_size = int(args.get("max_size", 512))
+	var draw_grid = bool(args.get("grid_overlay", true))
+	
+	var processed_img: Image = img.duplicate()
+	if draw_grid and tile_w > 0 and tile_h > 0:
+		var cols = orig_w / tile_w
+		var rows = orig_h / tile_h
+		var grid_color = Color(1.0, 0.2, 0.2, 0.5)
+		for c in range(cols + 1):
+			var gx = min(c * tile_w, orig_w - 1)
+			for y in range(orig_h):
+				processed_img.set_pixel(gx, y, grid_color)
+		for r in range(rows + 1):
+			var gy = min(r * tile_h, orig_h - 1)
+			for x in range(orig_w):
+				processed_img.set_pixel(x, gy, grid_color)
+
+	if max_size > 0:
+		var longest = max(orig_w, orig_h)
+		if longest > max_size:
+			var scale = float(max_size) / float(longest)
+			var nw = max(1, int(orig_w * scale))
+			var nh = max(1, int(orig_h * scale))
+			processed_img.resize(nw, nh, Image.INTERPOLATE_LANCZOS)
+			
+	var png_buffer = processed_img.save_png_to_buffer()
+	var b64_str = Marshalls.raw_to_base64(png_buffer)
+	
+	_emit_output(JSON.stringify({
+		"status": "success",
+		"width": processed_img.get_width(),
+		"height": processed_img.get_height(),
+		"original_width": orig_w,
+		"original_height": orig_h,
+		"tile_size": {"w": tile_w, "h": tile_h},
+		"cols": int(orig_w / tile_w) if tile_w > 0 else 1,
+		"rows": int(orig_h / tile_h) if tile_h > 0 else 1,
+		"format": "image/png;base64",
+		"image_base64": b64_str
+	}, "\t"))
 
 # --- Helpers ---
 

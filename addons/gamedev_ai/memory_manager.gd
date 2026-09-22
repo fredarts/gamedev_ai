@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name MemoryManager
 
 const MEMORY_DIR = "res://.gamedev_ai/memory/"
 const FACTS_FILE = "project_facts.json"

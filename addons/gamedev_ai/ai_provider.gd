@@ -1,6 +1,5 @@
 @tool
 extends RefCounted
-class_name AIProvider
 
 signal response_received(response)
 signal audio_received(audio_data: PackedByteArray)

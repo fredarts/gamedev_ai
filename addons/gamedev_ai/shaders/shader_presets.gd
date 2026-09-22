@@ -1,8 +1,7 @@
 @tool
 extends RefCounted
-class_name ShaderPresets
 
-# Category Map
+## Shader Presets Catalog
 const CATEGORIES = {
 	"2D Combat & FX": ["hit_flash", "dissolve_2d", "shield_bubble", "outline_2d"],
 	"2D Stylized & Retro": ["pixelate_2d", "vhs_glitch", "hologram_2d", "chromatic_aberration"],

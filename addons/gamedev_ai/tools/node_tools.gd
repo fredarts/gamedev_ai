@@ -1,6 +1,5 @@
 @tool
-extends BaseToolHandler
-class_name NodeTools
+extends "res://addons/gamedev_ai/tools/base_tool_handler.gd"
 
 func execute(tool_name: String, args: Dictionary) -> bool:
 	match tool_name:
@@ -370,11 +369,36 @@ func _set_theme_override(node_path: String, override_type: String, name: String,
 			ur.create_action("Set Theme Override " + name + " on " + node.name, UndoRedo.MERGE_DISABLE, root)
 			
 		match override_type:
-			"color": ur.add_do_method(node, "add_theme_color_override", name, final_value)
-			"constant": ur.add_do_method(node, "add_theme_constant_override", name, int(final_value))
-			"font_size": ur.add_do_method(node, "add_theme_font_size_override", name, int(final_value))
-			"font": ur.add_do_method(node, "add_theme_font_override", name, final_value)
-			"stylebox": ur.add_do_method(node, "add_theme_stylebox_override", name, final_value)
+			"color":
+				if node.has_theme_color_override(name):
+					ur.add_undo_method(node, "add_theme_color_override", name, node.get_theme_color(name))
+				else:
+					ur.add_undo_method(node, "remove_theme_color_override", name)
+				ur.add_do_method(node, "add_theme_color_override", name, final_value)
+			"constant":
+				if node.has_theme_constant_override(name):
+					ur.add_undo_method(node, "add_theme_constant_override", name, node.get_theme_constant(name))
+				else:
+					ur.add_undo_method(node, "remove_theme_constant_override", name)
+				ur.add_do_method(node, "add_theme_constant_override", name, int(final_value))
+			"font_size":
+				if node.has_theme_font_size_override(name):
+					ur.add_undo_method(node, "add_theme_font_size_override", name, node.get_theme_font_size(name))
+				else:
+					ur.add_undo_method(node, "remove_theme_font_size_override", name)
+				ur.add_do_method(node, "add_theme_font_size_override", name, int(final_value))
+			"font":
+				if node.has_theme_font_override(name):
+					ur.add_undo_method(node, "add_theme_font_override", name, node.get_theme_font(name))
+				else:
+					ur.add_undo_method(node, "remove_theme_font_override", name)
+				ur.add_do_method(node, "add_theme_font_override", name, final_value)
+			"stylebox":
+				if node.has_theme_stylebox_override(name):
+					ur.add_undo_method(node, "add_theme_stylebox_override", name, node.get_theme_stylebox(name))
+				else:
+					ur.add_undo_method(node, "remove_theme_stylebox_override", name)
+				ur.add_do_method(node, "add_theme_stylebox_override", name, final_value)
 		
 		match override_type:
 			"color": node.add_theme_color_override(name, final_value)
