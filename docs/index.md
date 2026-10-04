@@ -19,7 +19,7 @@ features:
     details: "Descreva a mecânica, anexe arquivos e arraste Nodes direto da Scene Tree para o painel de conversa para a IA estruturar o sistema pra você."
   - title: "Servidor MCP Nativo & Stdio Bridge"
     tag: MCP
-    details: "Controle o Godot diretamente do Antigravity, Cursor ou Claude Desktop via Model Context Protocol (localhost:6543) com mais de 50 ferramentas agentics."
+    details: "Controle o Godot diretamente do Antigravity, Cursor ou Claude Desktop via Model Context Protocol (localhost:6543) com mais de 65 ferramentas agentics."
   - title: "Diff Seguro & Visual"
     tag: SAFE
     details: "A IA não quebra seu código às cegas. O plugin exibe uma janela lado-a-lado (Antes/Depois) para você aplicar apenas as linhas que aprovar."
