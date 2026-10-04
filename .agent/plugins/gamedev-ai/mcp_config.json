@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "godot": {
+      "command": "python",
+      "args": [
+        "addons/gamedev_ai/mcp/godot_mcp.py"
+      ]
+    }
+  }
+}
