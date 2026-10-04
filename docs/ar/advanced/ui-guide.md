@@ -1,156 +1,113 @@
-# دليل واجهة المستخدم الكامل (جميع الأزرار)
+# Complete UI Guide (All Controls & Tabs)
 
-تصف هذه الصفحة **كل زر ومفتاح وعنصر تحكم** داخل واجهة Gamedev AI في محرر Godot.
+This page describes **every button, selector, control, and tab** present in the **Gamedev AI** interface inside the Godot editor.
 
-![نظرة عامة على واجهة Gamedev AI الرئيسية في Godot](../../images/main_interface.png)
-
-## 🗂️ علامات التبويب الرئيسية (Main Tabs)
-
-يحتوي الملحق على **3 علامات تبويب** في أعلى اللوحة:
-- **Chat** — لوحة الاتصال الرئيسية مع الذكاء الاصطناعي.
-- **Settings** — إدارة مفاتيح API ، والpresets ، والمطالبات والفهرسة.
-- **Git** — التحكم في الإصدارات الأصلي المتكامل مع GitHub.
+![Overview of Gamedev AI main interface in Godot](../../images/main_interface.png)
 
 ---
 
-## 💬 علامة تبويب الدردشة (Chat Tab)
+## 🗂️ Main Tabs & Panels
 
-### الشريط العلوي (Top Bar)
-| الزر | الوظيفة |
-|-------|--------|
-| **Preset Selector** | قائمة منسدلة للتبديل السريع بين إعدادات المزودين/النماذج المختلفة (مثل "Gemini 3.1" ، "GPT-4o"). |
-| **A-** / **A+** | تقليل أو زيادة حجم الخط في الدردشة. |
-| **+ New Chat** | يحذف المحادثة الحالية ويبدأ جلسة جديدة تمامًا. |
-| **⊙ History** | قائمة منسدلة لجميع المحادثات السابقة. انقر فوق واحدة لاستعادة السياق الكامل لتلك الجلسة. |
-| **💾 Summarize to Memory** | يرسل مطالبة تلقائية للذكاء الاصطناعي لتلخيص القرارات المعمارية للمحادثة الحالية وتخزينها في الذاكرة الدائمة للمشروع. |
-
-### منطقة الدردشة (OutputDisplay)
-- تعرض الرسائل المنسقة بـ BBCode مع **خط عريض** ، *مائل* ، `كود مدمج` وتمييز بناء الجملة لكتل الكود.
-- روابط قابلة للنقر لملفات المشروع (تفتح في المحرر عند النقر عليها).
-- يظهر زر **Copy** عائم عند تظليل النص للنسخ السريع.
-
-### مشغل TTS (تحويل النص إلى كلام)
-
-![مشغل TTS مضغوط مع عناصر تحكم في التشغيل](../../images/tts_player.png)
-
-| التحكم | الوظيفة |
-|----------|--------|
-| **▶ Read Aloud** | يحول آخر رد للذكاء الاصطناعي إلى صوت ويشغله. مثالي لسماع التفسيرات أثناء البرمجة. |
-| **⏹ Stop** | يوقف تشغيل الصوت. |
-| **شريط التقدم** | للتقديم أو التأخير في الصوت. |
-| **السرعة (1.0x - 2.0x)** | يتحكم في وتيرة التشغيل. |
-
-### أزرار الأداء السريع (Quick Action Buttons)
-| الزر | ماذا يفعل |
-|-------|-----------|
-| **✧ Refactor** | يرسل الكود المظلل في المحرر مع مطالبة "Refactor this code". يحلل الذكاء الاصطناعي ويقترح تحسينات هيكلية. |
-| **◆ Fix** | يرسل الكود المظلل مع "Fix errors in this code". يحدد الذكاء الاصطناعي الأخطاء ويولد إصلاحاً. |
-| **💡 Explain** | يرسل الكود المظلل مع "Explain what this code does". يشرح الذكاء الاصطناعي كل جزء باللغة العربية. |
-| **↺ Undo** | يتراجع عن آخر إجراء قام به الذكاء الاصطناعي في المشروع (بإستخدام نظام Undo/Redo في Godot). |
-| **🖥 Fix Console** | يقرأ أحدث الأخطاء الحمراء من وحدة تحكم مخرجات Godot ويرسلها مباشرة للذكاء الاصطناعي لاقتراح إصلاحات. |
-
-### منطقة الإدخال (Input Area)
-| العنصر | الوظيفة |
-|----------|--------|
-| **حقل النص** | أدخل رسالتك. اضغط على `Shift + Enter` للإرسال. |
-| **📎 Attach** | يفتح منتقي الملفات لإرفاق صور أو سكربتات أو أي ملف بالمطالبة. |
-| **➤ Send** | يرسل الرسالة للذكاء الاصطناعي لمعالجتها. |
-| **Drag & Drop** | اسحب عقد شجرة المشهد أو ملفات نظام الملفات مباشرة إلى حقل النص أو منطقة الدردشة. سيتلقى الذكاء الاصطناعي البيانات التعريفية الكاملة. |
-
-### إعدادات الأمر (Prompt Settings - القائمة المنسدلة)
-يتم تجميع هذه الخيارات تحت أيقونة ⚙️ بجانب زر الإرسال.
-
-| الإعداد | الوظيفة |
-|--------|--------|
-| **تضمين السياق (Include Context)** | عند التفعيل، يضيف المكون الإضافي تلقائيًا المحتوى الكامل للنص البرمجي المفتوح حاليًا في المحرر إلى الرسالة المرسلة. |
-| **إرسال لقطة شاشة (Send Screenshot)** | عند التفعيل، يتم أخذ لقطة شاشة نافذة Godot تلقائيًا وإرسالها مع الرسالة لتحليل الذكاء الاصطناعي البصري. |
-| **التخطيط أولاً (Plan First)** | عند التفعيل، لن يكتب الذكاء الاصطناعي كودًا، بل سيرد بخطة Markdown مفصلة. بعد المراجعة، انقر فوق زر "Execute Plan" للبدء في كتابة الكود. |
-| **وضع المراقبة (Watch Mode)** | عند التفعيل، يراقب الذكاء الاصطناعي تلقائيًا وحدة تحكم مخرجات Godot. إذا اكتشف أخطاء حرجة، فسيقترح حلولاً تلقائيًا. |
+The plugin organizes its capabilities across **5 integrated tabs & panels**:
+- **💬 Chat** — Main conversational panel, tool executions, multi-agent pipeline state, and quick actions.
+- **⚙️ Settings** — Provider management (Gemini, OpenAI/OpenRouter, Ollama, NIM), API keys, custom system prompts, and vector indexing.
+- **🐙 Git** — Version control integrated with GitHub, featuring AI-generated commit messages.
+- **🎨 Shader Studio** — Visual shader synthesizer and editor with live interactive 2D/3D viewport previews.
+- **🔊 SFX Studio** — Procedural sound effect synthesizer with instant playback and one-click scene node insertion.
 
 ---
 
-## ⚙️ علامة تبويب الإعدادات (Settings Tab)
+## 💬 1. Chat Tab
 
-### إدارة الـ Presets
-| العنصر | الوظيفة |
-|----------|--------|
-| **Preset Selector** | قائمة منسدلة لاختيار الـ presets المحفوظة. |
-| **Add** | ينشئ preset جديداً فارغاً. |
-| **Edit** | يفتح لوحة التحرير (الاسم ، المزود ، مفتاح API ، رابط القاعدة ، النموذج). |
-| **Delete** | يحذف الـ preset المحدد نهائياً. |
-| **Done Editing** | يغلق لوحة التحرير ويحفظ التغييرات. |
+### Top Bar
+| Button | Function |
+|---|---|
+| **Preset Selector** | Dropdown to switch between active provider/model configurations (e.g. "Gemini 3.1 Pro", "Claude 3.7 Sonnet", "Ollama DeepSeek"). |
+| **A- / A+** | Decreases or increases chat font size. |
+| **+ New Chat** | Clears the current conversation and restarts session context. |
+| **⊙ History** | Dropdown containing past saved conversations to restore full context at any time. |
+| **💾 Summarize to Memory** | Instructs AI to synthesize key architectural decisions and persist them to project memory. |
 
-### حقول تحرير الـ Preset
-| الحقل | الوصف |
-|-------|-----------|
-| **Preset Name** | الاسم التعريفي (مثل "Gemini 3.1"). |
-| **Provider** | الاختيار بين "Gemini" و "OpenAI / OpenRouter". |
-| **API Key** | مفتاح API الخاص بالمزود المختار. |
-| **Base URL** | رابط API الأساسي (فقط لـ OpenAI/OpenRouter). |
-| **Model Name** | الاسم الدقيق للنموذج (مثل `gemini-2.5-flash` ، `gpt-4o`). |
+### Multi-Agent Pipeline (Visual Chips)
+When complex tasks are executed, colorful chips indicate the active orchestrator stage in real time:
+* 🟦 `Architect` — Contract definition and architecture planning.
+* 🟨 `Scene Builder` — Node creation and `.tscn` scene hierarchies.
+* 🟩 `Coder` — Modern typed GDScript and signal wiring.
+* 🟪 `QA Tester` — Assertion testing and Auto-Healing loops.
 
-### اللغة
-| العنصر | الوظيفة |
-|----------|--------|
-| **Language Selector** | قائمة منسدلة لاختيار لغة الواجهة وردود الذكاء الاصطناعي (العربية ، Português BR ، English وغيرها). |
+### TTS Player (Text-to-Speech)
 
-### مطالبة النظام المخصصة (Custom System Prompt)
-حقل نصي كبير للقواعد الثابتة التي سيتبعها الذكاء الاصطناعي دائماً. مثال: *"استخدم الكتابة الثابتة (Static Typing) في جميع الدوال. علق باللغة العربية."*
+![Compact TTS Player with playback controls](../../images/tts_player.png)
 
-| الزر | الوظيفة |
-|-------|--------|
-| **✨ Enhance Instructions with AI** | أرسل تعليماتك الحالية للذكاء الاصطناعي لتحسينها تلقائياً (التفاصيل الفنية ، أفضل الممارسات). معاينة قبل القبول. |
+| Control | Function |
+|---|---|
+| **▶ Read Aloud** | Synthesizes the latest AI response to audio. |
+| **⏹ Stop** | Stops audio playback. |
+| **Seek Slider** | Scrubs forward or backward in the audio track. |
+| **Speed (1.0x - 2.0x)** | Controls speech playback rate. |
 
-### قاعدة البيانات المتجهة (Vector Database)
-| العنصر | الوظيفة |
-|----------|--------|
-| **File List** | قائمة مرئية لجميع ملفات `.gd` في المشروع مع حالة الفهرسة. |
-| **🔍 Scan Changes** | يفحص المشروع بحثاً عن ملفات جديدة أو مغيرة أو محذوفة منذ آخر فهرسة. |
-| **⚡ Index Codebase** | يبدأ عملية الفهرسة المتجهة لجميع السكربتات المغيرة عبر Embeddings API. |
+### Quick Action Buttons
+| Button | Action |
+|---|---|
+| **✧ Refactor** | Sends selected code in the editor for structural refactoring. |
+| **◆ Fix** | Sends selected code for immediate bug fixing. |
+| **💡 Explain** | Sends selected code for step-by-step educational explanations. |
+| **↺ Undo** | Reverts the last AI action using Godot's native Undo/Redo history. |
+| **🖥 Fix Console** | Reads red error lines from Godot's Output console and prompts AI for an immediate fix. |
 
----
-
-## 🐙 علامة تبويب Git (Git Tab)
-
-### الإعداد الأولي
-| العنصر | الوظيفة |
-|----------|--------|
-| **Initialize Repository** | يبدأ مستودع Git في مجلد المشروع (إذا لم يكن موجوداً). |
-| **Remote URL** | حقل لصق رابط مستودع GitHub (مثل `https://github.com/user/repo.git`). |
-| **Set Remote** | يضبط الرابط للمستودع البعيد. |
-
-### العمليات الرئيسية
-| الزر | الوظيفة |
-|-------|--------|
-| **🔃 Refresh Status** | يحدث حالة Git (الملفات المغيرة/غير المتبعة ، الفرع الحالي). |
-| **⬇️ Pull** | يحمل أحدث التغييرات من المستودع البعيد. |
-| **✨ Auto-Generate Commit Message** | يحلل الذكاء الاصطناعي جميع الفروق (Diffs) ويولد رسالة commit احترافية تلقائياً. |
-| **Commit & Sync (Push)** | يقوم بعمل commit لجميع التغييرات مع الرسالة ويرفعها لـ GitHub. |
-
-### الفروع (Branches)
-| العنصر | الوظيفة |
-|----------|--------|
-| **Branch Label** | يظهر اسم الفرع الحالي. |
-| **Branch Name Input** | حقل لإدخال اسم فرع جديد أو موجود. |
-| **Checkout/Create Branch** | ينشئ فرعاً جديداً أو ينتقل لفرع موجود. |
-
-### إجراءات الطوارئ
-| الزر | الوظيفة |
-|-------|--------|
-| **⚠️ Undo Uncommitted Changes** | يتجاهل جميع التغييرات المحلية غير الـ committed (يعود لآخر commit). يتطلب تأكيداً. |
-| **⚠️ Force Pull Overwrite** | يمسح ويستبدل مجلدك المحلي بالكامل بالحالة الدقيقة من السحابة. يتطلب تأكيداً. |
-| **⚠️ Force Push** | يرفع الحالة المحلية للمستودع البعيد ويستبدل التاريخ هناك. استخدمه بحذر! |
+### Input Area & Prompt Settings (⚙️)
+| Element | Function |
+|---|---|
+| **Include Context** | Automatically attaches the active script in the Script Editor. |
+| **Send Screenshot** | Captures the Godot editor viewport and attaches it to the prompt (multimodal AI vision). |
+| **Plan First** | Forces the AI to return a Markdown plan before writing code. |
+| **Watch Mode** | Monitors the Output console and suggests auto-fixes if game crashes during play. |
 
 ---
 
-## 📋 لوحة الفروق (Diff Panel - مراجعة الكود)
+## 🎨 2. Shader Studio Tab
 
-عندما يولد الذكاء الاصطناعي كوداً أو يغيره ، تظهر لوحة فرق في الدردشة:
+The built-in **Shader Studio** lets you create, customize, and preview GLSL shaders (`.gdshader`) in real time.
 
-![لوحة الفروق تعرض الكود المحذوف (أحمر) والكود المضاف (أخضر)](../../images/diff_preview.png)
+| Control | Function |
+|---|---|
+| **Category Selector** | Filters presets by type (`2D Effects`, `3D Materials`, `Post-Processing`, `UI`). |
+| **Preset Selector** | Chooses from ready-to-use shaders: *Hit Flash, Dissolve, Hologram, Outline, Water, Pixelate, Glitch, Glow, Fire, Shield, etc.* |
+| **2D / 3D Mode** | Toggles the SubViewport preview between Sprite2D and MeshInstance3D with directional lighting. |
+| **Dynamic Uniforms Panel** | Automatically generates sliders, color pickers, and toggles for each shader `uniform`. |
+| **Live Code Editor** | Edit `.gdshader` code and click **Recompile** for instant visual feedback. |
+| **🎲 Randomize** | Generates instant aesthetic variations by randomizing uniform parameters. |
+| **✨ Apply to Selection** | Creates `ShaderMaterial` and attaches it to the selected node in the Scene Tree. |
+| **💾 Save Shader** | Saves the shader file (`.gdshader`) and material (`.tres`) to `res://shaders/`. |
 
-| العنصر | الوظيفة |
-|----------|--------|
-| **Diff View** | عرض جنباً إلى جنب للأسطر المحذوفة (أحمر) والمضافة (أخضر). |
-| **Apply Changes** | يقبل التغييرات ويطبقها على الملف الحقيقي. يتم تسجيل الإجراء في Undo/Redo الخاص بـ Godot. |
-| **Skip** | يرفض التغييرات. لا يتم تغيير أي ملف. |
+---
+
+## 🔊 3. SFX Studio Tab (Procedural Synthesizer)
+
+Generates retro and procedural sound effects using pure GDScript PCM synthesis:
+
+| Control | Function |
+|---|---|
+| **Sound Presets** | Jump, Laser, Explosion, Coin, Power-up, Hit, UI Click. |
+| **▶ Preview** | Plays synthesized audio through the built-in `AudioStreamPlayer`. |
+| **🎲 Mutate** | Applies controlled procedural mutations to pitch and frequency envelope. |
+| **💾 Save WAV** | Writes 16-bit uncompressed `.wav` files to `res://audio/sfx/`. |
+| **➕ Insert to Scene** | Creates an `AudioStreamPlayer` node preconfigured with the stream under the selected node. |
+
+---
+
+## ⚙️ 4. Settings Tab
+
+* **Supported Providers:** Google Gemini, OpenAI, OpenRouter, Ollama (Local), NVIDIA NIM.
+* **Custom System Prompt:** Permanent engineering guidelines for the AI assistant.
+* **✨ Enhance Instructions with AI:** Optimizes system instructions with Godot 4.7+ best practices.
+* **Vector Database (RAG):** Scans changes and builds semantic embeddings for codebase indexing.
+
+---
+
+## 🐙 5. Git Tab & Version Control
+
+* **Repo Setup & Remotes:** Configure GitHub remote repository URLs and initialize repos.
+* **✨ Generate Commit Message:** AI analyzes `git diff` and generates Conventional Commit messages.
+* **Branch Management:** Create, switch, and inspect branches visually.
+* **Emergency Actions:** Discard local changes, Force Pull, and Force Push with confirmation dialogs.

@@ -1,44 +1,84 @@
-# 🧠 Agentes & Inteligência
+# 🧠 Agentes & Orquestração Inteligente
 
-O Gamedev AI não é apenas um chat que escreve código. Ele é alimentado por uma arquitetura de agentes de última geração, baseada nas melhores práticas de desenvolvimento autônomo, permitindo ao assistente agir de forma metódica, proativa e consciente do contexto.
+O **Gamedev AI** não é apenas um chat que escreve código. Ele é alimentado por uma arquitetura multi-agente autônoma de última geração, integrando personas especializadas, orquestração em pipeline, memória compartilhada e auto-cura (Auto-Healing).
+
+---
+
+## 🚀 Orquestrador Multi-Agente (Pipeline de 4 Estágios)
+
+Para tarefas complexas de desenvolvimento (como a criação de um sistema de inventário, combate ou geração procedural), o Gamedev AI ativa o **Agent Orchestrator**, que executa um pipeline sequencial com especialistas dedicados:
+
+```mermaid
+graph TD
+    User([Solicitação do Usuário]) --> Architect[1. Architect: Planejamento & Contratos]
+    Architect --> Blackboard[(Blackboard: Memória Compartilhada)]
+    Blackboard --> SceneBuilder[2. Scene Builder: Cenas & Hierarquias .tscn]
+    SceneBuilder --> Coder[3. Coder: GDScript Tipado & Sinais]
+    Coder --> QA[4. QA Tester: Testes & Validação]
+    QA -->|Falha em Asserções| AutoHealing[Mecanismo de Auto-Cura]
+    AutoHealing -->|Instruções de Correção| Coder
+    QA -->|Aprovado| Done([Sistema Concluído & Aplicado])
+```
+
+### 1. 🟦 Architect Persona
+* **Papel:** Analisa a solicitação, define os nós necessários, especifica as interfaces públicas, sinais e propriedades que serão implementadas.
+* **Saída:** Especificação de arquitetura gravada na memória compartilhada (`Blackboard`).
+
+### 2. 🟨 Scene Builder Persona
+* **Papel:** Constrói a estrutura visual e física das cenas `.tscn`.
+* **Ferramentas:** `create_scene`, `add_node`, `set_property`, `attach_script`, `create_resource`.
+
+### 3. 🟩 Coder Persona
+* **Papel:** Escreve a lógica pura em GDScript moderno com tipagem estática rigorosa (`:=`, `-> void`).
+* **Ferramentas:** `create_script`, `patch_script`, `connect_signal`, `get_lsp_diagnostics`.
+
+### 4. 🟪 QA Tester & Auto-Cura (Auto-Healing)
+* **Papel:** Executa asserções arquiteturais, validação de nós e rotinas de teste.
+* **Auto-Cura Automática:** Se o QA identificar erros ou asserções quebradas, o orquestrador re-executa a etapa do `Coder` com o relatório de falha para que o código seja reparado automaticamente (até 2 tentativas sem necessidade de intervenção do usuário).
+
+---
+
+## 🗄️ Blackboard (Memória Compartilhada do Pipeline)
+
+O **Blackboard** é a estrutura de dados persistente em memória que acompanha toda a execução da pipeline:
+* Armazena os nós criados, caminhos de scripts, sinais conectados e requisitos aprovados pelo arquiteto.
+* Garante que o `Coder` e o `QA Tester` tenham acesso exato aos nomes e caminhos definidos pelo `Scene Builder`.
 
 ---
 
 ## 🎭 Personas Especialistas (Dynamic Routing)
 
-A IA identifica automaticamente o seu objetivo baseado na sua conversa e assume uma "Persona" específica. Isso garante que o prompt seja focado apenas no que importa, economizando tokens e aumentando a precisão.
+Além do pipeline de orquestração, durante conversas normais a IA identifica o domínio da sua pergunta e carrega dinamicamente a persona correspondente:
 
-- **Godot Expert**: O assistente geral para lógica de jogo e estrutura.
-- **UI/UX Designer**: Focado em nodes de `Control`, âncoras e layouts responsivos.
-- **Technical Artist**: Especialista em Shaders, partículas e efeitos visuais.
-- **Multiplayer Engineer**: Focado em rede, RPCs e sincronização.
-
-> [!TIP]
-> Você pode forçar uma persona mencionando palavras-chave como "preciso de um menu (UI)" ou "estou fazendo um shader".
+* **Godot Expert:** Arquitetura geral, Singletons, Resources e padrões de projeto.
+* **UI/UX Designer:** Layouts responsivos com `Control`, temas Glassmorphism, âncoras e navegação por controle.
+* **Technical Artist (Shader Artist):** Shaders GLSL canvas/spatial, partículas e efeitos visuais.
+* **Multiplayer Engineer:** NetCode do Godot 4, RPCs (`@rpc("authority", "call_local")`) e sincronização de estado.
+* **Audio Specialist:** Síntese procedural de SFX e gerenciamento de barramentos de áudio.
 
 ---
 
 ## ⛩️ Portão Socrático (Stop & Ask)
 
-Para evitar gerar códigos massivos e genéricos que podem não servir para o seu projeto, a IA implementa o **Portão Socrático**.
-
-Sempre que você pedir algo complexo (ex: "Crie um sistema de inventário"), a IA irá:
-1. **Parar** a geração de código.
-2. **Perguntar** pelo menos 2 questões de *trade-off* ou casos de borda (ex: "Será baseado em slots ou peso?", "Precisa de persistência em banco de dados?").
-3. **Executar** apenas após a sua clarificação.
+Para evitar que a IA produza código genérico ou com premissas erradas em sistemas críticos:
+1. **Parada Estratégica:** A IA identifica termos de alta complexidade.
+2. **Perguntas de Trade-off:** Pergunta casos de borda e preferências (ex: *"Deseja que os dados sejam salvos em formato binário ou JSON?", "O inventário deve ser baseado em peso ou grade?"*).
+3. **Execução Precisa:** O plano é gerado somente após o seu alinhamento.
 
 ---
 
-## ⌨️ Workflows via Slash Commands
+## ⌨️ Workflows via Comandos Slash (/)
 
-Você pode usar comandos diretos para mudar o comportamento da IA instantaneamente:
-
-- `/brainstorm`: A IA entra em modo de descoberta. Ela não escreverá código, apenas ajudará a planejar a arquitetura, GDD e lógica.
-- `/plan`: Focado em estruturar pastas e cenas antes de codificar.
-- `/debug`: Modo de investigação profunda. Foca apenas em logs de erro e causa raiz.
+* `/brainstorm` — Modo de exploração de ideias e Game Design Document (GDD) sem geração prematura de código.
+* `/plan` — Gera um plano estruturado de arquivos e nós em Markdown.
+* `/debug` — Foca exclusivamente em leitura de stack trace, inspeção de runtime e causa raiz.
+* `/orchestrate` — Força a execução do pipeline de múltiplos agentes para a tarefa.
 
 ---
 
-## 🔍 Auto-Audit (Refinamento Autônomo)
+## 🔍 Auto-Audit (Auditoria de Código & Cena)
 
-Após realizar mudanças complexas, a IA possui a autonomia de rodar ferramentas de auditoria (`audit_script`, `audit_scene`) para verificar erros de sintaxe ou referências órfãs antes de considerar a tarefa concluída. Isso garante um ciclo de feedback muito mais curto e código mais estável.
+Ao concluir alterações, o assistente pode executar autonomamente:
+* `audit_script` — Análise estática do GDScript procurando referências inválidas e vazamentos de memória.
+* `audit_scene` — Validação de integridade de nós e dependências de recursos `.tres`.
+* `get_lsp_diagnostics` — Validação direta com o Godot Language Server.

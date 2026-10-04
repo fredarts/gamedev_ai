@@ -1,44 +1,74 @@
-# 🧠 الوكلاء والذكاء
+# 🧠 Multi-Agent Orchestration & Intelligence
 
-Gamedev AI ليس مجرد دردشة تكتب كودًا. إنه مدعوم بهندسة وكلاء متطورة، تعتمد على أفضل ممارسات التطوير المستقل، مما يسمح للمساعد بالعمل بطريقة منهجية واستباقية وواعية بالسياق.
-
----
-
-## 🎭 الشخصيات المتخصصة (التوجيه الديناميكي)
-
-تحدد الذكاء الاصطناعي تلقائيًا هدفك بناءً على محادثتك وتتخذ "شخصية" (Persona) محددة. يضمن ذلك تركيز المطالبة (prompt) فقط على ما هو مهم، مما يوفر الرموز (tokens) ويزيد من الدقة.
-
-- **Godot Expert**: المساعد العام لمنطق اللعبة وهيكلها.
-- **UI/UX Designer**: يركز على عقد `Control` والمثبتات (anchors) والتخطيطات الاستجابية.
-- **Technical Artist**: متخصص في المظللات (Shaders) والجزيئات والمؤثرات البصرية.
-- **Multiplayer Engineer**: يركز على الشبكات و RPCs والمزامنة.
-
-> [!TIP]
-> يمكنك فرض شخصية معينة بذكر كلمات رئيسية مثل "أحتاج إلى قائمة (UI)" أو "أقوم بعمل shader".
+**Gamedev AI** is powered by an autonomous, multi-agent engineering architecture integrating specialized personas, a 4-stage sequential pipeline, shared memory, and automatic self-healing (Auto-Healing).
 
 ---
 
-## ⛩️ بوابة سقراط (توقف واسأل)
+## 🚀 Multi-Agent Orchestrator (4-Stage Pipeline)
 
-لتجنب إنتاج أكواد ضخمة وعامة قد لا تخدم مشروعك، يقوم الذكاء الاصطناعي بتنفيذ **بوابة سقراط**.
+For complex tasks (such as creating inventory systems, combat engines, or procedural dungeons), Gamedev AI engages the **Agent Orchestrator**:
 
-كلما طلبت شيئًا معقدًا (مثل: "أنشئ نظام مخزون")، سيقوم الذكاء الاصطناعي بـ:
-1. **إيقاف** توليد الكود.
-2. **طرح** سؤالين على الأقل حول المفايضات (trade-offs) أو الحالات المتطرفة (edge cases) (مثل: "هل سيعتمد على الفتحات أم الوزن؟"، "هل يحتاج إلى استمرارية في قاعدة البيانات؟").
-3. **التنفيذ** فقط بعد توضيحك.
+```mermaid
+graph TD
+    User([User Request]) --> Architect[1. Architect: Planning & Contracts]
+    Architect --> Blackboard[(Blackboard: Shared Memory)]
+    Blackboard --> SceneBuilder[2. Scene Builder: Node Trees & .tscn]
+    SceneBuilder --> Coder[3. Coder: Typed GDScript & Signals]
+    Coder --> QA[4. QA Tester: Tests & Assertions]
+    QA -->|Assertion Failure| AutoHealing[Auto-Healing Loop]
+    AutoHealing -->|Repair Instructions| Coder
+    QA -->|Passed| Done([System Completed & Applied])
+```
+
+### 1. 🟦 Architect Persona
+* **Role:** Analyzes requests, defines required node structures, public interfaces, exported variables, and signals.
+* **Output:** Architectural specification written to the shared memory (`Blackboard`).
+
+### 2. 🟨 Scene Builder Persona
+* **Role:** Builds visual and physical scene hierarchies (`.tscn`).
+* **Tools:** `create_scene`, `add_node`, `set_property`, `attach_script`, `create_resource`.
+
+### 3. 🟩 Coder Persona
+* **Role:** Implements logic in modern GDScript with strict static typing (`:=`, `-> void`).
+* **Tools:** `create_script`, `patch_script`, `connect_signal`, `get_lsp_diagnostics`.
+
+### 4. 🟪 QA Tester & Auto-Healing
+* **Role:** Executes structural assertions, node audits, and unit tests.
+* **Auto-Healing:** If QA detects failures, the orchestrator loops back to the `Coder` persona with exact error reports to automatically repair code (up to 2 iterations without user intervention).
 
 ---
 
-## ⌨️ سير العمل عبر أوامر Slash
+## 🗄️ Blackboard (Pipeline Shared Memory)
 
-يمكنك استخدام الأوامر المباشرة لتغيير سلوك الذكاء الاصطناعي على الفور:
-
-- `/brainstorm`: يدخل الذكاء الاصطناعي في وضع الاستكشاف. لن يكتب كودًا، بل سيساعد في تخطيط الهندسة المعمارية و GDD والمنطق.
-- `/plan`: يركز على هيكلة المجلدات والمشاهد قبل البرمجة.
-- `/debug`: وضع التحقيق العميق. يركز فقط على سجلات الأخطاء والسبب الجذري.
+The **Blackboard** is the in-memory shared state carrying:
+* Created nodes, script paths, connected signals, and approved architectural contracts.
+* Ensures the `Coder` and `QA Tester` have exact access to node paths established by the `Scene Builder`.
 
 ---
 
-## 🔍 التدقيق التلقائي (التحسين الذاتي)
+## 🎭 Specialist Personas (Dynamic Routing)
 
-بعد إجراء تغييرات معقدة، يمتلك الذكاء الاصطناعي الاستقلالية لتشغيل أدوات التدقيق (`audit_script` ، `audit_scene`) للتحقق من أخطاء بناء الجملة أو المراجع المعزولة قبل اعتبار المهمة مكتملة. يضمن ذلك دورة تغذية راجعة أقصر بكثير وكودًا أكثر استقرارًا.
+During standard chat sessions, the AI automatically activates specialized domain personas:
+* **Godot Expert:** Architecture, Singletons, Resources, and design patterns.
+* **UI/UX Designer:** Responsive `Control` layouts, Glassmorphism themes, anchors, and controller navigation.
+* **Technical Artist (Shader Artist):** GLSL canvas/spatial shaders, particle systems, and VFX.
+* **Multiplayer Engineer:** Godot 4 NetCode, RPCs (`@rpc("authority", "call_local")`), and state sync.
+* **Audio Specialist:** Procedural sound synthesis and audio bus management.
+
+---
+
+## ⛩️ Socratic Gate (Stop & Ask)
+
+For critical and complex requests:
+1. **Strategic Pause:** AI pauses generation on complex system requests.
+2. **Trade-off Inquiries:** Asks edge-case questions (e.g. *"Should inventory be slot-based or weight-based?", "Do you prefer binary serialization or JSON?"*).
+3. **Aligned Execution:** Plans are executed only after your confirmation.
+
+---
+
+## ⌨️ Slash Commands (/)
+
+* `/brainstorm` — Idea discovery and Game Design Document (GDD) exploration.
+* `/plan` — Generates a structural Markdown plan.
+* `/debug` — Deep-dive investigation on stack traces and runtime errors.
+* `/orchestrate` — Forces the full multi-agent pipeline execution.

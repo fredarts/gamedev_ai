@@ -1,44 +1,74 @@
-# 🧠 代理与智能
+# 🧠 Multi-Agent Orchestration & Intelligence
 
-Gamedev AI 不仅仅是一个编写代码的聊天工具。它由尖端的代理架构提供动力，基于自主开发的最佳实践，使助手能够以有条理、主动且具有上下文意识的方式行事。
-
----
-
-## 🎭 专家人格 (动态路由)
-
-AI 会根据您的对话自动识别您的目标并承担特定的“人格”（Persona）。这确保了提示词仅专注于重要内容，从而节省 Token 并提高准确性。
-
-- **Godot 专家**：游戏逻辑和结构的通用助手。
-- **UI/UX 设计师**：专注于 `Control` 节点、锚点和响应式布局。
-- **技术美术**：着色器 (Shaders)、粒子和视觉效果专家。
-- **多人游戏工程师**：专注于网络、RPC 和同步。
-
-> [!TIP]
-> 您可以通过提及关键词（如“我需要一个菜单 (UI)”或“我正在制作着色器”）来强制使用某个人格。
+**Gamedev AI** is powered by an autonomous, multi-agent engineering architecture integrating specialized personas, a 4-stage sequential pipeline, shared memory, and automatic self-healing (Auto-Healing).
 
 ---
 
-## ⛩️ 苏格拉底门户 (停顿与询问)
+## 🚀 Multi-Agent Orchestrator (4-Stage Pipeline)
 
-为了避免生成可能不适用于您项目的庞大且通用的代码，AI 实施了“苏格拉底门户”（Socratic Gate）。
+For complex tasks (such as creating inventory systems, combat engines, or procedural dungeons), Gamedev AI engages the **Agent Orchestrator**:
 
-每当您提出复杂要求（例如：“创建一个背包系统”）时，AI 将：
-1. **停止**代码生成。
-2. **询问**至少 2 个关于权衡或边缘情况的问题（例如：“它是基于格子还是重量？”、“是否需要数据库持久化？”）。
-3. 仅在您澄清后才**执行**任务。
+```mermaid
+graph TD
+    User([User Request]) --> Architect[1. Architect: Planning & Contracts]
+    Architect --> Blackboard[(Blackboard: Shared Memory)]
+    Blackboard --> SceneBuilder[2. Scene Builder: Node Trees & .tscn]
+    SceneBuilder --> Coder[3. Coder: Typed GDScript & Signals]
+    Coder --> QA[4. QA Tester: Tests & Assertions]
+    QA -->|Assertion Failure| AutoHealing[Auto-Healing Loop]
+    AutoHealing -->|Repair Instructions| Coder
+    QA -->|Passed| Done([System Completed & Applied])
+```
+
+### 1. 🟦 Architect Persona
+* **Role:** Analyzes requests, defines required node structures, public interfaces, exported variables, and signals.
+* **Output:** Architectural specification written to the shared memory (`Blackboard`).
+
+### 2. 🟨 Scene Builder Persona
+* **Role:** Builds visual and physical scene hierarchies (`.tscn`).
+* **Tools:** `create_scene`, `add_node`, `set_property`, `attach_script`, `create_resource`.
+
+### 3. 🟩 Coder Persona
+* **Role:** Implements logic in modern GDScript with strict static typing (`:=`, `-> void`).
+* **Tools:** `create_script`, `patch_script`, `connect_signal`, `get_lsp_diagnostics`.
+
+### 4. 🟪 QA Tester & Auto-Healing
+* **Role:** Executes structural assertions, node audits, and unit tests.
+* **Auto-Healing:** If QA detects failures, the orchestrator loops back to the `Coder` persona with exact error reports to automatically repair code (up to 2 iterations without user intervention).
 
 ---
 
-## ⌨️ 快捷指令工作流 (Slash Commands)
+## 🗄️ Blackboard (Pipeline Shared Memory)
 
-您可以使用直接命令立即更改 AI 的行为：
-
-- `/brainstorm`：AI 进入探索模式。它不会编写代码，只会帮助规划架构、GDD 和逻辑。
-- `/plan`：专注于在编码前组织文件夹和场景。
-- `/debug`：深度调查模式。仅关注错误日志和根本原因。
+The **Blackboard** is the in-memory shared state carrying:
+* Created nodes, script paths, connected signals, and approved architectural contracts.
+* Ensures the `Coder` and `QA Tester` have exact access to node paths established by the `Scene Builder`.
 
 ---
 
-## 🔍 自动审计 (自主优化)
+## 🎭 Specialist Personas (Dynamic Routing)
 
-在完成复杂的更改后，AI 有权在认为任务完成之前运行审计工具（`audit_script`, `audit_scene`）来检查语法错误或孤立引用。这确保了更短的反馈周期和更稳定的代码。
+During standard chat sessions, the AI automatically activates specialized domain personas:
+* **Godot Expert:** Architecture, Singletons, Resources, and design patterns.
+* **UI/UX Designer:** Responsive `Control` layouts, Glassmorphism themes, anchors, and controller navigation.
+* **Technical Artist (Shader Artist):** GLSL canvas/spatial shaders, particle systems, and VFX.
+* **Multiplayer Engineer:** Godot 4 NetCode, RPCs (`@rpc("authority", "call_local")`), and state sync.
+* **Audio Specialist:** Procedural sound synthesis and audio bus management.
+
+---
+
+## ⛩️ Socratic Gate (Stop & Ask)
+
+For critical and complex requests:
+1. **Strategic Pause:** AI pauses generation on complex system requests.
+2. **Trade-off Inquiries:** Asks edge-case questions (e.g. *"Should inventory be slot-based or weight-based?", "Do you prefer binary serialization or JSON?"*).
+3. **Aligned Execution:** Plans are executed only after your confirmation.
+
+---
+
+## ⌨️ Slash Commands (/)
+
+* `/brainstorm` — Idea discovery and Game Design Document (GDD) exploration.
+* `/plan` — Generates a structural Markdown plan.
+* `/debug` — Deep-dive investigation on stack traces and runtime errors.
+* `/orchestrate` — Forces the full multi-agent pipeline execution.

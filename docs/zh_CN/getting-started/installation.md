@@ -1,14 +1,14 @@
 # 安装 (Installation)
 
-欢迎来到 **Gamedev AI** 官方文档！本页重点介绍如何快速将助手添加到您当前的 Godot 4.6 项目中。
+欢迎来到 **Gamedev AI** 官方文档！本页重点介绍如何快速将助手添加到您当前的 Godot 4.7+ 项目中。
 
 ## 先决条件 (Prerequisites)
-* **Godot Engine:** 4.6 或更高版本（不需要原生 `.gdextension` 支持，插件运行在纯 GDScript 中）。
+* **Godot Engine:** 4.7+ 或更高版本（不需要原生 `.gdextension` 支持，插件运行在纯 GDScript 中）。
 * 用于 API 密钥的 Google 或 OpenRouter 账户。
 
 ## 手动详细步骤 (GitHub)
 
-1. 在 Godot 4.6 中创建或打开一个现有项目。
+1. 在 Godot 4.7+ 中创建或打开一个现有项目。
 2. 导航到项目的根文件夹（`project.godot` 文件所在的目录）。
 3. 创建一个名为 `addons` 的文件夹（如果尚不存在）。
 4. 在 `addons/` 内部，下载或克隆插件存储库：

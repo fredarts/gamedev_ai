@@ -1,44 +1,74 @@
-# 🧠 এজেন্ট এবং ইন্টেলিজেন্স
+# 🧠 Multi-Agent Orchestration & Intelligence
 
-Gamedev AI শুধুমাত্র একটি চ্যাট নয় যা কোড লেখে। এটি একটি অত্যাধুনিক এজেন্ট আর্কিটেকচার দ্বারা চালিত, যা স্বায়ত্তশাসিত ডেভেলপমেন্টের সেরা অনুশীলনের উপর ভিত্তি করে তৈরি, যা সহকারীকে পদ্ধতিগত, সক্রিয় এবং কন্টেক্সট-সচেতন ভাবে কাজ করতে সাহায্য করে।
-
----
-
-## 🎭 বিশেষজ্ঞ পারসোনা (Dynamic Routing)
-
-AI আপনার কথোপকথনের উপর ভিত্তি করে আপনার লক্ষ্য স্বয়ংক্রিয়ভাবে শনাক্ত করে এবং একটি নির্দিষ্ট "পারসোনা" (Persona) গ্রহণ করে। এটি নিশ্চিত করে যে প্রম্পট শুধুমাত্র গুরুত্বপূর্ণ বিষয়ের উপর ফোকাস করে, যা টোকেন বাঁচায় এবং নির্ভুলতা বাড়ায়।
-
-- **Godot Expert**: গেম লজিক এবং স্ট্রাকচারের জন্য সাধারণ সহকারী।
-- **UI/UX Designer**: `Control` নোড, অ্যাঙ্কর এবং রেসপন্সিভ লেআউটের উপর ফোকাস করে।
-- **Technical Artist**: শেডার্স, পার্টিকেলস এবং ভিজ্যুয়াল ইফেক্টের বিশেষজ্ঞ।
-- **Multiplayer Engineer**: নেটওয়ার্কিং, RPC এবং সিঙ্ক্রোনাইজেশনের উপর ফোকাস করে।
-
-> [!TIP]
-> আপনি "আমার একটি মেনু (UI) প্রয়োজন" বা "আমি একটি শেডার তৈরি করছি" এর মতো কীওয়ার্ড উল্লেখ করে কোনো পারসোনাকে বাধ্য করতে পারেন।
+**Gamedev AI** is powered by an autonomous, multi-agent engineering architecture integrating specialized personas, a 4-stage sequential pipeline, shared memory, and automatic self-healing (Auto-Healing).
 
 ---
 
-## ⛩️ সক্রেটিক গেট (Stop & Ask)
+## 🚀 Multi-Agent Orchestrator (4-Stage Pipeline)
 
-আপনার প্রজেক্টের জন্য উপযোগী নয় এমন বিশাল এবং সাধারণ কোড তৈরি করা এড়াতে, AI **সক্রেটিক গেট** প্রয়োগ করে।
+For complex tasks (such as creating inventory systems, combat engines, or procedural dungeons), Gamedev AI engages the **Agent Orchestrator**:
 
-যখনই আপনি জটিল কিছু চাইবেন (যেমন: "একটি ইনভেন্টরি সিস্টেম তৈরি করুন"), AI করবে:
-১. কোড জেনারেশন **বন্ধ** রাখবে।
-২. অন্তত ২টি *ট্রেড-অফ* বা এজ কেস সম্পর্কে প্রশ্ন **জিজ্ঞাসা** করবে (যেমন: "এটি কি স্লট বা ওজনের উপর ভিত্তি করে হবে?", "এটির কি ডাটাবেস পারসিস্টেন্স প্রয়োজন?")।
-৩. শুধুমাত্র আপনার স্পষ্টীকরণের পরেই কাজটি **সম্পন্ন** করবে।
+```mermaid
+graph TD
+    User([User Request]) --> Architect[1. Architect: Planning & Contracts]
+    Architect --> Blackboard[(Blackboard: Shared Memory)]
+    Blackboard --> SceneBuilder[2. Scene Builder: Node Trees & .tscn]
+    SceneBuilder --> Coder[3. Coder: Typed GDScript & Signals]
+    Coder --> QA[4. QA Tester: Tests & Assertions]
+    QA -->|Assertion Failure| AutoHealing[Auto-Healing Loop]
+    AutoHealing -->|Repair Instructions| Coder
+    QA -->|Passed| Done([System Completed & Applied])
+```
+
+### 1. 🟦 Architect Persona
+* **Role:** Analyzes requests, defines required node structures, public interfaces, exported variables, and signals.
+* **Output:** Architectural specification written to the shared memory (`Blackboard`).
+
+### 2. 🟨 Scene Builder Persona
+* **Role:** Builds visual and physical scene hierarchies (`.tscn`).
+* **Tools:** `create_scene`, `add_node`, `set_property`, `attach_script`, `create_resource`.
+
+### 3. 🟩 Coder Persona
+* **Role:** Implements logic in modern GDScript with strict static typing (`:=`, `-> void`).
+* **Tools:** `create_script`, `patch_script`, `connect_signal`, `get_lsp_diagnostics`.
+
+### 4. 🟪 QA Tester & Auto-Healing
+* **Role:** Executes structural assertions, node audits, and unit tests.
+* **Auto-Healing:** If QA detects failures, the orchestrator loops back to the `Coder` persona with exact error reports to automatically repair code (up to 2 iterations without user intervention).
 
 ---
 
-## ⌨️ স্ল্যাশ কমান্ডের মাধ্যমে কাজের ধারা
+## 🗄️ Blackboard (Pipeline Shared Memory)
 
-আপনি AI-এর আচরণ তাৎক্ষণিকভাবে পরিবর্তন করতে সরাসরি কমান্ড ব্যবহার করতে পারেন:
-
-- `/brainstorm`: AI ডিসকভারি মোডে প্রবেশ করে। এটি কোড লিখবে না, শুধুমাত্র আর্কিটেকচার, GDD এবং লজিক পরিকল্পনা করতে সাহায্য করবে।
-- `/plan`: কোড করার আগে ফোল্ডার এবং সিন স্ট্রাকচার করার দিকে ফোকাস করে।
-- `/debug`: গভীর ইনভেস্টিগেশন মোড। শুধুমাত্র এরর লগ এবং রুট কজ (মূল কারণ) এর উপর ফোকাস করে।
+The **Blackboard** is the in-memory shared state carrying:
+* Created nodes, script paths, connected signals, and approved architectural contracts.
+* Ensures the `Coder` and `QA Tester` have exact access to node paths established by the `Scene Builder`.
 
 ---
 
-## 🔍 অটো-অডিট (স্বায়ত্তশাসিত পরিমার্জন)
+## 🎭 Specialist Personas (Dynamic Routing)
 
-জটিল পরিবর্তন করার পরে, AI-এর কাছে কাজটি সম্পন্ন বলে গণ্য করার আগে সিনট্যাক্স এরর বা অর্ফ্যান রেফারেন্স (orphan references) পরীক্ষা করার জন্য অডিট টুলস (`audit_script`, `audit_scene`) চালানোর ক্ষমতা রয়েছে। এটি অনেক দ্রুত ফিডব্যাক সাইকেল এবং আরও স্থিতিশীল কোড নিশ্চিত করে।
+During standard chat sessions, the AI automatically activates specialized domain personas:
+* **Godot Expert:** Architecture, Singletons, Resources, and design patterns.
+* **UI/UX Designer:** Responsive `Control` layouts, Glassmorphism themes, anchors, and controller navigation.
+* **Technical Artist (Shader Artist):** GLSL canvas/spatial shaders, particle systems, and VFX.
+* **Multiplayer Engineer:** Godot 4 NetCode, RPCs (`@rpc("authority", "call_local")`), and state sync.
+* **Audio Specialist:** Procedural sound synthesis and audio bus management.
+
+---
+
+## ⛩️ Socratic Gate (Stop & Ask)
+
+For critical and complex requests:
+1. **Strategic Pause:** AI pauses generation on complex system requests.
+2. **Trade-off Inquiries:** Asks edge-case questions (e.g. *"Should inventory be slot-based or weight-based?", "Do you prefer binary serialization or JSON?"*).
+3. **Aligned Execution:** Plans are executed only after your confirmation.
+
+---
+
+## ⌨️ Slash Commands (/)
+
+* `/brainstorm` — Idea discovery and Game Design Document (GDD) exploration.
+* `/plan` — Generates a structural Markdown plan.
+* `/debug` — Deep-dive investigation on stack traces and runtime errors.
+* `/orchestrate` — Forces the full multi-agent pipeline execution.

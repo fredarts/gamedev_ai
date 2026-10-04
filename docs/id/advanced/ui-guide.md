@@ -1,156 +1,113 @@
-# Panduan UI Lengkap (Semua Tombol)
+# Complete UI Guide (All Controls & Tabs)
 
-Halaman ini menjelaskan **setiap tombol, sakelar, dan kontrol** di dalam antarmuka Gamedev AI di dalam editor Godot.
+This page describes **every button, selector, control, and tab** present in the **Gamedev AI** interface inside the Godot editor.
 
-![Ikhtisar antarmuka utama Gamedev AI di Godot](../../images/main_interface.png)
-
-## 🗂️ Tab Utama (Main Tabs)
-
-Plugin ini memiliki **3 tab** di bagian atas panel:
-- **Chat** — panel utama interaksi dengan AI.
-- **Settings** — manajemen kunci API, preset, prompt, dan indexing.
-- **Git** — kontrol versi GitHub terintegrasi asli.
+![Overview of Gamedev AI main interface in Godot](../../images/main_interface.png)
 
 ---
 
-## 💬 Tab Chat (Chat Tab)
+## 🗂️ Main Tabs & Panels
 
-### Bar Atas (Top Bar)
-| Tombol | Fungsi |
-|-------|--------|
-| **Preset Selector** | Menu dropdown untuk beralih cepat di antara berbagai pengaturan provider/model (contoh: "Gemini 3.1", "GPT-4o"). |
-| **A-** / **A+** | Mengurangi atau menambah ukuran font di chat. |
-| **+ New Chat** | Menghapus chat saat ini dan memulai sesi baru yang benar-benar bersih. |
-| **⊙ History** | Daftar dropdown semua percakapan lama. Klik pada salah satu percakapan untuk mengembalikan konteks lengkap sesi tersebut. |
-| **💾 Summarize to Memory** | Mengirimkan permintaan otomatis ke AI untuk merangkum keputusan arsitektural percakapan saat ini dan menyimpannya di memori persisten proyek. |
-
-### Area Chat (OutputDisplay)
-- Menampilkan pesan yang diformat dengan BBCode dengan **teks tebal**, *miring*, `kode dalam baris`, dan penyorotan sintaksis untuk blok kode.
-- Tautan yang dapat diklik ke file proyek (terbuka di editor saat diklik).
-- Tombol **Copy** melayang muncul saat mengarahkan kursor ke teks untuk penyalinan cepat.
-
-### Pemutar TTS (Text-to-Speech)
-
-![Pemutar TTS ringkas dengan kontrol pemutaran](../../images/tts_player.png)
-
-| Kontrol | Fungsi |
-|----------|--------|
-| **▶ Read Aloud** | Mengonversi jawaban AI terakhir menjadi suara dan memutarnya. Sangat cocok untuk mendengarkan penjelasan sambil memprogram. |
-| **⏹ Stop** | Menghentikan pemutaran audio. |
-| **Bilah Progres** | Untuk memajukan atau memundurkan audio. |
-| **Kecepatan (1.0x - 2.0x)** | Mengontrol tempo pemutaran. |
-
-### Tombol Tindakan Cepat (Quick Action Buttons)
-| Tombol | Apa yang Dilakukan |
-|-------|-----------|
-| **✧ Refactor** | Mengirimkan kode yang dipilih di editor dengan permintaan "Refactor this code". AI menganalisis dan menyarankan peningkatan struktural. |
-| **◆ Fix** | Mengirimkan kode yang dipilih dengan permintaan "Fix errors in this code". AI mengidentifikasi kesalahan dan menghasilkan perbaikan. |
-| **💡 Explain** | Mengirimkan kode yang dipilih dengan permintaan "Explain what this code does". AI menjelaskan setiap bagian dalam bahasa Indonesia. |
-| **↺ Undo** | Membatalkan tindakan terakhir AI di proyek (menggunakan sistem Undo/Redo di Godot). |
-| **🖥 Fix Console** | Membaca kesalahan merah terbaru dari konsol output Godot dan mengirimkannya langsung ke AI untuk saran perbaikan. |
-
-### Area Input (Input Area)
-| Elemen | Fungsi |
-|----------|--------|
-| **Bidang Teks** | Ketik pesan Anda. Tekan `Shift + Enter` untuk mengirim. |
-| **📎 Attach** | Membuka jendela pemilihan file untuk melampirkan gambar, skrip, atau file apa pun ke permintaan. |
-| **➤ Send** | Mengirimkan pesan ke AI untuk diproses. |
-| **Drag & Drop** | Tarik node dari scene tree atau file dari filesystem langsung ke bidang teks atau area chat. AI akan menerima metadata lengkap. |
-
-### Pengaturan Prompt (Dropdown)
-Opsi-opsi ini dikelompokkan di bawah ikon ⚙️ di sebelah tombol kirim.
-
-| Pengaturan | Fungsi |
-|-----------|--------|
-| **Sertakan Konteks (Include Context)** | Saat diaktifkan, plugin secara otomatis melampirkan seluruh isi skrip yang sedang terbuka di editor ke pesan yang dikirim. |
-| **Kirim Screenshot (Send Screenshot)** | Saat diaktifkan, plugin secara otomatis mengambil tangkapan layar jendela Godot dan mengirimkannya bersama pesan untuk analisis visual AI. |
-| **Rencanakan Terlebih Dahulu (Plan First)** | Saat diaktifkan, AI tidak akan langsung menulis kode. AI hanya akan membalas dengan rencana Markdown terperinci. Setelah diperiksa, klik tombol "Execute Plan" untuk mulai mengkode. |
-| **Watch Mode (Mode Pantau)** | Saat diaktifkan, AI secara otomatis memantau konsol output Godot. Jika mendeteksi kesalahan kritis, AI akan mengusulkan perbaikan secara otomatis. |
+The plugin organizes its capabilities across **5 integrated tabs & panels**:
+- **💬 Chat** — Main conversational panel, tool executions, multi-agent pipeline state, and quick actions.
+- **⚙️ Settings** — Provider management (Gemini, OpenAI/OpenRouter, Ollama, NIM), API keys, custom system prompts, and vector indexing.
+- **🐙 Git** — Version control integrated with GitHub, featuring AI-generated commit messages.
+- **🎨 Shader Studio** — Visual shader synthesizer and editor with live interactive 2D/3D viewport previews.
+- **🔊 SFX Studio** — Procedural sound effect synthesizer with instant playback and one-click scene node insertion.
 
 ---
 
-## ⚙️ Tab Pengaturan (Settings Tab)
+## 💬 1. Chat Tab
 
-### Manajemen Preset (Presets)
-| Elemen | Fungsi |
-|----------|--------|
-| **Preset Selector** | Menu dropdown untuk memilih preset yang tersimpan. |
-| **Add** | Membuat preset baru yang kosong. |
-| **Edit** | Membuka panel pengeditan (Nama, Provider, Kunci API, URL Dasar, Model). |
-| **Delete** | Menghapus preset terpilih secara permanen. |
-| **Done Editing** | Menutup panel pengeditan dan menyimpan perubahan. |
+### Top Bar
+| Button | Function |
+|---|---|
+| **Preset Selector** | Dropdown to switch between active provider/model configurations (e.g. "Gemini 3.1 Pro", "Claude 3.7 Sonnet", "Ollama DeepSeek"). |
+| **A- / A+** | Decreases or increases chat font size. |
+| **+ New Chat** | Clears the current conversation and restarts session context. |
+| **⊙ History** | Dropdown containing past saved conversations to restore full context at any time. |
+| **💾 Summarize to Memory** | Instructs AI to synthesize key architectural decisions and persist them to project memory. |
 
-### Bidang Pengeditan Preset
-| Bidang | Deskripsi |
-|-------|-----------|
-| **Preset Name** | Nama identitas (contoh: "Gemini 3.1"). |
-| **Provider** | Pilihan antara "Gemini" dan "OpenAI / OpenRouter". |
-| **API Key** | Kunci API dari provider terpilih. |
-| **Base URL** | URL dasar API (hanya untuk OpenAI/OpenRouter). |
-| **Model Name** | Nama tepat model (contoh: `gemini-2.5-flash`, `gpt-4o`). |
+### Multi-Agent Pipeline (Visual Chips)
+When complex tasks are executed, colorful chips indicate the active orchestrator stage in real time:
+* 🟦 `Architect` — Contract definition and architecture planning.
+* 🟨 `Scene Builder` — Node creation and `.tscn` scene hierarchies.
+* 🟩 `Coder` — Modern typed GDScript and signal wiring.
+* 🟪 `QA Tester` — Assertion testing and Auto-Healing loops.
 
-### Bahasa (Language)
-| Elemen | Fungsi |
-|----------|--------|
-| **Language Selector** | Menu dropdown untuk memilih bahasa antarmuka dan tanggapan AI (Indonesia, Português BR, English, dll.). |
+### TTS Player (Text-to-Speech)
 
-### Custom System Prompt (Instruksi Kustom)
-Bidang teks besar untuk aturan tetap yang ingin Anda agar AI selalu ikuti. Contoh: *"Gunakan pengetikan statis di semua fungsi. Beri komentar dalam bahasa Indonesia."*
+![Compact TTS Player with playback controls](../../images/tts_player.png)
 
-| Tombol | Fungsi |
-|-------|--------|
-| **✨ Enhance Instructions with AI** | Mengirimkan instruksi saat ini ke AI untuk ditingkatkan secara otomatis (detail teknis, praktik terbaik). Pratinjau sebelum diterima. |
+| Control | Function |
+|---|---|
+| **▶ Read Aloud** | Synthesizes the latest AI response to audio. |
+| **⏹ Stop** | Stops audio playback. |
+| **Seek Slider** | Scrubs forward or backward in the audio track. |
+| **Speed (1.0x - 2.0x)** | Controls speech playback rate. |
 
-### Basis Data Vektor (Vector Database)
-| Elemen | Fungsi |
-|----------|--------|
-| **File List** | Daftar visual semua file `.gd` di proyek beserta status pengindeksannya. |
-| **🔍 Scan Changes** | Memindai proyek untuk file baru, yang diubah, atau dihapus sejak pengindeksan terakhir. |
-| **⚡ Index Codebase** | Meluncurkan proses pengindeksan vektor dari semua skrip yang diubah melalui Embeddings API. |
+### Quick Action Buttons
+| Button | Action |
+|---|---|
+| **✧ Refactor** | Sends selected code in the editor for structural refactoring. |
+| **◆ Fix** | Sends selected code for immediate bug fixing. |
+| **💡 Explain** | Sends selected code for step-by-step educational explanations. |
+| **↺ Undo** | Reverts the last AI action using Godot's native Undo/Redo history. |
+| **🖥 Fix Console** | Reads red error lines from Godot's Output console and prompts AI for an immediate fix. |
 
----
-
-## 🐙 Tab Git (Git Tab)
-
-### Konfigurasi Awal
-| Elemen | Fungsi |
-|----------|--------|
-| **Initialize Repository** | Menginisialisasi repositori Git di folder proyek (jika belum ada). |
-| **Remote URL** | Bidang untuk menempelkan URL repositori GitHub (contoh: `https://github.com/user/repo.git`). |
-| **Set Remote** | Menetapkan URL repositori jarak jauh. |
-
-### Operasi Utama
-| Tombol | Fungsi |
-|-------|--------|
-| **🔃 Refresh Status** | Memperbarui status Git (file yang diubah/tidak dilacak, branch saat ini). |
-| **⬇️ Pull** | Mengunduh perubahan terbaru dari repositori jarak jauh. |
-| **✨ Auto-Generate Commit Message** | AI menganalisis semua diff dan secara otomatis menghasilkan pesan commit profesional. |
-| **Commit & Sync (Push)** | Membuat commit untuk semua perubahan dengan sebuah pesan dan mengirimkannya ke GitHub. |
-
-### Branch (Cabang)
-| Elemen | Fungsi |
-|----------|--------|
-| **Branch Label** | Menampilkan nama branch saat ini. |
-| **Branch Name Input** | Bidang untuk menulis nama branch baru atau yang sudah ada. |
-| **Checkout/Create Branch** | Membuat branch baru atau beralih ke yang sudah ada. |
-
-### Tindakan Darurat
-| Tombol | Fungsi |
-|-------|--------|
-| **⚠️ Undo Uncommitted Changes** | Membatalkan semua perubahan lokal yang belum di-commit (kembali ke commit terakhir). Memerlukan konfirmasi. |
-| **⚠️ Force Pull Overwrite** | Membersihkan sepenuhnya dan menimpa folder lokal Anda dengan status tepat dari cloud. Memerlukan konfirmasi. |
-| **⚠️ Force Push** | Menimpa riwayat repositori jarak jauh dengan versi lokal. Gunakan dengan sangat hati-hati! |
+### Input Area & Prompt Settings (⚙️)
+| Element | Function |
+|---|---|
+| **Include Context** | Automatically attaches the active script in the Script Editor. |
+| **Send Screenshot** | Captures the Godot editor viewport and attaches it to the prompt (multimodal AI vision). |
+| **Plan First** | Forces the AI to return a Markdown plan before writing code. |
+| **Watch Mode** | Monitors the Output console and suggests auto-fixes if game crashes during play. |
 
 ---
 
-## 📋 Panel Diff (Peninjauan Kode)
+## 🎨 2. Shader Studio Tab
 
-Saat AI menghasilkan atau mengubah kode, panel perbandingan akan muncul di chat:
+The built-in **Shader Studio** lets you create, customize, and preview GLSL shaders (`.gdshader`) in real time.
 
-![Panel diff yang menunjukkan kode yang dihapus (merah) dan kode yang ditambahkan (hijau)](../../images/diff_preview.png)
+| Control | Function |
+|---|---|
+| **Category Selector** | Filters presets by type (`2D Effects`, `3D Materials`, `Post-Processing`, `UI`). |
+| **Preset Selector** | Chooses from ready-to-use shaders: *Hit Flash, Dissolve, Hologram, Outline, Water, Pixelate, Glitch, Glow, Fire, Shield, etc.* |
+| **2D / 3D Mode** | Toggles the SubViewport preview between Sprite2D and MeshInstance3D with directional lighting. |
+| **Dynamic Uniforms Panel** | Automatically generates sliders, color pickers, and toggles for each shader `uniform`. |
+| **Live Code Editor** | Edit `.gdshader` code and click **Recompile** for instant visual feedback. |
+| **🎲 Randomize** | Generates instant aesthetic variations by randomizing uniform parameters. |
+| **✨ Apply to Selection** | Creates `ShaderMaterial` and attaches it to the selected node in the Scene Tree. |
+| **💾 Save Shader** | Saves the shader file (`.gdshader`) and material (`.tres`) to `res://shaders/`. |
 
-| Elemen | Fungsi |
-|----------|--------|
-| **Diff View** | Tampilan baris yang dihapus (merah) dan ditambahkan (hijau) secara berdampingan. |
-| **Apply Changes** | Menerima perubahan dan menerapkannya pada file nyata. Tindakan ini dicatat dalam Undo/Redo di Godot. |
-| **Skip** | Menolak perubahan. Tidak ada file yang dimodifikasi. |
+---
+
+## 🔊 3. SFX Studio Tab (Procedural Synthesizer)
+
+Generates retro and procedural sound effects using pure GDScript PCM synthesis:
+
+| Control | Function |
+|---|---|
+| **Sound Presets** | Jump, Laser, Explosion, Coin, Power-up, Hit, UI Click. |
+| **▶ Preview** | Plays synthesized audio through the built-in `AudioStreamPlayer`. |
+| **🎲 Mutate** | Applies controlled procedural mutations to pitch and frequency envelope. |
+| **💾 Save WAV** | Writes 16-bit uncompressed `.wav` files to `res://audio/sfx/`. |
+| **➕ Insert to Scene** | Creates an `AudioStreamPlayer` node preconfigured with the stream under the selected node. |
+
+---
+
+## ⚙️ 4. Settings Tab
+
+* **Supported Providers:** Google Gemini, OpenAI, OpenRouter, Ollama (Local), NVIDIA NIM.
+* **Custom System Prompt:** Permanent engineering guidelines for the AI assistant.
+* **✨ Enhance Instructions with AI:** Optimizes system instructions with Godot 4.7+ best practices.
+* **Vector Database (RAG):** Scans changes and builds semantic embeddings for codebase indexing.
+
+---
+
+## 🐙 5. Git Tab & Version Control
+
+* **Repo Setup & Remotes:** Configure GitHub remote repository URLs and initialize repos.
+* **✨ Generate Commit Message:** AI analyzes `git diff` and generates Conventional Commit messages.
+* **Branch Management:** Create, switch, and inspect branches visually.
+* **Emergency Actions:** Discard local changes, Force Pull, and Force Push with confirmation dialogs.

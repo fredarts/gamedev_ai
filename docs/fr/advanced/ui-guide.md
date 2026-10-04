@@ -1,156 +1,113 @@
-# Guide complet de l'interface utilisateur (Tous les boutons)
+# Complete UI Guide (All Controls & Tabs)
 
-Cette page décrit **chaque bouton, interrupteur et commande** présent dans l'interface de Gamedev AI au sein de l'éditeur Godot.
+This page describes **every button, selector, control, and tab** present in the **Gamedev AI** interface inside the Godot editor.
 
-![Vue d'ensemble de l'interface principale de Gamedev AI dans Godot](../../images/main_interface.png)
-
-## 🗂️ Onglets principaux
-
-Le plugin dispose de **3 onglets** en haut du panneau :
-- **Chat** — Le panneau de conversation principal avec l'IA.
-- **Settings** (Paramètres) — Gestion des clés API, préréglages, prompts et indexation.
-- **Git** — Contrôle de version intégré avec GitHub.
+![Overview of Gamedev AI main interface in Godot](../../images/main_interface.png)
 
 ---
 
-## 💬 Onglet Chat
+## 🗂️ Main Tabs & Panels
 
-### Barre supérieure
-| Bouton | Fonction |
-|-------|--------|
-| **Sélecteur de Preset** | Menu déroulant pour changer rapidement de configuration fournisseur/modèle (ex: "Gemini 3.1", "GPT-4o"). |
-| **A-** / **A+** | Diminue ou augmente la taille de la police du chat. |
-| **+ New Chat** | Efface la conversation actuelle et démarre une session complètement nouvelle. |
-| **⊙ History** | Menu déroulant listant toutes les conversations passées. Cliquez sur l'une d'elles pour restaurer le contexte complet de cette session. |
-| **💾 Summarize to Memory** | Envoie un prompt automatique demandant à l'IA de résumer les décisions architecturales de la conversation actuelle et de les sauvegarder dans la mémoire persistante du projet. |
-
-### Zone de Chat (OutputDisplay)
-- Affiche les messages formatés en BBCode supportant le **gras**, l'*italique*, le `code en ligne` et les blocs de code avec coloration syntaxique.
-- Liens cliquables vers les fichiers du projet (cliquez pour ouvrir dans l'éditeur).
-- Un bouton flottant **Copier** apparaît lors de la sélection de texte pour le copier rapidement.
-
-### Lecteur TTS (Text-to-Speech)
-
-![Lecteur TTS compact avec commandes de lecture](../../images/tts_player.png)
-
-| Commande | Fonction |
-|----------|--------|
-| **▶ Lire à voix haute** | Convertit la dernière réponse de l'IA en audio et la lance. Utile pour écouter des explications tout en programmant. |
-| **⏹ Arrêter** | Arrête la lecture audio. |
-| **Barre de progression** | Pour reculer ou avancer dans l'audio. |
-| **Vitesse (1.0x - 2.0x)** | Contrôle la vitesse de lecture. |
-
-### Boutons d'action rapide
-| Bouton | Action |
-|-------|-----------|
-| **✧ Refactoriser** | Envoie le code sélectionné dans l'éditeur avec le prompt "Refactoriser ce code". L'IA propose des améliorations structurelles. |
-| **◆ Corriger** | Envoie le code sélectionné avec "Corriger les erreurs dans ce code". L'IA identifie les bugs et génère des correctifs. |
-| **💡 Expliquer** | Envoie le code sélectionné avec "Expliquer ce que fait ce code". L'IA explique chaque partie en français. |
-| **↺ Annuler** | Annule la dernière action exécutée par l'IA dans le projet (en utilisant le système Annuler/Rétablir de Godot). |
-| **🖥 Corriger Console** | Lit les dernières erreurs rouges de la console de Sortie de Godot et les envoie directement à l'IA pour analyse et proposition de correctifs. |
-
-### Zone de saisie
-| Élément | Fonction |
-|----------|--------|
-| **Champ de texte** | Saisissez votre message. Utilisez `Shift + Enter` pour envoyer. |
-| **📎 Joindre** | Ouvre un sélecteur de fichiers pour joindre des images, des scripts ou tout autre fichier au prompt. |
-| **➤ Envoyer** | Envoie le message à l'IA pour traitement. |
-| **Drag & Drop** | Faites glisser des nœuds de l'Arbre de Scène ou des fichiers du FileSystem directement dans le champ de texte ou la zone de chat. L'IA recevra toutes les métadonnées. |
-
-### Paramètres de Prompt (Liste déroulante)
-Ces options sont regroupées sous l'icône ⚙️ à côté du bouton d'envoi.
-
-| Paramètre | Fonction |
-|--------|--------|
-| **Inclure le Contexte** | Lorsqu'il est activé, le plugin ajoute automatiquement le contenu complet du script actuellement ouvert dans l'éditeur au message envoyé. |
-| **Envoyer une Capture** | Lorsqu'il est activé, il prend automatiquement une capture d'écran de la fenêtre Godot et l'envoie avec le message pour l'analyse visuelle de l'IA. |
-| **Planifier d'Abord** | Lorsqu'il est activé, l'IA n'écrira pas de code. Elle répondra uniquement avec un plan détaillé en Markdown. Après révision, cliquez sur le bouton "Exécuter le Plan" pour qu'elle code. |
-| **Mode Watch** | Lorsqu'il est activé, l'IA surveille le console de Godot. Si elle détecte des erreurs critiques, elle propose automatiquement des corrections. |
+The plugin organizes its capabilities across **5 integrated tabs & panels**:
+- **💬 Chat** — Main conversational panel, tool executions, multi-agent pipeline state, and quick actions.
+- **⚙️ Settings** — Provider management (Gemini, OpenAI/OpenRouter, Ollama, NIM), API keys, custom system prompts, and vector indexing.
+- **🐙 Git** — Version control integrated with GitHub, featuring AI-generated commit messages.
+- **🎨 Shader Studio** — Visual shader synthesizer and editor with live interactive 2D/3D viewport previews.
+- **🔊 SFX Studio** — Procedural sound effect synthesizer with instant playback and one-click scene node insertion.
 
 ---
 
-## ⚙️ Onglet Settings (Paramètres)
+## 💬 1. Chat Tab
 
-### Gestion des Presets
-| Élément | Fonction |
-|----------|--------|
-| **Sélecteur de Preset** | Menu déroulant pour choisir parmi les préréglages sauvegardés. |
-| **Add** | Crée un nouveau preset vide. |
-| **Edit** | Ouvre le panneau d'édition (Nom, Fournisseur, Clé API, URL de base, Modèle). |
-| **Delete** | Supprime définitivement le preset sélectionné. |
-| **Done Editing** | Ferme le panneau d'édition en enregistrant les modifications. |
+### Top Bar
+| Button | Function |
+|---|---|
+| **Preset Selector** | Dropdown to switch between active provider/model configurations (e.g. "Gemini 3.1 Pro", "Claude 3.7 Sonnet", "Ollama DeepSeek"). |
+| **A- / A+** | Decreases or increases chat font size. |
+| **+ New Chat** | Clears the current conversation and restarts session context. |
+| **⊙ History** | Dropdown containing past saved conversations to restore full context at any time. |
+| **💾 Summarize to Memory** | Instructs AI to synthesize key architectural decisions and persist them to project memory. |
 
-### Champs d'édition des Presets
-| Champ | Description |
-|-------|-----------|
-| **Nom du Preset** | Nom convivial (ex: "Gemini 3.1"). |
-| **Fournisseur** | Choix entre "Gemini" et "OpenAI / OpenRouter". |
-| **Clé API** | Votre clé API du fournisseur sélectionné. |
-| **URL de base** | URL de base de l'API (uniquement pour OpenAI/OpenRouter). |
-| **Nom du modèle** | Nom exact du modèle (ex: `gemini-2.5-flash`, `gpt-4o`). |
+### Multi-Agent Pipeline (Visual Chips)
+When complex tasks are executed, colorful chips indicate the active orchestrator stage in real time:
+* 🟦 `Architect` — Contract definition and architecture planning.
+* 🟨 `Scene Builder` — Node creation and `.tscn` scene hierarchies.
+* 🟩 `Coder` — Modern typed GDScript and signal wiring.
+* 🟪 `QA Tester` — Assertion testing and Auto-Healing loops.
 
-### Langue
-| Élément | Fonction |
-|----------|--------|
-| **Sélecteur de langue** | Menu déroulant pour choisir la langue de l'interface et de l'IA (Français, Português BR, English, etc.). |
+### TTS Player (Text-to-Speech)
 
-### Prompt de système personnalisé
-Une grande boîte de texte pour insérer des règles fixes que l'IA suivra toujours. Exemple : *"Utilise le typage statique sur toutes les fonctions. Commente en français."*
+![Compact TTS Player with playback controls](../../images/tts_player.png)
 
-| Bouton | Fonction |
-|-------|--------|
-| **✨ Améliorer les instructions avec l'IA** | Envoie vos instructions actuelles pour que l'IA les améliore automatiquement. Aperçu affiché avant acceptation. |
+| Control | Function |
+|---|---|
+| **▶ Read Aloud** | Synthesizes the latest AI response to audio. |
+| **⏹ Stop** | Stops audio playback. |
+| **Seek Slider** | Scrubs forward or backward in the audio track. |
+| **Speed (1.0x - 2.0x)** | Controls speech playback rate. |
 
-### Base de données vectorielle
-| Élément | Fonction |
-|----------|--------|
-| **Liste des fichiers** | Liste visuelle des fichiers `.gd` avec statut d'indexation. |
-| **🔍 Scan Changes** | Analyse le projet à la recherche de fichiers nouveaux, modifiés ou supprimés. |
-| **⚡ Index Codebase** | Lance le processus d'indexation vectorielle des scripts modifiés. |
+### Quick Action Buttons
+| Button | Action |
+|---|---|
+| **✧ Refactor** | Sends selected code in the editor for structural refactoring. |
+| **◆ Fix** | Sends selected code for immediate bug fixing. |
+| **💡 Explain** | Sends selected code for step-by-step educational explanations. |
+| **↺ Undo** | Reverts the last AI action using Godot's native Undo/Redo history. |
+| **🖥 Fix Console** | Reads red error lines from Godot's Output console and prompts AI for an immediate fix. |
 
----
-
-## 🐙 Onglet Git
-
-### Configuration initiale
-| Élément | Fonction |
-|----------|--------|
-| **Initialize Repository** | Initialise un dépôt Git dans le dossier du projet. |
-| **URL distante** | Champ pour coller l'URL du dépôt GitHub (ex: `https://github.com/utilisateur/repo.git`). |
-| **Définir la destination** | Définit l'URL du dépôt distant. |
-
-### Opérations principales
-| Bouton | Fonction |
-|-------|--------|
-| **🔃 Refresh Status** | Actualise le statut Git (fichiers modifiés, non suivis, branche actuelle). |
-| **⬇️ Pull** | Télécharge les derniers changements depuis le dépôt distant. |
-| **✨ Générer automatiquement le message de commit** | L'IA analyse les modifications (diff) et génère un message de commit professionnel. |
-| **Commit & Sync (Push)** | Valide les changements avec le message généré et les pousse sur GitHub. |
-
-### Branches
-| Élément | Fonction |
-|----------|--------|
-| **Label de branche** | Affiche le nom de la branche actuelle. |
-| **Saisie du nom de branche** | Champ pour saisir le nom d'une nouvelle branche ou d'une branche existante. |
-| **Checkout/Create Branch** | Crée une nouvelle branche ou bascule vers une existante. |
-
-### Actions d'urgence
-| Bouton | Fonction |
-|-------|--------|
-| **⚠️ Annuler les changements non validés** | Supprime TOUTES les modifications locales non commitées. |
-| **⚠️ Écraser par un Force Pull** | Remplace complètement le dossier local par l'état du dépôt distant. |
-| **⚠️ Force Push** | Pousse l'état local sur le dépôt distant en écrasant l'historique. |
+### Input Area & Prompt Settings (⚙️)
+| Element | Function |
+|---|---|
+| **Include Context** | Automatically attaches the active script in the Script Editor. |
+| **Send Screenshot** | Captures the Godot editor viewport and attaches it to the prompt (multimodal AI vision). |
+| **Plan First** | Forces the AI to return a Markdown plan before writing code. |
+| **Watch Mode** | Monitors the Output console and suggests auto-fixes if game crashes during play. |
 
 ---
 
-## 📋 Panneau de Diff (Révision de code)
+## 🎨 2. Shader Studio Tab
 
-Lorsque l'IA génère ou modifie du code, un panneau de Diff apparaît dans le chat :
+The built-in **Shader Studio** lets you create, customize, and preview GLSL shaders (`.gdshader`) in real time.
 
-![Panneau de Diff montrant le code supprimé (rouge) et ajouté (vert)](../../images/diff_preview.png)
+| Control | Function |
+|---|---|
+| **Category Selector** | Filters presets by type (`2D Effects`, `3D Materials`, `Post-Processing`, `UI`). |
+| **Preset Selector** | Chooses from ready-to-use shaders: *Hit Flash, Dissolve, Hologram, Outline, Water, Pixelate, Glitch, Glow, Fire, Shield, etc.* |
+| **2D / 3D Mode** | Toggles the SubViewport preview between Sprite2D and MeshInstance3D with directional lighting. |
+| **Dynamic Uniforms Panel** | Automatically generates sliders, color pickers, and toggles for each shader `uniform`. |
+| **Live Code Editor** | Edit `.gdshader` code and click **Recompile** for instant visual feedback. |
+| **🎲 Randomize** | Generates instant aesthetic variations by randomizing uniform parameters. |
+| **✨ Apply to Selection** | Creates `ShaderMaterial` and attaches it to the selected node in the Scene Tree. |
+| **💾 Save Shader** | Saves the shader file (`.gdshader`) and material (`.tres`) to `res://shaders/`. |
 
-| Élément | Fonction |
-|----------|--------|
-| **Vue Diff** | Vue côte à côte montrant les lignes supprimées (rouge) et ajoutées (vert). |
-| **Appliquer les changements** | Accepte les modifications et les applique au fichier réel. |
-| **Ignorer (Skip)** | Rejette les modifications. Aucun fichier n'est altéré. |
+---
+
+## 🔊 3. SFX Studio Tab (Procedural Synthesizer)
+
+Generates retro and procedural sound effects using pure GDScript PCM synthesis:
+
+| Control | Function |
+|---|---|
+| **Sound Presets** | Jump, Laser, Explosion, Coin, Power-up, Hit, UI Click. |
+| **▶ Preview** | Plays synthesized audio through the built-in `AudioStreamPlayer`. |
+| **🎲 Mutate** | Applies controlled procedural mutations to pitch and frequency envelope. |
+| **💾 Save WAV** | Writes 16-bit uncompressed `.wav` files to `res://audio/sfx/`. |
+| **➕ Insert to Scene** | Creates an `AudioStreamPlayer` node preconfigured with the stream under the selected node. |
+
+---
+
+## ⚙️ 4. Settings Tab
+
+* **Supported Providers:** Google Gemini, OpenAI, OpenRouter, Ollama (Local), NVIDIA NIM.
+* **Custom System Prompt:** Permanent engineering guidelines for the AI assistant.
+* **✨ Enhance Instructions with AI:** Optimizes system instructions with Godot 4.7+ best practices.
+* **Vector Database (RAG):** Scans changes and builds semantic embeddings for codebase indexing.
+
+---
+
+## 🐙 5. Git Tab & Version Control
+
+* **Repo Setup & Remotes:** Configure GitHub remote repository URLs and initialize repos.
+* **✨ Generate Commit Message:** AI analyzes `git diff` and generates Conventional Commit messages.
+* **Branch Management:** Create, switch, and inspect branches visually.
+* **Emergency Actions:** Discard local changes, Force Pull, and Force Push with confirmation dialogs.

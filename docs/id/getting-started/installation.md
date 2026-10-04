@@ -1,14 +1,14 @@
 # Instalasi (Installation)
 
-Selamat datang di dokumentasi resmi **Gamedev AI**! Halaman ini memandu Anda untuk menambahkan asisten dengan cepat ke dalam proyek Godot 4.6 Anda saat ini.
+Selamat datang di dokumentasi resmi **Gamedev AI**! Halaman ini memandu Anda untuk menambahkan asisten dengan cepat ke dalam proyek Godot 4.7+ Anda saat ini.
 
 ## Persyaratan (Prerequisites)
-* **Godot Engine:** Versi 4.6 atau lebih tinggi (tidak memerlukan dukungan `.gdextension` asli, plugin ini bekerja dalam bahasa GDScript murni).
+* **Godot Engine:** Versi 4.7+ atau lebih tinggi (tidak memerlukan dukungan `.gdextension` asli, plugin ini bekerja dalam bahasa GDScript murni).
 * Akun Google atau OpenRouter untuk kunci API.
 
 ## Tutorial: Instalasi Manual (GitHub)
 
-1. Buat atau buka proyek di Godot 4.6.
+1. Buat atau buka proyek di Godot 4.7+.
 2. Buka folder root proyek Anda (di mana file `project.godot` berada).
 3. Buat folder bernama `addons` (jika belum ada).
 4. Download atau clone repositori plugin di dalam `addons/`:

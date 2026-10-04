@@ -1,14 +1,14 @@
 # Installation
 
-Bienvenue dans la documentation officielle de **Gamedev AI** ! Cette page se concentre sur la manière d'ajouter rapidement l'assistant à votre projet Godot 4.6 actuel.
+Bienvenue dans la documentation officielle de **Gamedev AI** ! Cette page se concentre sur la manière d'ajouter rapidement l'assistant à votre projet Godot 4.7+ actuel.
 
 ## Prérequis
-* **Godot Engine :** Version 4.6 ou supérieure (le support natif `.gdextension` n'est pas requis, le plugin fonctionne en pur GDScript).
+* **Godot Engine :** Version 4.7+ ou supérieure (le support natif `.gdextension` n'est pas requis, le plugin fonctionne en pur GDScript).
 * Compte Google ou OpenRouter pour les clés API.
 
 ## Étape par Étape Manuel (GitHub)
 
-1. Créez ou ouvrez un projet existant dans Godot 4.6.
+1. Créez ou ouvrez un projet existant dans Godot 4.7+.
 2. Naviguez vers le dossier racine de votre projet (là où se trouve le fichier `project.godot`).
 3. Créez un dossier `addons` (s'il n'existe pas déjà).
 4. À l'intérieur de `addons/`, téléchargez ou clonez le dépôt du plugin :

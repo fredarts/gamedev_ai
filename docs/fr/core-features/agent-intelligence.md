@@ -1,44 +1,74 @@
-# 🧠 Agents et Intelligence
+# 🧠 Multi-Agent Orchestration & Intelligence
 
-Gamedev AI n'est pas seulement un chat qui écrit du code. Il est propulsé par une architecture d'agents de pointe, basée sur las meilleures pratiques de développement autonome, permettant à l'assistant d'agir de manière méthodique, proactive et consciente du contexte.
-
----
-
-## 🎭 Personas Spécialisés (Dynamic Routing)
-
-L'IA identifie automatiquement votre objectif en se basant sur votre conversation et adopte une "Persona" spécifique. Cela garantit que le prompt est focalisé uniquement sur ce qui compte, économisant des jetons (tokens) et augmentant la précision.
-
-- **Godot Expert** : L'assistant général pour la logique de jeu et la structure.
-- **UI/UX Designer** : Focalisé sur les nœuds de `Control`, les ancres et les mises en page réactives.
-- **Technical Artist** : Spécialiste des Shaders, des particules et des effets visuels.
-- **Multiplayer Engineer** : Focalisé sur le réseau, les RPC et la synchronisation.
-
-> [!TIP]
-> Vous pouvez forcer une persona en mentionnant des mots-clés comme "j'ai besoin d'un menu (UI)" ou "je crée un shader".
+**Gamedev AI** is powered by an autonomous, multi-agent engineering architecture integrating specialized personas, a 4-stage sequential pipeline, shared memory, and automatic self-healing (Auto-Healing).
 
 ---
 
-## ⛩️ Portail Socratique (Stop & Ask)
+## 🚀 Multi-Agent Orchestrator (4-Stage Pipeline)
 
-Pour éviter de générer des codes massifs et génériques qui pourraient ne pas convenir à votre projet, l'IA implémente le **Portail Socratique**.
+For complex tasks (such as creating inventory systems, combat engines, or procedural dungeons), Gamedev AI engages the **Agent Orchestrator**:
 
-Chaque fois que vous demandez quelque chose de complexe (ex : "Crée un système d'inventaire"), l'IA :
-1. **Arrêtera** la génération de code.
-2. **Posera** au moins 2 questions sur les *compromis* ou les cas limites (ex : "Sera-t-il basé sur des emplacements (slots) ou sur le poids ?", "Nécessite-t-il une persistance en base de données ?").
-3. **Exécutera** la tâche uniquement après votre clarification.
+```mermaid
+graph TD
+    User([User Request]) --> Architect[1. Architect: Planning & Contracts]
+    Architect --> Blackboard[(Blackboard: Shared Memory)]
+    Blackboard --> SceneBuilder[2. Scene Builder: Node Trees & .tscn]
+    SceneBuilder --> Coder[3. Coder: Typed GDScript & Signals]
+    Coder --> QA[4. QA Tester: Tests & Assertions]
+    QA -->|Assertion Failure| AutoHealing[Auto-Healing Loop]
+    AutoHealing -->|Repair Instructions| Coder
+    QA -->|Passed| Done([System Completed & Applied])
+```
+
+### 1. 🟦 Architect Persona
+* **Role:** Analyzes requests, defines required node structures, public interfaces, exported variables, and signals.
+* **Output:** Architectural specification written to the shared memory (`Blackboard`).
+
+### 2. 🟨 Scene Builder Persona
+* **Role:** Builds visual and physical scene hierarchies (`.tscn`).
+* **Tools:** `create_scene`, `add_node`, `set_property`, `attach_script`, `create_resource`.
+
+### 3. 🟩 Coder Persona
+* **Role:** Implements logic in modern GDScript with strict static typing (`:=`, `-> void`).
+* **Tools:** `create_script`, `patch_script`, `connect_signal`, `get_lsp_diagnostics`.
+
+### 4. 🟪 QA Tester & Auto-Healing
+* **Role:** Executes structural assertions, node audits, and unit tests.
+* **Auto-Healing:** If QA detects failures, the orchestrator loops back to the `Coder` persona with exact error reports to automatically repair code (up to 2 iterations without user intervention).
 
 ---
 
-## ⌨️ Workflows via Slash Commands
+## 🗄️ Blackboard (Pipeline Shared Memory)
 
-Vous pouvez utiliser des commandes directes pour changer instantanément le comportement de l'IA :
-
-- `/brainstorm` : L'IA passe en mode découverte. Elle n'écrira pas de code, mais aidera à planifier l'architecture, le GDD et la logique.
-- `/plan` : Focalisé sur la structuration des dossiers et des scènes avant le codage.
-- `/debug` : Mode d'investigation approfondie. Se concentre uniquement sur les logs d'erreurs et la cause racine.
+The **Blackboard** is the in-memory shared state carrying:
+* Created nodes, script paths, connected signals, and approved architectural contracts.
+* Ensures the `Coder` and `QA Tester` have exact access to node paths established by the `Scene Builder`.
 
 ---
 
-## 🔍 Auto-Audit (Raffinement Autonome)
+## 🎭 Specialist Personas (Dynamic Routing)
 
-Après avoir effectué des changements complexes, l'IA a l'autonomie d'exécuter des outils d'audit (`audit_script`, `audit_scene`) para vérifier les erreurs de syntaxe ou les références orphelines avant de considérer la tâche comme terminée. Cela garantit un cycle de feedback beaucoup plus court et un code plus stable.
+During standard chat sessions, the AI automatically activates specialized domain personas:
+* **Godot Expert:** Architecture, Singletons, Resources, and design patterns.
+* **UI/UX Designer:** Responsive `Control` layouts, Glassmorphism themes, anchors, and controller navigation.
+* **Technical Artist (Shader Artist):** GLSL canvas/spatial shaders, particle systems, and VFX.
+* **Multiplayer Engineer:** Godot 4 NetCode, RPCs (`@rpc("authority", "call_local")`), and state sync.
+* **Audio Specialist:** Procedural sound synthesis and audio bus management.
+
+---
+
+## ⛩️ Socratic Gate (Stop & Ask)
+
+For critical and complex requests:
+1. **Strategic Pause:** AI pauses generation on complex system requests.
+2. **Trade-off Inquiries:** Asks edge-case questions (e.g. *"Should inventory be slot-based or weight-based?", "Do you prefer binary serialization or JSON?"*).
+3. **Aligned Execution:** Plans are executed only after your confirmation.
+
+---
+
+## ⌨️ Slash Commands (/)
+
+* `/brainstorm` — Idea discovery and Game Design Document (GDD) exploration.
+* `/plan` — Generates a structural Markdown plan.
+* `/debug` — Deep-dive investigation on stack traces and runtime errors.
+* `/orchestrate` — Forces the full multi-agent pipeline execution.

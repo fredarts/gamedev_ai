@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "Gamedev AI"
-  text: "Software Engineer Otonom untuk Godot 4.6"
+  text: "Software Engineer Otonom untuk Godot 4.7+"
   tagline: "Tulis GDScript, kelola node, perbaiki kesalahan konsol mesin secara otomatis, dan terapkan perubahan kompleks dengan pratinjau diff real-time. Semuanya terintegrasi di dalam editor Anda seperti sihir."
   actions:
     - theme: brand

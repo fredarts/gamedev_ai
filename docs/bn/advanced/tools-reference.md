@@ -1,166 +1,306 @@
-# সমস্ত AI টুলস (Tool Reference)
+# All AI Tools (Tool Reference)
 
-Gamedev AI-এর **৩৪টি বিল্ট-ইন টুল** রয়েছে যা AI কথোপকথনের সময় স্বায়ত্তশাসিতভাবে কল করতে পারে। এই টুলগুলো হলো "মেকানিক্যাল আর্ম" যা AI-কে সরাসরি Godot ইঞ্জিনের সাথে যোগাযোগ করতে দেয়, এবং প্রতিটি বিভাগ অনুসারে নিচে বর্ণনা করা হয়েছে।
+**Gamedev AI** features **65 built-in tools** that the assistant can execute autonomously during a chat conversation or via the local Model Context Protocol (MCP) server. These tools serve as the "mechanical arm" allowing the AI to directly interact with the Godot Engine.
 
-## 🔧 স্ক্রিপ্ট (কোড তৈরি এবং এডিট করা)
+---
+
+## 🔧 1. Scripts & GDScript Code
 
 ### `create_script`
-নির্দিষ্ট পাথে (Path) নির্দিষ্ট কন্টেন্ট দিয়ে একটি নতুন GDScript ফাইল (`.gd`) তৈরি করে। AI এটি নতুন স্ক্রিপ্ট জেনারেট করতে ব্যবহার করে।
-- **প্যারামিটার:** `path` (res://...), `content` (সম্পূর্ণ GDScript কোড)
+Creates a new GDScript file (`.gd`) at the specified path with static typing and engine best practices.
+- **Parameters:** `path` (`res://...`), `content` (full GDScript code).
 
 ### `edit_script`
-বিদ্যমান কোনো স্ক্রিপ্টের সম্পূর্ণ বিষয়বস্তু নতুন ভার্সন দিয়ে পরিবর্তন করে। AI আগে ফাইলটি পড়ে নিশ্চিত হয় যে তার কাছে সাম্প্রতিক কোডটি আছে।
-- **প্যারামিটার:** `path`, `content`
-- ⚠️ *ক্ষুদ্র পরিবর্তনের জন্য `patch_script` এর পরিবর্তে বর্তমানে এটি কম ব্যবহৃত হয়।*
+Replaces the entire content of an existing script with a new version.
+- **Parameters:** `path`, `content`.
+- ⚠️ *Deprecated in favor of `patch_script` to prevent accidental overwrites.*
 
 ### `patch_script`
-নিপুণ এডিট (Surgical Edit): স্ক্রিপ্টের ভেতরে একটি নির্দিষ্ট কোড ব্লক খুঁজে বের করে এবং কেবল সেই অংশটুকুই নতুন কন্টেন্ট দিয়ে পরিবর্তন করে, পুরো ফাইলটি পুনরায় লেখে না। ছোট ত্রুটি সংশোধনের জন্য এটি সেরা।
-- **প্যারামিটার:** `path`, `search_content` (খুঁজে পাওয়ার জন্য নির্দিষ্ট ব্লক), `replace_content` (নতুন ব্লক)
+Surgical edit: searches for an exact block of code within the script and replaces only that snippet with the new content without modifying the rest of the file.
+- **Parameters:** `path`, `search_content` (exact block to find), `replace_content` (new block).
 
 ### `replace_selection`
-Godot স্ক্রিপ্ট এডিটরে বর্তমানে সিলেক্ট থাকা টেক্সটটি পরিবর্তন করে। এটি কুইক অ্যাকশন বাটনগুলোর (Refactor, Fix, Explain) সাথে কাজ করে।
-- **প্যারামিটার:** `text` (সিলেকশন পরিবর্তনের জন্য নতুন কোড)
+Replaces the currently selected text in the Godot Script Editor (used by quick action buttons such as Refactor, Fix, and Explain).
+- **Parameters:** `text` (new code).
 
 ### `view_file_outline`
-ফাইলের পুরো কোড না দেখিয়ে কেবল স্ক্রিপ্টের কাঠামো প্রদান করে: `class_name`, `extends`, ফাংশনসমূহ, সিগন্যালসমূহ, এক্সপোর্টসমূহ (Exports), এনামসমূহ (Enums), ইনার ক্লাস এবং কনস্ট্যান্ট এর সাথে লাইন নম্বর।
-- **প্যারামিটার:** `path`
+Returns a structural outline of a script: `class_name`, `extends`, functions, signals, exports, enums, constants, and inner classes with their exact line numbers.
+- **Parameters:** `path`.
+
+### `get_lsp_diagnostics`
+Queries the Godot Language Server Protocol (LSP) in real time to fetch compilation errors, syntax issues, and warnings without running the game.
+- **Parameters:** `path`.
 
 ---
 
-## 🌳 নোডসমূহ (সিন ট্রি-র সাথে কাজ করা)
+## 🌳 2. Nodes & Scene Tree Manipulation
 
 ### `add_node`
-বর্তমানে এডিটরে খোলা সিনের ভেতরে একটি নতুন নোড যুক্ত করে। যেকোনো ধরণের Godot নোড (Node2D, CharacterBody3D, Label, Button ইত্যাদি) তৈরি করতে পারে।
-- **প্যারামিটার:** `parent_path` (রুটের জন্য `.` ব্যবহার করুন), `type` (নোড ক্লাস), `name`, `script_path` (অপশনাল)
+Adds a new node to the open scene in the editor (Node2D, CharacterBody2D/3D, Label, Button, etc.).
+- **Parameters:** `parent_path` (use `.` for root), `type` (node class), `name`, `script_path` (optional).
 
 ### `remove_node`
-বর্তমান সিন ট্রি থেকে কোনো নোড রিমুভ করে। যেহেতু এটি একটি ধ্বংসাত্মক কাজ, তাই ইউজারের কনফার্মেশন প্রয়োজন হয়।
-- **প্যারামিটার:** `node_path`
+Removes a node from the current Scene Tree. Requires user confirmation.
+- **Parameters:** `node_path`.
 
 ### `set_property`
-সিন নোডের প্রপার্টি সেট করে (Position, Size, Text, Color ইত্যাদি)। এটি সংখ্যা (Numbers), ভেক্টর (Vectors), কালার এবং টেক্সট গ্রহণ করে।
-- **প্যারামিটার:** `node_path`, `property`, `value`
+Edits any property of a node in the Inspector (position, rotation, scale, texture, colors, visibility).
+- **Parameters:** `node_path`, `property`, `value`.
 
 ### `set_theme_override`
-একটি কন্ট্রোল (Control) নোডের থিম ওভাররাইড (Theme Override) সেট করে (যেমন ফন্ট সাইজ, ফন্ট কালার, স্টাইলবক্স)।
-- **প্যারামিটার:** `node_path`, `override_type` (color/constant/font/font_size/stylebox), `name`, `value`
+Sets a theme override on Control nodes (font size, colors, stylebox).
+- **Parameters:** `node_path`, `override_type` (`color`, `constant`, `font`, `font_size`, `stylebox`), `name`, `value`.
 
 ### `connect_signal`
-বর্তমান সিনের একটি সোর্স নোডের সিগন্যালকে অন্য একটি টার্গেট নোডের মেথডের সাথে কানেক্ট করে।
-- **প্যারামিটার:** `source_path`, `signal_name`, `target_path`, `method_name`, `binds` (অপশনাল), `flags` (অপশনাল)
+Connects an emitting node's signal to a receiving node's method in the current scene.
+- **Parameters:** `source_path`, `signal_name`, `target_path`, `method_name`, `binds` (optional), `flags` (optional).
 
 ### `disconnect_signal`
-আগে থেকে কানেক্ট করা কোনো সিগন্যাল কানেকশন বিচ্ছিন্ন করে।
-- **প্যারামিটার:** `source_path`, `signal_name`, `target_path`, `method_name`
+Disconnects a previously connected signal between two nodes.
+- **Parameters:** `source_path`, `signal_name`, `target_path`, `method_name`.
 
 ### `attach_script`
-সিনের কোনো নোডের সাথে একটি বিদ্যমান GDScript ফাইল যুক্ত করে।
-- **প্যারামিটার:** `node_path`, `script_path`
+Attaches an existing GDScript file to a node in the scene.
+- **Parameters:** `node_path`, `script_path`.
 
 ### `analyze_node_children`
-এডিট করা সিনের কোনো নির্দিষ্ট নোডের চাইল্ড ট্রির বিস্তারিত বিবরণ দেয়। জটিল স্ট্রাকচার বোঝার জন্য এটি দরকারি।
-- **প্যারামিটার:** `node_path`, `max_depth` (ডিফল্ট: ৫)
+Returns a detailed hierarchical sub-tree of a specific node up to a configurable depth.
+- **Parameters:** `node_path`, `max_depth` (default: 5).
 
 ---
 
-## 📂 ফাইল এবং প্রজেক্ট
+## 📂 3. Files, Scenes & Resources
 
 ### `read_file`
-প্রজেক্টের যেকোনো ফাইলের সম্পূর্ণ বিষয়বস্তু পড়ে।
-- **প্যারামিটার:** `path`
+Reads the complete text content of any file in the project.
+- **Parameters:** `path`.
 
 ### `list_dir`
-প্রজেক্টের কোনো ডিরেক্টরির বিষয়বস্তু দেখায়।
-- **প্যারামিটার:** `path`
+Lists files and subdirectories within a project folder.
+- **Parameters:** `path`.
 
 ### `find_file`
-নাম দিয়ে প্রজেক্টের ফাইল খোঁজে (আংশিক ম্যাচ হতে পারে)।
-- **প্যারামিটার:** `pattern`
+Searches for files in the project matching a name or extension pattern.
+- **Parameters:** `pattern`.
 
 ### `remove_file`
-প্রজেক্ট থেকে কোনো ফাইল বা ডিরেক্টরি মুছে ফেলে। কনফার্মেশন প্রয়োজন।
-- **প্যারামিটার:** `path`
+Deletes a file or directory from disk after confirmation.
+- **Parameters:** `path`.
 
 ### `move_files_batch`
-একটি ব্যাচ অপারেশনে মাল্টিপল ফাইল/ডিরেক্টরি মুভ বা রিনেম করে। এটি স্বয়ংক্রিয়ভাবে সমস্ত ইন্টারনাল Godot রেফারেন্স আপডেট করে (`.tscn`, `.tres`)।
-- **প্যারামিটার:** `moves` (পুরনো পাথ ও নতুন পাথের ডিকশনারি)
+Moves or renames multiple files in a batch operation, automatically updating Godot's internal dependencies.
+- **Parameters:** `moves` (dictionary of old path to new path).
 
 ### `create_scene`
-একটি নতুন সিন ফাইল (`.tscn`) তৈরি করে এবং এডিটরে সেটি ওপেন করে।
-- **প্যারামিটার:** `path`, `root_type`, `root_name`
+Creates a new scene file (`.tscn`) with the configured root node and opens it in the editor.
+- **Parameters:** `path`, `root_type`, `root_name`.
 
 ### `instance_scene`
-বিদ্যমান কোনো `.tscn` সিনকে বর্তমান সিনের অন্য কোনো নোডের চাইল্ড হিসেবে ইন্সট্যান্স করে।
-- **প্যারামিটার:** `parent_path`, `scene_path`, `name`
+Instances a `.tscn` scene as a child of a node in the currently opened scene.
+- **Parameters:** `parent_path`, `scene_path`, `name`.
 
 ### `create_resource`
-একটি নতুন রিসোর্স ফাইল (`.tres`) তৈরি করে। আইটেম, স্ট্যাটস বা কাস্টম কনফিগারেশনের জন্য এটি কার্যকর।
-- **প্যারামিটার:** `path`, `type`, `properties` (অপশনাল)
+Creates new resource files (`.tres`) for items, inventories, stats, or configuration data.
+- **Parameters:** `path`, `type`, `properties` (optional).
 
 ---
 
-## 🔍 সার্চ এবং অ্যানালাইসিস
+## 🔍 4. Search, Inspection & Analysis
 
 ### `grep_search`
-ফাইলের ভেতরে টেক্সট খোঁজে। পাথ এবং লাইন নম্বর সহ ফলাফল দেখায়।
-- **প্যারামিটার:** `query`, `include` (এক্সটেনশন ফিল্টার, অপশনাল), `max_results` (ডিফল্ট: ২০)
+Full-text search with file extension filters across all project files.
+- **Parameters:** `query`, `include` (optional), `max_results` (default: 20).
 
 ### `search_in_files`
-প্রজেক্টের সমস্ত `.gd` ফাইলে Regex এর মাধ্যমে ভেরিয়েবল, ফাংশন বা নির্দিষ্ট লজিক খুঁজে বের করে।
-- **প্যারামিটার:** `pattern` (Regular Expression)
+Regular expression (Regex) search across all project GDScripts.
+- **Parameters:** `pattern`.
 
 ### `get_class_info`
-যেকোনো Godot ক্লাস (ইঞ্জিন অথবা ইউজার মোড) সম্পর্কে বিস্তারিত তথ্য দেয়: বেস ক্লাস, প্রপার্টি, মেথড এবং সিগন্যাল।
-- **প্যারামিটার:** `class_name`
+Queries Godot's `ClassDB` to extract methods, properties, signals, and constants of any engine or custom class.
+- **Parameters:** `class_name`.
 
 ### `capture_editor_screenshot`
-সম্পূর্ণ Godot এডিটর উইন্ডোর একটি স্ক্রিনশট নেয় এবং ভিজ্যুয়াল অ্যানালাইসিসের জন্য তা পরবর্তী মেসেজের সাথে অটোমেটিক পাঠিয়ে দেয়।
+Captures a real-time screenshot of the Godot editor window for multimodal AI vision analysis.
 
 ---
 
-## 🧠 মেমরি এবং নলেজ
+## 🧠 5. Persistent Memory & Knowledge (RAG)
 
 ### `save_memory`
-প্রজেক্টের মেমরিতে একটি স্থায়ী তথ্য সেভ করে যা ভবিষ্যতে সমস্ত চ্যাট সেশনে পাওয়া যাবে।
-- **প্যারামিটার:** `category` (architecture/convention/preference/bug_fix/project_info), `content`
+Saves an architectural decision, convention, preference, or pattern into the persistent project memory.
+- **Parameters:** `category` (`architecture`, `convention`, `preference`, `bug_fix`, `project_info`), `content`.
 
 ### `list_memories`
-প্রজেক্টের জন্য সেভ করা সমস্ত স্থায়ী তথ্যের লিস্ট দেখায়।
+Lists all persistent memories saved for this project.
 
 ### `delete_memory`
-নির্দিষ্ট কোনো মেমরি তার আইডি (ID) দিয়ে মুছে ফেলে।
-- **প্যারামিটার:** `id`
+Deletes a specific memory entry by its unique ID.
+- **Parameters:** `id`.
 
 ### `read_skill`
-কোডিং করার আগে সেরা প্র্যাকটিসগুলো জানার জন্য AI এর ইন্টারনাল লাইব্রেরি থেকে কোনো স্কিল ডকুমেন্ট পড়ে।
-- **প্যারামিটার:** `skill_name`
-
----
-
-## 🗄️ ভেক্টর ডাটাবেস (RAG)
+Loads the content of one of the 25 built-in game development engineering skills.
+- **Parameters:** `skill_name`.
 
 ### `index_codebase`
-সিম্যান্টিক সার্চের জন্য সম্পূর্ণ প্রজেক্টকে (`.gd`) একটি লোকাল ভেক্টর ডাটাবেসে ইনডেক্স করে। `semantic_search` ব্যবহার করার আগে এটি করতে হবে।
+Generates vector embeddings of all project scripts into the local Vector DB.
 
 ### `semantic_search`
-ইনডেক্স করা কোডবেস থেকে সিম্যান্টিক ভেক্টর সার্চ করে, যেখানে শব্দ মিলে যাওয়ার চেয়েও বিষয়ের গভীর মিলের ভিত্তিতে কোড খুঁজে পাওয়া যায়।
-- **প্যারামিটার:** `query`
+Performs vector semantic search by intent and meaning across the indexed codebase.
+- **Parameters:** `query`.
 
 ---
 
-## 🛡️ অডিটিং (Auditing)
+## 🔊 6. Audio & Procedural Sound Effects (SFX)
 
-### `audit_scene`
-বর্তমানে খোলা সিনের ওপর একটি আর্কিটেকচারাল অডিট পরিচালনা করে, কোনো এতিম (orphan) নোড, অনুপস্থিত স্ক্রিপ্ট বা কর্মক্ষমতা সংক্রান্ত সতর্কবার্তা খোঁজে।
+### `generate_sfx`
+Procedurally synthesizes retro/arcade WAV sound effects (jumps, lasers, explosions, coins, powerups, clicks, hits).
+- **Parameters:** `preset` (`jump`, `laser`, `explosion`, `coin`, `powerup`, `hit`, `click`), `save_path` (optional).
 
-### `audit_script`
-খারাপ অভ্যাস, সম্ভাব্য বাগ বা সিনট্যাক্স সতর্কতা ধরার জন্য একটি নির্দিষ্ট GDScript ফাইলের ওপর স্ট্যাটিক অ্যানালাইসিস অডিট পরিচালনা করে।
-- **পরামিতি (Parameters):** `path`
+### `play_sfx_preview`
+Generates and plays a real-time synthesized sound preview without writing to disk.
+- **Parameters:** `preset`.
 
 ---
 
-## 🧪 টেস্ট (Tests)
+## 🎨 7. Shaders & Visual Synthesizer
+
+### `generate_shader`
+Generates custom `.gdshader` files for 2D canvas, 3D spatial materials, or screen post-processing.
+- **Parameters:** `preset` (`dissolve`, `hologram`, `outline`, `hit_flash`, `water`, `pixelate`, `glow`, `glitch`, `fire`, etc.), `mode` (`canvas_item`, `spatial`, `particles`), `save_path` (optional).
+
+### `apply_shader_to_node`
+Creates or updates a `ShaderMaterial` and attaches it to the selected 2D or 3D node.
+- **Parameters:** `node_path`, `shader_path`, `uniform_values` (optional).
+
+### `get_shader_presets_list`
+Returns the complete catalog of available shader presets and their configurable uniforms.
+
+---
+
+## 🗺️ 8. TileMaps, Terrains & Procedural Dungeons
+
+### `configure_tileset_atlas`
+Configures a texture atlas for a `TileSet`, setting up tile size, physics collision layers, and terrain sets.
+- **Parameters:** `texture_path`, `tile_size` (e.g. `[16, 16]`), `save_path`, `terrain_set_config`, `physics_config`.
+
+### `build_tilemap_layout`
+Paints an entire 2D matrix level layout onto a `TileMapLayer`.
+- **Parameters:** `layer_node_path`, `layout_matrix` (2D array of tile IDs), `source_id`.
+
+### `paint_terrain_cells`
+Paints terrain cells with auto-tiling using Godot 4's native terrain system.
+- **Parameters:** `layer_node_path`, `terrain_set`, `terrain_id`, `cell_coordinates`.
+
+### `read_tilemap_layout`
+Reads placed tile coordinates and IDs from a bounding box region of a TileMap.
+- **Parameters:** `layer_node_path`, `bounding_box` (optional).
+
+### `clear_tilemap_region`
+Clears tiles from a rectangular area or coordinate list.
+- **Parameters:** `layer_node_path`, `rect` or `cell_coordinates`.
+
+### `generate_procedural_dungeon`
+Generates complete procedural dungeons (rooms, corridors, doors, stairs, seeds) using BSP, Random Walk, or Cellular Automata algorithms and writes them to the TileMap.
+- **Parameters:** `width`, `height`, `algorithm`, `min_room_size`, `max_rooms`, `seed` (optional).
+
+### `scaffold_autotile_bitmasks`
+Automatically configures 2x2, 3x3 minimal, 16-pipe, or 47-tile terrain bitmasks on a TileSet resource.
+- **Parameters:** `tileset_path`, `terrain_set`, `terrain_id`, `pattern_type`.
+
+### `get_atlas_image`
+Extracts and inspects texture atlas slices and sub-image coordinates.
+- **Parameters:** `tileset_path`, `source_id`, `atlas_coords`.
+
+---
+
+## 🏃 9. Animations & State Machines
+
+### `create_animation`
+Creates new animations in `AnimationPlayer` with property tracks, length, and loop modes.
+- **Parameters:** `player_node_path`, `animation_name`, `library_name`, `length`, `loop_mode`, `tracks`.
+
+### `setup_spritesheet_animation`
+Slices a spritesheet (`Sprite2D`) and builds animations with automatic FPS calculation and `RESET` track.
+- **Parameters:** `player_node_path`, `sprite_node_path`, `animation_name`, `start_frame`, `frame_count`, `fps`, `loop_mode`.
+
+### `add_animation_event_track`
+Adds method call or audio tracks at specific animation timestamps (e.g. trigger hitbox spawn on frame 3).
+- **Parameters:** `player_node_path`, `animation_name`, `timestamp`, `event_type`, `target_node_path`, `method_name_or_property`, `method_args_or_value`.
+
+### `inspect_animation_player`
+Inspects libraries, animation tracks, durations, and properties of an `AnimationPlayer`.
+- **Parameters:** `player_node_path`.
+
+### `create_state_machine`
+Sets up an `AnimationTree` with an `AnimationNodeStateMachine` root.
+- **Parameters:** `tree_node_path`, `anim_player_path`, `states`, `transitions`, `start_state`.
+
+### `create_blend_space_2d`
+Creates and configures 2D blend spaces (e.g. for 4-way or 8-way character movement).
+- **Parameters:** `tree_node_path`, `state_name`, `blend_points`, `blend_mode`, `min_space`, `max_space`.
+
+### `connect_state_machine_transition`
+Creates and configures transitions between state machine nodes with crossfade and switch modes.
+- **Parameters:** `tree_node_path`, `from_state`, `to_state`, `switch_mode`, `xfade_time`.
+
+### `inspect_animation_tree`
+Returns the complete hierarchy of nodes, states, and transitions in an `AnimationTree`.
+- **Parameters:** `tree_node_path`.
+
+### `setup_character_animation_suite`
+Scaffolds a character's complete animation rig in a single step: creates `AnimationPlayer`, `AnimationTree`, State Machine (`Idle`, `Walk`, `Run`, `Jump`, `Attack`), and binds it to `Sprite2D`.
+- **Parameters:** `parent_path`, `sprite_node_path`.
+
+---
+
+## 🖥️ 10. UI Studio & Themes
+
+### `generate_ui_theme`
+Generates full `.tres` Theme resources with typography, buttons, panels, dialogue boxes, and StyleBoxes.
+- **Parameters:** `preset_or_name` (`glassmorphism`, `cyberpunk`, `retro_rpg`, `minimal_dark`, `scifi`), `save_path`, `colors`, `metrics`, `set_as_project_theme`.
+
+### `create_responsive_ui_component`
+Instantiates pre-built responsive UI components with automatic screen anchors.
+- **Parameters:** `component_type` (`hud`, `pause_menu`, `inventory_grid`, `dialogue_box`, `main_menu`), `save_path`, `theme_path`, `parent_node_path`.
+
+### `apply_theme_to_scene`
+Recursively applies a Theme resource to the scene root or a specific UI branch.
+- **Parameters:** `theme_path`, `node_path`.
+
+### `inspect_theme`
+Inspects properties, colors, and fonts defined in a `.tres` Theme file.
+- **Parameters:** `theme_path`.
+
+---
+
+## ⚡ 11. OmniTools, Reflection & Debugger
+
+### `omni_eval`
+Evaluates and executes dynamic GDScript code blocks and mathematical expressions in real-time within the editor context.
+- **Parameters:** `code`, `context_node_path` (optional).
+
+### `omni_manage`
+Executes advanced reflection, `ClassDB` queries, and in-memory node manipulation.
+- **Parameters:** `action`, `query`, `target`.
+
+### `get_runtime_errors`
+Captures error messages, warnings, and stack traces emitted by the Godot debugger while the game is running.
+- **Parameters:** `clear_after_read` (optional).
+
+### `get_runtime_status`
+Reports the runtime state of the active Godot debug session (running, paused, stopped).
+
+---
+
+## 🧪 12. Testing & Auditing
 
 ### `run_tests`
-একটি টেস্ট স্ক্রিপ্ট বা কমান্ড কার্যকর করে। GUT, GdUnit4 বা কাস্টম টেস্ট স্ক্রিপ্টের মাধ্যমে পরিবর্তনগুলো পরীক্ষা করার জন্য দরকারী।
-- **পরামিতি (Parameters):** `test_script_path` (ঐচ্ছিক)
+Executes automated unit or integration test suites in the project.
+- **Parameters:** `test_script_path` (optional).
+
+### `audit_scene`
+Performs an architectural audit on the open scene, checking for orphan nodes, missing scripts, and performance warnings.
+
+### `audit_script`
+Runs static analysis on a GDScript file to detect anti-patterns, scope bugs, and typing errors.
+- **Parameters:** `path`.

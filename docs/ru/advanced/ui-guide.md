@@ -1,156 +1,113 @@
-# Полное руководство по интерфейсу (Все кнопки)
+# Complete UI Guide (All Controls & Tabs)
 
-На этой странице описаны **каждая кнопка, переключатель и элемент управления** внутри интерфейса Gamedev AI в редакторе Godot.
+This page describes **every button, selector, control, and tab** present in the **Gamedev AI** interface inside the Godot editor.
 
-![Обзор основного интерфейса Gamedev AI в Godot](../../images/main_interface.png)
-
-## 🗂️ Основные вкладки (Main Tabs)
-
-Плагин имеет **3 вкладки** в верхней части панели:
-- **Chat** — основная панель взаимодействия с ИИ.
-- **Settings** — управление ключами API, пресетами, промптами и индексацией.
-- **Git** — нативный интегрированный контроль версий GitHub.
+![Overview of Gamedev AI main interface in Godot](../../images/main_interface.png)
 
 ---
 
-## 💬 Вкладка чата (Chat Tab)
+## 🗂️ Main Tabs & Panels
 
-### Верхняя панель (Top Bar)
-| Кнопка | Функция |
-|-------|--------|
-| **Preset Selector** | Выпадающее меню для быстрого переключения между различными настройками провайдеров/моделей (например, "Gemini 3.1", "GPT-4o"). |
-| **A-** / **A+** | Уменьшение или увеличение размера шрифта в чате. |
-| **+ New Chat** | Очищает текущий чат и начинает совершенно новую сессию. |
-| **⊙ History** | Выпадающий список всех прошлых разговоров. Нажмите на один, чтобы восстановить полный контекст этой сессии. |
-| **💾 Summarize to Memory** | Отправляет автоматический запрос ИИ для резюмирования архитектурных решений текущего разговора и сохранения их в персистентную память проекта. |
-
-### Область чата (OutputDisplay)
-- Отображает сообщения, отформатированные с помощью BBCode, с **жирным шрифтом**, *курсивом*, `встроенным кодом` и подсветкой синтаксиса для блоков кода.
-- Кликабельные ссылки на файлы проекта (открываются в редакторе при нажатии).
-- При наведении на текст для быстрого копирования появляется плавающая кнопка **Copy**.
-
-### Плеер TTS (Text-to-Speech)
-
-![Компактный плеер TTS с элементами управления воспроизведением](../../images/tts_player.png)
-
-| Управление | Функция |
-|----------|--------|
-| **▶ Read Aloud** | Преобразует последний ответ ИИ в голос и воспроизводит его. Идеально подходит для прослушивания объяснений во время программирования. |
-| **⏹ Stop** | Останавливает воспроизведение аудио. |
-| **Полоса прогресса** | Для перемотки аудио вперед или назад. |
-| **Скорость (1.0x - 2.0x)** | Управляет темпом воспроизведения. |
-
-### Кнопки быстрого действия (Quick Action Buttons)
-| Кнопка | Что делает |
-|-------|-----------|
-| **✧ Refactor** | Отправляет выделенный в редакторе код с запросом "Refactor this code". ИИ анализирует и предлагает структурные улучшения. |
-| **◆ Fix** | Отправляет выделенный код с запросом "Fix errors in this code". ИИ идентифицирует ошибки и генерирует исправление. |
-| **💡 Explain** | Отправляет выделенный код с запросом "Explain what this code does". ИИ объясняет каждую часть на русском языке. |
-| **↺ Undo** | Отменяет последнее действие ИИ в проекте (используя систему Undo/Redo в Godot). |
-| **🖥 Fix Console** | Читает последние красные ошибки из консоли вывода Godot и отправляет их напрямую ИИ для предложения исправлений. |
-
-### Область ввода (Input Area)
-| Элемент | Функция |
-|----------|--------|
-| **Текстовое поле** | Введите ваше сообщение. Нажмите `Shift + Enter` для отправки. |
-| **📎 Attach** | Открывает окно выбора файлов для прикрепления изображений, скриптов или любых файлов к запросу. |
-| **➤ Send** | Отправляет сообщение ИИ для обработки. |
-| **Drag & Drop** | Перетаскивайте узлы дерева сцены или файлы из файловой системы прямо в текстовое поле или область чата. ИИ получит полные метаданные. |
-
-### Настройки промпта (Dropdown)
-Эти опции сгруппированы под иконкой ⚙️ рядом с кнопкой отправки.
-
-| Настройка | Функция |
-|--------|--------|
-| **Включить контекст** | При активации плагин автоматически добавляет полное содержимое текущего открытого скрипта в редакторе к отправляемому сообщению. |
-| **Отправить скриншот** | При активации он автоматически делает скриншот окна Godot и отправляет его вместе с сообщением для визуального анализа ИИ. |
-| **Сначала план** | При активации ИИ не будет писать код. Он ответит только подробным планом. После проверки нажмите кнопку «Выполнить план», чтобы он начал кодить. |
-| **Режим наблюдения** | При активации ИИ автоматически отслеживает консоль вывода Godot. Если он обнаружит критические ошибки, он предложит исправления автоматически. |
+The plugin organizes its capabilities across **5 integrated tabs & panels**:
+- **💬 Chat** — Main conversational panel, tool executions, multi-agent pipeline state, and quick actions.
+- **⚙️ Settings** — Provider management (Gemini, OpenAI/OpenRouter, Ollama, NIM), API keys, custom system prompts, and vector indexing.
+- **🐙 Git** — Version control integrated with GitHub, featuring AI-generated commit messages.
+- **🎨 Shader Studio** — Visual shader synthesizer and editor with live interactive 2D/3D viewport previews.
+- **🔊 SFX Studio** — Procedural sound effect synthesizer with instant playback and one-click scene node insertion.
 
 ---
 
-## ⚙️ Вкладка настроек (Settings Tab)
+## 💬 1. Chat Tab
 
-### Управление пресетами (Presets)
-| Элемент | Функция |
-|----------|--------|
-| **Preset Selector** | Выпадающее меню для выбора сохраненных пресетов. |
-| **Add** | Создает новый пустой пресет. |
-| **Edit** | Открывает панель редактирования (Название, Провайдер, API Ключ, Base URL, Модель). |
-| **Delete** | Навсегда удаляет выбранный пресет. |
-| **Done Editing** | Закрывает панель редактирования и сохраняет изменения. |
+### Top Bar
+| Button | Function |
+|---|---|
+| **Preset Selector** | Dropdown to switch between active provider/model configurations (e.g. "Gemini 3.1 Pro", "Claude 3.7 Sonnet", "Ollama DeepSeek"). |
+| **A- / A+** | Decreases or increases chat font size. |
+| **+ New Chat** | Clears the current conversation and restarts session context. |
+| **⊙ History** | Dropdown containing past saved conversations to restore full context at any time. |
+| **💾 Summarize to Memory** | Instructs AI to synthesize key architectural decisions and persist them to project memory. |
 
-### Поля редактирования пресета
-| Поле | Описание |
-|-------|-----------|
-| **Preset Name** | Идентификационное имя (например, "Gemini 3.1"). |
-| **Provider** | Выбор между "Gemini" и "OpenAI / OpenRouter". |
-| **API Key** | Ключ API выбранного провайдера. |
-| **Base URL** | Базовый URL API (только для OpenAI/OpenRouter). |
-| **Model Name** | Точное имя модели (например, `gemini-2.5-flash`, `gpt-4o`). |
+### Multi-Agent Pipeline (Visual Chips)
+When complex tasks are executed, colorful chips indicate the active orchestrator stage in real time:
+* 🟦 `Architect` — Contract definition and architecture planning.
+* 🟨 `Scene Builder` — Node creation and `.tscn` scene hierarchies.
+* 🟩 `Coder` — Modern typed GDScript and signal wiring.
+* 🟪 `QA Tester` — Assertion testing and Auto-Healing loops.
 
-### Язык (Language)
-| Элемент | Функция |
-|----------|--------|
-| **Language Selector** | Выпадающее меню для выбора языка интерфейса и ответов ИИ (русский, Português BR, English и другие). |
+### TTS Player (Text-to-Speech)
 
-### Пользовательский системный промпт (Custom System Prompt)
-Большое текстовое поле для фиксированных правил, которым ИИ всегда будет следовать. Пример: *"Используй статическую типизацию во всех функциях. Комментируй на русском языке."*
+![Compact TTS Player with playback controls](../../images/tts_player.png)
 
-| Кнопка | Функция |
-|-------|--------|
-| **✨ Enhance Instructions with AI** | Отправьте ваши текущие инструкции ИИ для автоматического улучшения (технические детали, лучшие практики). Предварительный просмотр перед принятием. |
+| Control | Function |
+|---|---|
+| **▶ Read Aloud** | Synthesizes the latest AI response to audio. |
+| **⏹ Stop** | Stops audio playback. |
+| **Seek Slider** | Scrubs forward or backward in the audio track. |
+| **Speed (1.0x - 2.0x)** | Controls speech playback rate. |
 
-### Векторная база данных (Vector Database)
-| Элемент | Функция |
-|----------|--------|
-| **File List** | Визуальный список всех файлов `.gd` в проекте со статусом индексации. |
-| **🔍 Scan Changes** | Сканирует проект на наличие новых, измененных или удаленных файлов с момента последней индексации. |
-| **⚡ Index Codebase** | Запускает процесс векторной индексации всех измененных скриптов через Embeddings API. |
+### Quick Action Buttons
+| Button | Action |
+|---|---|
+| **✧ Refactor** | Sends selected code in the editor for structural refactoring. |
+| **◆ Fix** | Sends selected code for immediate bug fixing. |
+| **💡 Explain** | Sends selected code for step-by-step educational explanations. |
+| **↺ Undo** | Reverts the last AI action using Godot's native Undo/Redo history. |
+| **🖥 Fix Console** | Reads red error lines from Godot's Output console and prompts AI for an immediate fix. |
 
----
-
-## 🐙 Вкладка Git (Git Tab)
-
-### Начальная настройка
-| Элемент | Функция |
-|----------|--------|
-| **Initialize Repository** | Инициализирует репозиторий Git в папке проекта (если он еще не существует). |
-| **Remote URL** | Поле для вставки URL репозитория GitHub (например, `https://github.com/user/repo.git`). |
-| **Set Remote** | Устанавливает URL удаленного репозитория. |
-
-### Основные операции
-| Кнопка | Функция |
-|-------|--------|
-| **🔃 Refresh Status** | Обновляет статус Git (измененные/неотслеживаемые файлы, текущая ветка). |
-| **⬇️ Pull** | Загружает последние изменения из удаленного репозитория. |
-| **✨ Auto-Generate Commit Message** | ИИ анализирует все диффы и автоматически генерирует профессиональное сообщение для коммита. |
-| **Commit & Sync (Push)** | Создает коммит для всех изменений с сообщением и отправляет их на GitHub. |
-
-### Ветки (Branches)
-| Элемент | Функция |
-|----------|--------|
-| **Branch Label** | Отображает имя текущей ветки. |
-| **Branch Name Input** | Поле для ввода имени новой или существующей ветки. |
-| **Checkout/Create Branch** | Создает новую ветку или переключается на существующую. |
-
-### Экстренные действия
-| Кнопка | Функция |
-|-------|--------|
-| **⚠️ Undo Uncommitted Changes** | Отменяет все локальные незакоммиченные изменения (возвращает к последнему коммиту). Требует подтверждения. |
-| **⚠️ Force Pull Overwrite** | Полностью очищает и перезаписывает вашу локальную папку точным состоянием из облака. Требует подтверждения. |
-| **⚠️ Force Push** | Перезаписывает историю удаленного репозитория локальной версией. Используйте с осторожностью! |
+### Input Area & Prompt Settings (⚙️)
+| Element | Function |
+|---|---|
+| **Include Context** | Automatically attaches the active script in the Script Editor. |
+| **Send Screenshot** | Captures the Godot editor viewport and attaches it to the prompt (multimodal AI vision). |
+| **Plan First** | Forces the AI to return a Markdown plan before writing code. |
+| **Watch Mode** | Monitors the Output console and suggests auto-fixes if game crashes during play. |
 
 ---
 
-## 📋 Панель диффов (Diff Panel - Обзор кода)
+## 🎨 2. Shader Studio Tab
 
-Когда ИИ генерирует или изменяет код, в чате появляется панель сравнения:
+The built-in **Shader Studio** lets you create, customize, and preview GLSL shaders (`.gdshader`) in real time.
 
-![Панель диффов, показывающая удаленный код (красный) и добавленный код (зеленый)](../../images/diff_preview.png)
+| Control | Function |
+|---|---|
+| **Category Selector** | Filters presets by type (`2D Effects`, `3D Materials`, `Post-Processing`, `UI`). |
+| **Preset Selector** | Chooses from ready-to-use shaders: *Hit Flash, Dissolve, Hologram, Outline, Water, Pixelate, Glitch, Glow, Fire, Shield, etc.* |
+| **2D / 3D Mode** | Toggles the SubViewport preview between Sprite2D and MeshInstance3D with directional lighting. |
+| **Dynamic Uniforms Panel** | Automatically generates sliders, color pickers, and toggles for each shader `uniform`. |
+| **Live Code Editor** | Edit `.gdshader` code and click **Recompile** for instant visual feedback. |
+| **🎲 Randomize** | Generates instant aesthetic variations by randomizing uniform parameters. |
+| **✨ Apply to Selection** | Creates `ShaderMaterial` and attaches it to the selected node in the Scene Tree. |
+| **💾 Save Shader** | Saves the shader file (`.gdshader`) and material (`.tres`) to `res://shaders/`. |
 
-| Элемент | Функция |
-|----------|--------|
-| **Diff View** | Отображение удаленных (красный) и добавленных (зеленый) строк бок о бок. |
-| **Apply Changes** | Принимает изменения и применяет их к реальному файлу. Действие записывается в Undo/Redo Godot. |
-| **Skip** | Отклоняет изменения. Ни один файл не модифицируется. |
+---
+
+## 🔊 3. SFX Studio Tab (Procedural Synthesizer)
+
+Generates retro and procedural sound effects using pure GDScript PCM synthesis:
+
+| Control | Function |
+|---|---|
+| **Sound Presets** | Jump, Laser, Explosion, Coin, Power-up, Hit, UI Click. |
+| **▶ Preview** | Plays synthesized audio through the built-in `AudioStreamPlayer`. |
+| **🎲 Mutate** | Applies controlled procedural mutations to pitch and frequency envelope. |
+| **💾 Save WAV** | Writes 16-bit uncompressed `.wav` files to `res://audio/sfx/`. |
+| **➕ Insert to Scene** | Creates an `AudioStreamPlayer` node preconfigured with the stream under the selected node. |
+
+---
+
+## ⚙️ 4. Settings Tab
+
+* **Supported Providers:** Google Gemini, OpenAI, OpenRouter, Ollama (Local), NVIDIA NIM.
+* **Custom System Prompt:** Permanent engineering guidelines for the AI assistant.
+* **✨ Enhance Instructions with AI:** Optimizes system instructions with Godot 4.7+ best practices.
+* **Vector Database (RAG):** Scans changes and builds semantic embeddings for codebase indexing.
+
+---
+
+## 🐙 5. Git Tab & Version Control
+
+* **Repo Setup & Remotes:** Configure GitHub remote repository URLs and initialize repos.
+* **✨ Generate Commit Message:** AI analyzes `git diff` and generates Conventional Commit messages.
+* **Branch Management:** Create, switch, and inspect branches visually.
+* **Emergency Actions:** Discard local changes, Force Pull, and Force Push with confirmation dialogs.

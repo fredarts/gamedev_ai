@@ -1,14 +1,14 @@
 # Installation
 
-Welcome to the official **Gamedev AI** documentation! This page will focus on how to quickly add the assistant to your current Godot 4.6 project.
+Welcome to the official **Gamedev AI** documentation! This page will focus on how to quickly add the assistant to your current Godot 4.7+ project.
 
 ## Requirements
-* **Godot Engine:** Version 4.6 or higher (native `.gdextension` support is not required, the plugin runs pure GDScript).
+* **Godot Engine:** Version 4.7 or higher (native `.gdextension` support is not required, the plugin runs pure GDScript).
 * Google or OpenRouter account for API keys.
 
 ## Manual Step-by-Step (GitHub)
 
-1. Create or open an existing project in Godot 4.6.
+1. Create or open an existing project in Godot 4.7+.
 2. Navigate to your project's root folder (where the `project.godot` file is located).
 3. Create an `addons` folder (if it doesn't already exist).
 4. Inside `addons/`, download or clone the plugin repository:
@@ -28,4 +28,5 @@ With the files in place:
 
 That's it! When you enable it for the first time, you will see the Gamedev AI Chat panel appear in your editor's right *Dock*.
 
-[**Next Step: Configure your API Key** \u27A4](./configuration.md)
+[**Next Step: Configure your API Key** ➔](./configuration.md)
+

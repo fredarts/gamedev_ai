@@ -1,166 +1,306 @@
-# 所有 AI 工具 (Tool Reference)
+# All AI Tools (Tool Reference)
 
-Gamedev AI 拥有 **34 个内置工具**，AI 可以在对话中自主调用。这些工具是 AI 直接与 Godot 引擎交互的“机械臂”，下面按类别详细介绍了每个工具。
+**Gamedev AI** features **65 built-in tools** that the assistant can execute autonomously during a chat conversation or via the local Model Context Protocol (MCP) server. These tools serve as the "mechanical arm" allowing the AI to directly interact with the Godot Engine.
 
-## 🔧 脚本 (代码创建与编辑)
+---
+
+## 🔧 1. Scripts & GDScript Code
 
 ### `create_script`
-在指定路径创建一个新的 GDScript 文件 (`.gd`)，并包含所提供的内。AI 使用此工具从头开始生成脚本。
-- **参数:** `path` (res://...), `content` (完整的 GDScript 代码)
+Creates a new GDScript file (`.gd`) at the specified path with static typing and engine best practices.
+- **Parameters:** `path` (`res://...`), `content` (full GDScript code).
 
 ### `edit_script`
-用新版本替换现有脚本的全部内容。AI 首先读取文件以确保拥有最新版本。
-- **参数:** `path`, `content`
-- ⚠️ *已弃用，建议针对特定局部修复使用 `patch_script`。*
+Replaces the entire content of an existing script with a new version.
+- **Parameters:** `path`, `content`.
+- ⚠️ *Deprecated in favor of `patch_script` to prevent accidental overwrites.*
 
 ### `patch_script`
-局部修改 (Surgical Edit): 在脚本中搜索精确的代码块，并仅用新内容替换该部分，而无需重写整个文件。适用于小型修复。
-- **参数:** `path`, `search_content` (搜索的精确块), `replace_content` (新块)
+Surgical edit: searches for an exact block of code within the script and replaces only that snippet with the new content without modifying the rest of the file.
+- **Parameters:** `path`, `search_content` (exact block to find), `replace_content` (new block).
 
 ### `replace_selection`
-替换 Godot 脚本编辑器中当前突出的文本。与快速操作按钮（重构、修复、解释）配合使用。
-- **参数:** `text` (用于替换选定内容的新代码)
+Replaces the currently selected text in the Godot Script Editor (used by quick action buttons such as Refactor, Fix, and Explain).
+- **Parameters:** `text` (new code).
 
 ### `view_file_outline`
-返回不带完整代码的脚本结构：`class_name`, `extends`, 函数、信号、Exports、枚举、内联类以及带行号的常量。
-- **参数:** `path`
+Returns a structural outline of a script: `class_name`, `extends`, functions, signals, exports, enums, constants, and inner classes with their exact line numbers.
+- **Parameters:** `path`.
+
+### `get_lsp_diagnostics`
+Queries the Godot Language Server Protocol (LSP) in real time to fetch compilation errors, syntax issues, and warnings without running the game.
+- **Parameters:** `path`.
 
 ---
 
-## 🌳 节点 (场景树操作)
+## 🌳 2. Nodes & Scene Tree Manipulation
 
 ### `add_node`
-在编辑器中打开的场景中添加一个新节点。可以创建任何 Godot 节点类型（Node2D, CharacterBody3D, Label, Button 等）。
-- **参数:** `parent_path` (根节点使用 `.`), `type` (节点类), `name`, `script_path` (可选)
+Adds a new node to the open scene in the editor (Node2D, CharacterBody2D/3D, Label, Button, etc.).
+- **Parameters:** `parent_path` (use `.` for root), `type` (node class), `name`, `script_path` (optional).
 
 ### `remove_node`
-从当前场景树中移除一个节点。由于这是破坏性操作，需要用户确认。
-- **参数:** `node_path`
+Removes a node from the current Scene Tree. Requires user confirmation.
+- **Parameters:** `node_path`.
 
 ### `set_property`
-设置场景节点上的一个属性（位置、大小、文本、颜色等）。接受数字、矢量、颜色和字符串。
-- **参数:** `node_path`, `property`, `value`
+Edits any property of a node in the Inspector (position, rotation, scale, texture, colors, visibility).
+- **Parameters:** `node_path`, `property`, `value`.
 
 ### `set_theme_override`
-设置 Control 节点上的主题覆盖（字体大小、字体颜色、样式）。
-- **参数:** `node_path`, `override_type` (color/constant/font/font_size/stylebox), `name`, `value`
+Sets a theme override on Control nodes (font size, colors, stylebox).
+- **Parameters:** `node_path`, `override_type` (`color`, `constant`, `font`, `font_size`, `stylebox`), `name`, `value`.
 
 ### `connect_signal`
-将当前场景中发送节点的信号连接到接收节点的方法。
-- **参数:** `source_path`, `signal_name`, `target_path`, `method_name`, `binds` (可选), `flags` (可选)
+Connects an emitting node's signal to a receiving node's method in the current scene.
+- **Parameters:** `source_path`, `signal_name`, `target_path`, `method_name`, `binds` (optional), `flags` (optional).
 
 ### `disconnect_signal`
-断开两个节点之间之前连接的信号。
-- **参数:** `source_path`, `signal_name`, `target_path`, `method_name`
+Disconnects a previously connected signal between two nodes.
+- **Parameters:** `source_path`, `signal_name`, `target_path`, `method_name`.
 
 ### `attach_script`
-将现有的 GDScript 附加到场景中的节点。
-- **参数:** `node_path`, `script_path`
+Attaches an existing GDScript file to a node in the scene.
+- **Parameters:** `node_path`, `script_path`.
 
 ### `analyze_node_children`
-返回编辑场景中特定节点的子树的详细转储。对于探索深层层级非常有用。
-- **参数:** `node_path`, `max_depth` (默认 5)
+Returns a detailed hierarchical sub-tree of a specific node up to a configurable depth.
+- **Parameters:** `node_path`, `max_depth` (default: 5).
 
 ---
 
-## 📂 文件与项目
+## 📂 3. Files, Scenes & Resources
 
 ### `read_file`
-读取任何项目文件的完整内容。
-- **参数:** `path`
+Reads the complete text content of any file in the project.
+- **Parameters:** `path`.
 
 ### `list_dir`
-列出项目目录的内容。
-- **参数:** `path`
+Lists files and subdirectories within a project folder.
+- **Parameters:** `path`.
 
 ### `find_file`
-按名称搜索项目文件（部分匹配）。
-- **参数:** `pattern`
+Searches for files in the project matching a name or extension pattern.
+- **Parameters:** `pattern`.
 
 ### `remove_file`
-从项目中删除文件或目录。需要确认。
-- **参数:** `path`
+Deletes a file or directory from disk after confirmation.
+- **Parameters:** `path`.
 
 ### `move_files_batch`
-在单个批量操作中移动多个文件/目录或重命名它们。自动更新所有内部 Godot 引用 (`.tscn`, `.tres`)。
-- **参数:** `moves` (将旧路径映射到新路径的字典)
+Moves or renames multiple files in a batch operation, automatically updating Godot's internal dependencies.
+- **Parameters:** `moves` (dictionary of old path to new path).
 
 ### `create_scene`
-创建一个新的场景文件 (`.tscn`) 并在编辑器中打开它。
-- **参数:** `path`, `root_type`, `root_name`
+Creates a new scene file (`.tscn`) with the configured root node and opens it in the editor.
+- **Parameters:** `path`, `root_type`, `root_name`.
 
 ### `instance_scene`
-在当前场景中将现有 `.tscn` 场景作为另一个节点的子节点实例化。
-- **参数:** `parent_path`, `scene_path`, `name`
+Instances a `.tscn` scene as a child of a node in the currently opened scene.
+- **Parameters:** `parent_path`, `scene_path`, `name`.
 
 ### `create_resource`
-创建一个新的资源文件 (`.tres`)。对于道具、统计数据或自定义配置等素材非常有用。
-- **参数:** `path`, `type`, `properties` (可选)
+Creates new resource files (`.tres`) for items, inventories, stats, or configuration data.
+- **Parameters:** `path`, `type`, `properties` (optional).
 
 ---
 
-## 🔍 搜索与分析
+## 🔍 4. Search, Inspection & Analysis
 
 ### `grep_search`
-在项目文件内部搜索文本。返回带路径和行号的匹配行。
-- **参数:** `query`, `include` (扩展名过滤，可选), `max_results` (默认 20)
+Full-text search with file extension filters across all project files.
+- **Parameters:** `query`, `include` (optional), `max_results` (default: 20).
 
 ### `search_in_files`
-通过正则在所有项目 `.gd` 文件中搜索变量、函数或特定逻辑。
-- **参数:** `pattern` (正则表达式)
+Regular expression (Regex) search across all project GDScripts.
+- **Parameters:** `pattern`.
 
 ### `get_class_info`
-返回关于 Godot 类（引擎或自定义）的详细信息：基类、属性、方法和信号。
-- **参数:** `class_name`
+Queries Godot's `ClassDB` to extract methods, properties, signals, and constants of any engine or custom class.
+- **Parameters:** `class_name`.
 
 ### `capture_editor_screenshot`
-截取整个 Godot 编辑器窗口，并自动将其附加到下一个提示语中进行视觉分析。
+Captures a real-time screenshot of the Godot editor window for multimodal AI vision analysis.
 
 ---
 
-## 🧠 记忆与知识
+## 🧠 5. Persistent Memory & Knowledge (RAG)
 
 ### `save_memory`
-在项目记忆中保存一个持久事实，该事实在未来的所有聊天会话中都可用。
-- **参数:** `category` (architecture/convention/preference/bug_fix/project_info), `content`
+Saves an architectural decision, convention, preference, or pattern into the persistent project memory.
+- **Parameters:** `category` (`architecture`, `convention`, `preference`, `bug_fix`, `project_info`), `content`.
 
 ### `list_memories`
-列出为此项目保存的所有持久事实。
+Lists all persistent memories saved for this project.
 
 ### `delete_memory`
-根据 ID 删除特定的记忆事实。
-- **参数:** `id`
+Deletes a specific memory entry by its unique ID.
+- **Parameters:** `id`.
 
 ### `read_skill`
-从 AI 的内部库中读取技能文档文件，以便在编程前学习最佳实践。
-- **参数:** `skill_name`
-
----
-
-## 🗄️ 矢量数据库 (RAG)
+Loads the content of one of the 25 built-in game development engineering skills.
+- **Parameters:** `skill_name`.
 
 ### `index_codebase`
-将整个项目 (`.gd`) 索引到本地矢量数据库中进行语义搜索。必须在使用 `semantic_search` 之前执行。
+Generates vector embeddings of all project scripts into the local Vector DB.
 
 ### `semantic_search`
-在索引的代码库上执行语义矢量搜索，根据含义（而非仅仅精确文本匹配）寻找高度相关的代码片段。
-- **参数:** `query`
+Performs vector semantic search by intent and meaning across the indexed codebase.
+- **Parameters:** `query`.
 
 ---
 
-## 🧪 测试 (Tests)
+## 🔊 6. Audio & Procedural Sound Effects (SFX)
+
+### `generate_sfx`
+Procedurally synthesizes retro/arcade WAV sound effects (jumps, lasers, explosions, coins, powerups, clicks, hits).
+- **Parameters:** `preset` (`jump`, `laser`, `explosion`, `coin`, `powerup`, `hit`, `click`), `save_path` (optional).
+
+### `play_sfx_preview`
+Generates and plays a real-time synthesized sound preview without writing to disk.
+- **Parameters:** `preset`.
+
+---
+
+## 🎨 7. Shaders & Visual Synthesizer
+
+### `generate_shader`
+Generates custom `.gdshader` files for 2D canvas, 3D spatial materials, or screen post-processing.
+- **Parameters:** `preset` (`dissolve`, `hologram`, `outline`, `hit_flash`, `water`, `pixelate`, `glow`, `glitch`, `fire`, etc.), `mode` (`canvas_item`, `spatial`, `particles`), `save_path` (optional).
+
+### `apply_shader_to_node`
+Creates or updates a `ShaderMaterial` and attaches it to the selected 2D or 3D node.
+- **Parameters:** `node_path`, `shader_path`, `uniform_values` (optional).
+
+### `get_shader_presets_list`
+Returns the complete catalog of available shader presets and their configurable uniforms.
+
+---
+
+## 🗺️ 8. TileMaps, Terrains & Procedural Dungeons
+
+### `configure_tileset_atlas`
+Configures a texture atlas for a `TileSet`, setting up tile size, physics collision layers, and terrain sets.
+- **Parameters:** `texture_path`, `tile_size` (e.g. `[16, 16]`), `save_path`, `terrain_set_config`, `physics_config`.
+
+### `build_tilemap_layout`
+Paints an entire 2D matrix level layout onto a `TileMapLayer`.
+- **Parameters:** `layer_node_path`, `layout_matrix` (2D array of tile IDs), `source_id`.
+
+### `paint_terrain_cells`
+Paints terrain cells with auto-tiling using Godot 4's native terrain system.
+- **Parameters:** `layer_node_path`, `terrain_set`, `terrain_id`, `cell_coordinates`.
+
+### `read_tilemap_layout`
+Reads placed tile coordinates and IDs from a bounding box region of a TileMap.
+- **Parameters:** `layer_node_path`, `bounding_box` (optional).
+
+### `clear_tilemap_region`
+Clears tiles from a rectangular area or coordinate list.
+- **Parameters:** `layer_node_path`, `rect` or `cell_coordinates`.
+
+### `generate_procedural_dungeon`
+Generates complete procedural dungeons (rooms, corridors, doors, stairs, seeds) using BSP, Random Walk, or Cellular Automata algorithms and writes them to the TileMap.
+- **Parameters:** `width`, `height`, `algorithm`, `min_room_size`, `max_rooms`, `seed` (optional).
+
+### `scaffold_autotile_bitmasks`
+Automatically configures 2x2, 3x3 minimal, 16-pipe, or 47-tile terrain bitmasks on a TileSet resource.
+- **Parameters:** `tileset_path`, `terrain_set`, `terrain_id`, `pattern_type`.
+
+### `get_atlas_image`
+Extracts and inspects texture atlas slices and sub-image coordinates.
+- **Parameters:** `tileset_path`, `source_id`, `atlas_coords`.
+
+---
+
+## 🏃 9. Animations & State Machines
+
+### `create_animation`
+Creates new animations in `AnimationPlayer` with property tracks, length, and loop modes.
+- **Parameters:** `player_node_path`, `animation_name`, `library_name`, `length`, `loop_mode`, `tracks`.
+
+### `setup_spritesheet_animation`
+Slices a spritesheet (`Sprite2D`) and builds animations with automatic FPS calculation and `RESET` track.
+- **Parameters:** `player_node_path`, `sprite_node_path`, `animation_name`, `start_frame`, `frame_count`, `fps`, `loop_mode`.
+
+### `add_animation_event_track`
+Adds method call or audio tracks at specific animation timestamps (e.g. trigger hitbox spawn on frame 3).
+- **Parameters:** `player_node_path`, `animation_name`, `timestamp`, `event_type`, `target_node_path`, `method_name_or_property`, `method_args_or_value`.
+
+### `inspect_animation_player`
+Inspects libraries, animation tracks, durations, and properties of an `AnimationPlayer`.
+- **Parameters:** `player_node_path`.
+
+### `create_state_machine`
+Sets up an `AnimationTree` with an `AnimationNodeStateMachine` root.
+- **Parameters:** `tree_node_path`, `anim_player_path`, `states`, `transitions`, `start_state`.
+
+### `create_blend_space_2d`
+Creates and configures 2D blend spaces (e.g. for 4-way or 8-way character movement).
+- **Parameters:** `tree_node_path`, `state_name`, `blend_points`, `blend_mode`, `min_space`, `max_space`.
+
+### `connect_state_machine_transition`
+Creates and configures transitions between state machine nodes with crossfade and switch modes.
+- **Parameters:** `tree_node_path`, `from_state`, `to_state`, `switch_mode`, `xfade_time`.
+
+### `inspect_animation_tree`
+Returns the complete hierarchy of nodes, states, and transitions in an `AnimationTree`.
+- **Parameters:** `tree_node_path`.
+
+### `setup_character_animation_suite`
+Scaffolds a character's complete animation rig in a single step: creates `AnimationPlayer`, `AnimationTree`, State Machine (`Idle`, `Walk`, `Run`, `Jump`, `Attack`), and binds it to `Sprite2D`.
+- **Parameters:** `parent_path`, `sprite_node_path`.
+
+---
+
+## 🖥️ 10. UI Studio & Themes
+
+### `generate_ui_theme`
+Generates full `.tres` Theme resources with typography, buttons, panels, dialogue boxes, and StyleBoxes.
+- **Parameters:** `preset_or_name` (`glassmorphism`, `cyberpunk`, `retro_rpg`, `minimal_dark`, `scifi`), `save_path`, `colors`, `metrics`, `set_as_project_theme`.
+
+### `create_responsive_ui_component`
+Instantiates pre-built responsive UI components with automatic screen anchors.
+- **Parameters:** `component_type` (`hud`, `pause_menu`, `inventory_grid`, `dialogue_box`, `main_menu`), `save_path`, `theme_path`, `parent_node_path`.
+
+### `apply_theme_to_scene`
+Recursively applies a Theme resource to the scene root or a specific UI branch.
+- **Parameters:** `theme_path`, `node_path`.
+
+### `inspect_theme`
+Inspects properties, colors, and fonts defined in a `.tres` Theme file.
+- **Parameters:** `theme_path`.
+
+---
+
+## ⚡ 11. OmniTools, Reflection & Debugger
+
+### `omni_eval`
+Evaluates and executes dynamic GDScript code blocks and mathematical expressions in real-time within the editor context.
+- **Parameters:** `code`, `context_node_path` (optional).
+
+### `omni_manage`
+Executes advanced reflection, `ClassDB` queries, and in-memory node manipulation.
+- **Parameters:** `action`, `query`, `target`.
+
+### `get_runtime_errors`
+Captures error messages, warnings, and stack traces emitted by the Godot debugger while the game is running.
+- **Parameters:** `clear_after_read` (optional).
+
+### `get_runtime_status`
+Reports the runtime state of the active Godot debug session (running, paused, stopped).
+
+---
+
+## 🧪 12. Testing & Auditing
 
 ### `run_tests`
-执行测试脚本或命令。用于通过 GUT、GdUnit4 或自定义测试脚本验证更改。
-- **参数：** `test_script_path` (可选)
-
----
-
-## 🛡️ 审计 (Auditing)
+Executes automated unit or integration test suites in the project.
+- **Parameters:** `test_script_path` (optional).
 
 ### `audit_scene`
-对当前打开的场景执行架构审计，查找孤立节点、丢失的脚本或性能警告。
+Performs an architectural audit on the open scene, checking for orphan nodes, missing scripts, and performance warnings.
 
 ### `audit_script`
-对特定的 GDScript 文件执行静态分析审计，以捕获不良实践、潜在错误或语法警告。
-- **参数：** `path`
+Runs static analysis on a GDScript file to detect anti-patterns, scope bugs, and typing errors.
+- **Parameters:** `path`.

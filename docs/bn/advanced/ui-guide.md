@@ -1,158 +1,113 @@
-# সম্পূর্ণ UI গাইড (সমস্ত বাটন)
+# Complete UI Guide (All Controls & Tabs)
 
-এই পৃষ্ঠায় Godot এডিটর এর ভেতরে Gamedev AI ইন্টারফেস এর **প্রতিটি বাটন, সুইচ এবং কন্ট্রোল** সম্পর্কে বিস্তারিত বর্ণনা দেওয়া হয়েছে।
+This page describes **every button, selector, control, and tab** present in the **Gamedev AI** interface inside the Godot editor.
 
-![Godot এ Gamedev AI এর প্রধান ইন্টারফেসের ওভারভিউ](../../images/main_interface.png)
-
-## 🗂️ প্রধান ট্যাব (Main Tabs)
-
-প্লাগিনটির উপরের দিকে **৩টি ট্যাব** রয়েছে:
-- **Chat** — AI এর সাথে কথোপকথনের প্রধান প্যানেল।
-- **Settings** — API কী, প্রেসেট, প্রম্পট এবং ইনডেক্সিং ম্যানেজমেন্ট।
-- **Git** — নেটিভ ইন্টিগ্রেটেড GitHub ভার্সন কন্ট্রোল।
+![Overview of Gamedev AI main interface in Godot](../../images/main_interface.png)
 
 ---
 
----
+## 🗂️ Main Tabs & Panels
 
-## 💬 চ্যাট ট্যাব (Chat Tab)
-
-### উপরের বার (Top Bar)
-| বাটন | ফাংশন |
-|-------|--------|
-| **Preset Selector** | বিভিন্ন প্রোভাইডার/মডেল সেটিংসের মধ্যে দ্রুত সুইচ করার ড্রপডাউন (যেমন: "Gemini 3.1", "GPT-4o")। |
-| **A-** / **A+** | চ্যাটের ফন্ট সাইজ কমানো বা বাড়ানো। |
-| **+ New Chat** | বর্তমান চ্যাট পরিষ্কার করে সম্পূর্ণ নতুন সেশন শুরু করা। |
-| **⊙ History** | অতীতের সমস্ত কথোপকথনের ড্রপডাউন লিস্ট। যেকোনো একটিতে ক্লিক করে সেই সেশনের পূর্ণ কন্টেক্সট ফিরিয়ে আনা যায়। |
-| **💾 Summarize to Memory** | বর্তমান আলোচনার আর্কিটেকচারাল সিদ্ধান্তগুলো সামারি করে প্রজেক্টের পারসিস্টেন্ট মেমরিতে সেভ করার জন্য AI কে রিকোয়েস্ট পাঠায়। |
-
-### চ্যাট এরিয়া (OutputDisplay)
-- BBCode ফরম্যাটে মেসেজ দেখায় যাতে **Bold**, *Italics*, `Inline Code` এবং কোড ব্লকের জন্য সিনট্যাক্স হাইলাইটিং থাকে।
-- প্রজেক্ট ফাইলের ক্লিকযোগ্য লিঙ্ক (ক্লিক করলে এডিটরে ফাইলটি খুলে যায়)।
-- টেক্সটের ওপর মাউস রাখলে দ্রুত কপি করার জন্য একটি ফ্লোটিং **Copy** বাটন দেখা যায়।
-
-### TTS প্লেয়ার (Text-to-Speech)
-
-![প্লেব্যাক কন্ট্রোল সহ কমপ্যাক্ট TTS প্লেয়ার](../../images/tts_player.png)
-
-| কন্ট্রোল | ফাংশন |
-|----------|--------|
-| **▶ Read Aloud** | AI এর শেষ উত্তরটিকে ভয়েসে রূপান্তর করে প্লে করে। কোডিং করার সময় ব্যাখ্যা শোনার জন্য উপযুক্ত। |
-| **⏹ Stop** | অডিও প্লেব্যাক বন্ধ করে দেওয়া। |
-| **প্রগ্রেস বার** | অডিও সামনে বা পেছনে টেনে নেওয়া। |
-| **স্পিড (1.0x - 2.0x)** | প্লেব্যাকের গতি নিয়ন্ত্রণ করা। |
-
-### কুইক অ্যাকশন বাটন (Quick Action Buttons)
-| বাটন | যা করে |
-|-------|-----------|
-| **✧ Refactor** | এডিটরে সিলেক্ট করা কোডটি পাঠিয়ে রিকোয়েস্ট করে "Refactor this code"। AI কোডের স্ট্রাকচারাল উন্নতির প্রস্তাব দেয়। |
-| **◆ Fix** | সিলেক্ট করা কোডটি পাঠিয়ে রিকোয়েস্ট করে "Fix errors in this code"। AI এরর খুঁজে বের করে উত্তর জেনারেট করে। |
-| **💡 Explain** | সিলেক্ট করা কোডটি পাঠিয়ে রিকোয়েস্ট করে "Explain what this code does"। AI বাংলায় কোডটির কাজ ব্যাখ্যা করে। |
-| **↺ Undo** | প্রোজেক্টে AI এর শেষ কাজটিকে আনডু করে (Godot এর Undo/Redo সিস্টেম ব্যবহার করে)। |
-| **🖥 Fix Console** | Godot এর আউটপুট কনসোল থেকে সাম্প্রতিক লাল এররগুলো পড়ে এবং সমাধানের জন্য সরাসরি AI এর কাছে পাঠিয়ে দেয়। |
-
-### ইনপুট এরিয়া (Input Area)
-| এলিমেন্ট | ফাংশন |
-|----------|--------|
-| **টেক্সট ফিল্ড** | আপনার মেসেজ টাইপ করুন। পাঠাতে `Shift + Enter` চাপুন। |
-| **📎 Attach** | চ্যাটে ইমেজ, স্ক্রিপ্ট বা যেকোনো ফাইল যুক্ত করার জন্য ফাইল ডিটেক্টর উইন্ডো খুলে দেয়। |
-| **➤ Send** | প্রসেস করার জন্য AI এর কাছে মেসেজ পাঠায়। |
-| **Drag & Drop** | সিন ট্রি থেকে নোড অথবা ফাইল সিস্টেম থেকে ফাইল সরাসরি চ্যাট এরিয়া বা টেক্সট ফিল্ডে ড্র্যাগ করুন। AI সেগুলোর মেটাডেটা পেয়ে যাবে। |
-
-### প্রম্পট সেটিংস (Prompt Settings - ড্রপডাউন)
-এই অপশনগুলো সেন্ড বাটনের পাশের ⚙️ আইকনের নিচে গ্রুপ করা হয়েছে।
-
-| সেটিংস | কাজ |
-|--------|--------|
-| **প্রসঙ্গ অন্তর্ভুক্ত করুন (Include Context)** | সক্রিয় থাকলে, প্লাগইন স্বয়ংক্রিয়ভাবে এডিটরে বর্তমানে খোলা স্ক্রিপ্টের সম্পূর্ণ বিষয়বস্তু পাঠানো বার্তার সাথে যুক্ত করে দেয়। |
-| **স্ক্রিনশট পাঠান (Send Screenshot)** | সক্রিয় থাকলে, এটি স্বয়ংক্রিয়ভাবে Godot উইন্ডোর একটি স্ক্রিনশট নেয় এবং AI-এর ভিজ্যুয়াল বিশ্লেষণের জন্য বার্তার সাথে পাঠিয়ে দেয়। |
-| **আগে পরিকল্পনা করুন (Plan First)** | সক্রিয় থাকলে, AI সরাসরি কোড লিখবে না। এটি শুধুমাত্র প্রস্তাবিত পরিবর্তনগুলোর একটি বিস্তারিত পরিকল্পনা দেবে। পর্যালোচনার পর, কোড লেখার জন্য "Execute Plan" বাটনে ক্লিক করুন। |
-| **ওয়াচ মোড (Watch Mode)** | সক্রিয় থাকলে, AI স্বয়ংক্রিয়ভাবে Godot-এর আউটপুট কনসোল মনিটর করে। গেম চালানোর সময় কোনো গুরুতর ত্রুটি ধরা পড়লে এটি স্বয়ংক্রিয়ভাবে সমাধানের প্রস্তাব দেয়। |
+The plugin organizes its capabilities across **5 integrated tabs & panels**:
+- **💬 Chat** — Main conversational panel, tool executions, multi-agent pipeline state, and quick actions.
+- **⚙️ Settings** — Provider management (Gemini, OpenAI/OpenRouter, Ollama, NIM), API keys, custom system prompts, and vector indexing.
+- **🐙 Git** — Version control integrated with GitHub, featuring AI-generated commit messages.
+- **🎨 Shader Studio** — Visual shader synthesizer and editor with live interactive 2D/3D viewport previews.
+- **🔊 SFX Studio** — Procedural sound effect synthesizer with instant playback and one-click scene node insertion.
 
 ---
 
-## ⚙️ সেটিংস ট্যাব (Settings Tab)
+## 💬 1. Chat Tab
 
-### প্রেসেট ম্যানেজমেন্ট (Presets)
-| এলিমেন্ট | ফাংশন |
-|----------|--------|
-| **Preset Selector** | সেভ করা প্রেসেট সিলেক্ট করার ড্রপডাউন। |
-| **Add** | একটি নতুন ফাঁকা প্রেসেট তৈরি করে। |
-| **Edit** | এডিট প্যানেল খুলে দেয় (নাম, প্রোভাইডার, API কী, বেস URL, মডেল)। |
-| **Delete** | সিলেক্ট করা প্রেসেটটি পাকাপাকিভাবে ডিলিট করে। |
-| **Done Editing** | এডিট প্যানেল বন্ধ করে এবং পরিবর্তনগুলো সেভ করে। |
+### Top Bar
+| Button | Function |
+|---|---|
+| **Preset Selector** | Dropdown to switch between active provider/model configurations (e.g. "Gemini 3.1 Pro", "Claude 3.7 Sonnet", "Ollama DeepSeek"). |
+| **A- / A+** | Decreases or increases chat font size. |
+| **+ New Chat** | Clears the current conversation and restarts session context. |
+| **⊙ History** | Dropdown containing past saved conversations to restore full context at any time. |
+| **💾 Summarize to Memory** | Instructs AI to synthesize key architectural decisions and persist them to project memory. |
 
-### প্রেসেট এডিট করার ফিল্ডসমূহ
-| ফিল্ড | বর্ণনা |
-|-------|-----------|
-| **Preset Name** | শণাক্ত করার জন্য নাম (যেমন: "Gemini 3.1")। |
-| **Provider** | "Gemini" অথবা "OpenAI / OpenRouter" এর মধ্যে পছন্দ করুন। |
-| **API Key** | সিলেক্ট করা প্রোভাইডারের API কী। |
-| **Base URL** | API এর বেস URL (কেবল OpenAI/OpenRouter এর জন্য)। |
-| **Model Name** | মডেলের সঠিক নাম (যেমন: `gemini-2.5-flash`, `gpt-4o`)। |
+### Multi-Agent Pipeline (Visual Chips)
+When complex tasks are executed, colorful chips indicate the active orchestrator stage in real time:
+* 🟦 `Architect` — Contract definition and architecture planning.
+* 🟨 `Scene Builder` — Node creation and `.tscn` scene hierarchies.
+* 🟩 `Coder` — Modern typed GDScript and signal wiring.
+* 🟪 `QA Tester` — Assertion testing and Auto-Healing loops.
 
-### ভাষা (Language)
-| এলিমেন্ট | ফাংশন |
-|----------|--------|
-| **Language Selector** | ইন্টারফেস এবং AI এর উত্তরের ভাষা সিলেক্ট করার ড্রপডাউন (Bengali, English, Português BR ইত্যাদি)। |
+### TTS Player (Text-to-Speech)
 
-### কাস্টম সিস্টেম প্রম্পট (Custom System Prompt)
-বড় টেক্সট ফিল্ড যেখানে ফিক্সড নিয়মাবলী দেওয়া যায় যা AI সবসময় মেনে চলবে। উদাহরণ: *"সব ফাংশনে স্ট্যাটিক টাইপিং ব্যবহার করো। বাংলায় কমেন্ট করো।"*
+![Compact TTS Player with playback controls](../../images/tts_player.png)
 
-| বাটন | ফাংশন |
-|-------|--------|
-| **✨ Enhance Instructions with AI** | আপনার বর্তমান ইনস্ট্রাকশনগুলো অটোমেটিক উন্নত করার জন্য AI এর কাছে পাঠায়। গ্রহণ করার আগে প্রিভিউ দেখা যায়। |
+| Control | Function |
+|---|---|
+| **▶ Read Aloud** | Synthesizes the latest AI response to audio. |
+| **⏹ Stop** | Stops audio playback. |
+| **Seek Slider** | Scrubs forward or backward in the audio track. |
+| **Speed (1.0x - 2.0x)** | Controls speech playback rate. |
 
-### ভেক্টর ডাটাবেস (Vector Database)
-| এলিমেন্ট | ফাংশন |
-|----------|--------|
-| **File List** | প্রজেক্টের সব `.gd` ফাইলের ইনডেক্সিং স্ট্যাটাস সহ ভিজ্যুয়াল লিস্ট। |
-| **🔍 Scan Changes** | শেষ ইনডেক্সিং এর পর নতুন, পরিবর্তিত বা ডিলিট হওয়া ফাইল স্ক্যান করে। |
-| **⚡ Index Codebase** | Embeddings API এর মাধ্যমে সব পরিবর্তিত স্ক্রিপ্টের ভেক্টর ইনডেক্সিং প্রসেস শুরু করে। |
+### Quick Action Buttons
+| Button | Action |
+|---|---|
+| **✧ Refactor** | Sends selected code in the editor for structural refactoring. |
+| **◆ Fix** | Sends selected code for immediate bug fixing. |
+| **💡 Explain** | Sends selected code for step-by-step educational explanations. |
+| **↺ Undo** | Reverts the last AI action using Godot's native Undo/Redo history. |
+| **🖥 Fix Console** | Reads red error lines from Godot's Output console and prompts AI for an immediate fix. |
 
----
-
-## 🐙 Git ট্যাব (Git Tab)
-
-### শুরু করার কনফিগারেশন
-| এলিমেন্ট | ফাংশন |
-|----------|--------|
-| **Initialize Repository** | প্রজেক্ট ফোল্ডারে Git রিপোজিটরি ইনিশিয়েলাইজ করে (যদি আগে না থাকে)। |
-| **Remote URL** | GitHub রিপোজিটরির URL পেস্ট করার ফিল্ড (যেমন: `https://github.com/user/repo.git`)। |
-| **Set Remote** | রিমোট রিপোজিটরির URL সেট করে। |
-
-### প্রধান অপারেশনসমূহ
-| বাটন | ফাংশন |
-|-------|--------|
-| **🔃 Refresh Status** | Git স্ট্যাটাস রিফ্রেশ করে (পরিবর্তিত/আনট্র্যাকড ফাইল, বর্তমান শাখা)। |
-| **⬇️ Pull** | রিমোট রিপোজিটরি থেকে সাম্প্রতিক পরিবর্তনগুলো ডাউনলোড করে। |
-| **✨ Auto-Generate Commit Message** | AI সমস্ত ডিফারেন্স অ্যানালাইসিস করে একটি প্রফেশনাল কমিট মেসেজ অটো-জেনারেট করে। |
-| **Commit & Sync (Push)** | একটি মেসেজ সহ সব পরিবর্তন কমিট করে এবং GitHub এ পুশ (Push) করে। |
-
-### ব্রাঞ্চ বা শাখা (Branches)
-| এলিমেন্ট | ফাংশন |
-|----------|--------|
-| **Branch Label** | বর্তমান শাখার নাম দেখায়। |
-| **Branch Name Input** | নতুন বা বিদ্যমান শাখার নাম লেখার ফিল্ড। |
-| **Checkout/Create Branch** | নতুন শাখা তৈরি করে অথবা বিদ্যমান শাখায় সুইচ করে। |
-
-### জরুরি অ্যাকশন (Emergency Actions)
-| বাটন | ফাংশন |
-|-------|--------|
-| **⚠️ Undo Uncommitted Changes** | সব লোকাল আন-কমিটেড পরিবর্তন বাতিল করে (শেষ কমিটে ফিরে যায়)। কনফার্মেশন প্রয়োজন। |
-| **⚠️ Force Pull Overwrite** | রিমোট স্ট্যাটাস ডাউনলোড করে আপনার লোকাল ফোল্ডারটি সম্পূর্ণ পরিষ্কার করে ওভাররাইট করে। কনফার্মেশন প্রয়োজন। |
-| **⚠️ Force Push** | লোকাল ভার্সন দিয়ে রিমোট রিপোজিটরির হিস্ট্রি ওভাররাইট করে। সাবধানে ব্যবহার করুন! |
+### Input Area & Prompt Settings (⚙️)
+| Element | Function |
+|---|---|
+| **Include Context** | Automatically attaches the active script in the Script Editor. |
+| **Send Screenshot** | Captures the Godot editor viewport and attaches it to the prompt (multimodal AI vision). |
+| **Plan First** | Forces the AI to return a Markdown plan before writing code. |
+| **Watch Mode** | Monitors the Output console and suggests auto-fixes if game crashes during play. |
 
 ---
 
-## 📋 ডিফারেন্স প্যানেল (Diff Panel - Code Review)
+## 🎨 2. Shader Studio Tab
 
-যখন AI কোড জেনারেট বা পরিবর্তন করে, তখন চ্যাটে একটি তুলনা করার প্যানেল দেখা যায়:
+The built-in **Shader Studio** lets you create, customize, and preview GLSL shaders (`.gdshader`) in real time.
 
-![ডিলিটেড কোড (লাল) এবং অ্যাডেড কোড (সবুজ) সহ ডিফারেন্স প্রিভিউ](../../images/diff_preview.png)
+| Control | Function |
+|---|---|
+| **Category Selector** | Filters presets by type (`2D Effects`, `3D Materials`, `Post-Processing`, `UI`). |
+| **Preset Selector** | Chooses from ready-to-use shaders: *Hit Flash, Dissolve, Hologram, Outline, Water, Pixelate, Glitch, Glow, Fire, Shield, etc.* |
+| **2D / 3D Mode** | Toggles the SubViewport preview between Sprite2D and MeshInstance3D with directional lighting. |
+| **Dynamic Uniforms Panel** | Automatically generates sliders, color pickers, and toggles for each shader `uniform`. |
+| **Live Code Editor** | Edit `.gdshader` code and click **Recompile** for instant visual feedback. |
+| **🎲 Randomize** | Generates instant aesthetic variations by randomizing uniform parameters. |
+| **✨ Apply to Selection** | Creates `ShaderMaterial` and attaches it to the selected node in the Scene Tree. |
+| **💾 Save Shader** | Saves the shader file (`.gdshader`) and material (`.tres`) to `res://shaders/`. |
 
-| এলিমেন্ট | ফাংশন |
-|----------|--------|
-| **Diff View** | পাশাপাশি ডিলিটেড (লাল) এবং অ্যাডেড (সবুজ) লাইনগুলো দেখায়। |
-| **Apply Changes** | পরিবর্তনগুলো গ্রহণ করে এবং আসল ফাইলে প্রয়োগ করে। এটি Godot এর Undo/Redo তে রেকর্ড হয়। |
-| **Skip** | পরিবর্তনগুলো বাতিল করে। ফাইলে কোনো পরিবর্তন হয় না। |
+---
+
+## 🔊 3. SFX Studio Tab (Procedural Synthesizer)
+
+Generates retro and procedural sound effects using pure GDScript PCM synthesis:
+
+| Control | Function |
+|---|---|
+| **Sound Presets** | Jump, Laser, Explosion, Coin, Power-up, Hit, UI Click. |
+| **▶ Preview** | Plays synthesized audio through the built-in `AudioStreamPlayer`. |
+| **🎲 Mutate** | Applies controlled procedural mutations to pitch and frequency envelope. |
+| **💾 Save WAV** | Writes 16-bit uncompressed `.wav` files to `res://audio/sfx/`. |
+| **➕ Insert to Scene** | Creates an `AudioStreamPlayer` node preconfigured with the stream under the selected node. |
+
+---
+
+## ⚙️ 4. Settings Tab
+
+* **Supported Providers:** Google Gemini, OpenAI, OpenRouter, Ollama (Local), NVIDIA NIM.
+* **Custom System Prompt:** Permanent engineering guidelines for the AI assistant.
+* **✨ Enhance Instructions with AI:** Optimizes system instructions with Godot 4.7+ best practices.
+* **Vector Database (RAG):** Scans changes and builds semantic embeddings for codebase indexing.
+
+---
+
+## 🐙 5. Git Tab & Version Control
+
+* **Repo Setup & Remotes:** Configure GitHub remote repository URLs and initialize repos.
+* **✨ Generate Commit Message:** AI analyzes `git diff` and generates Conventional Commit messages.
+* **Branch Management:** Create, switch, and inspect branches visually.
+* **Emergency Actions:** Discard local changes, Force Pull, and Force Push with confirmation dialogs.

@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "Gamedev AI"
-  text: "L'ingénieur logiciel autonome pour Godot 4.6"
+  text: "L'ingénieur logiciel autonome pour Godot 4.7+"
   tagline: "Écrivez du code GDScript, manipulez des nœuds, corrigez les erreurs de la console du moteur automatiquement et appliquez des changements complexes en examinant les Diffs en temps réel. Tout est intégré dans l'éditeur, à portée de main."
   actions:
     - theme: brand

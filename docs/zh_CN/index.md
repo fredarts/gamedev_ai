@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "Gamedev AI"
-  text: "Godot 4.6 的自主软件工程师"
+  text: "Godot 4.7+ 的自主软件工程师"
   tagline: "编写 GDScript 代码、操作节点、自动修复引擎控制台错误，并通过实时审查差异来应用复杂的更改。一切都集成在您的编辑器中，触手可及。"
   actions:
     - theme: brand

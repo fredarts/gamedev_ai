@@ -1,156 +1,113 @@
-# Full User Interface Guide (All Buttons)
+# Complete UI Guide (All Controls & Tabs)
 
-This page describes **every button, toggle, and control** present in the Gamedev AI interface inside the Godot editor.
+This page describes **every button, selector, control, and tab** present in the **Gamedev AI** interface inside the Godot editor.
 
-![Overview of the main Gamedev AI interface in Godot](../../images/main_interface.png)
-
-## 🗂️ Main Tabs
-
-The plugin has **3 tabs** at the top of the panel:
-- **Chat** — The main conversational panel with the AI.
-- **Settings** — API Key management, presets, prompts, and indexing.
-- **Git** — Integrated version control with GitHub.
+![Overview of Gamedev AI main interface in Godot](../../images/main_interface.png)
 
 ---
 
-## 💬 Chat Tab
+## 🗂️ Main Tabs & Panels
+
+The plugin organizes its capabilities across **5 integrated tabs & panels**:
+- **💬 Chat** — Main conversational panel, tool executions, multi-agent pipeline state, and quick actions.
+- **⚙️ Settings** — Provider management (Gemini, OpenAI/OpenRouter, Ollama, NIM), API keys, custom system prompts, and vector indexing.
+- **🐙 Git** — Version control integrated with GitHub, featuring AI-generated commit messages.
+- **🎨 Shader Studio** — Visual shader synthesizer and editor with live interactive 2D/3D viewport previews.
+- **🔊 SFX Studio** — Procedural sound effect synthesizer with instant playback and one-click scene node insertion.
+
+---
+
+## 💬 1. Chat Tab
 
 ### Top Bar
 | Button | Function |
-|-------|--------|
-| **Preset Selector** | Dropdown to quickly switch between different provider/model settings (e.g., "Gemini 3.1", "GPT-4o"). |
-| **A-** / **A+** | Decreases or increases the chat font size. |
-| **+ New Chat** | Clears the current conversation and starts a completely new session. |
-| **⊙ History** | Dropdown menu listing all past conversations. Click one to restore the full context of that session. |
-| **💾 Summarize to Memory** | Sends an automatic prompt asking the AI to summarize the current conversation's architectural decisions and save them to the project's persistent memory. |
+|---|---|
+| **Preset Selector** | Dropdown to switch between active provider/model configurations (e.g. "Gemini 3.1 Pro", "Claude 3.7 Sonnet", "Ollama DeepSeek"). |
+| **A- / A+** | Decreases or increases chat font size. |
+| **+ New Chat** | Clears the current conversation and restarts session context. |
+| **⊙ History** | Dropdown containing past saved conversations to restore full context at any time. |
+| **💾 Summarize to Memory** | Instructs AI to synthesize key architectural decisions and persist them to project memory. |
 
-### Chat Area (OutputDisplay)
-- Displays BBCode formatted messages supporting **bold**, *italic*, `inline code` and syntax highlighted code blocks.
-- Clickable links to project files (click to open in editor).
-- A floating **Copy** button appears when selecting text to quickly copy it.
+### Multi-Agent Pipeline (Visual Chips)
+When complex tasks are executed, colorful chips indicate the active orchestrator stage in real time:
+* 🟦 `Architect` — Contract definition and architecture planning.
+* 🟨 `Scene Builder` — Node creation and `.tscn` scene hierarchies.
+* 🟩 `Coder` — Modern typed GDScript and signal wiring.
+* 🟪 `QA Tester` — Assertion testing and Auto-Healing loops.
 
 ### TTS Player (Text-to-Speech)
 
-![Compact TTS player with playback controls](../../images/tts_player.png)
+![Compact TTS Player with playback controls](../../images/tts_player.png)
 
 | Control | Function |
-|----------|--------|
-| **▶ Read Aloud** | Converts the AI's last response to audio and plays it. Useful for listening to explanations while programming. |
-| **⏹ Stop** | Stops the audio playback. |
-| **Seek Slider** | Progress bar to rewind or fast-forward the audio. |
-| **Speed (1.0x - 2.0x)** | Controls the TTS playback speed. |
+|---|---|
+| **▶ Read Aloud** | Synthesizes the latest AI response to audio. |
+| **⏹ Stop** | Stops audio playback. |
+| **Seek Slider** | Scrubs forward or backward in the audio track. |
+| **Speed (1.0x - 2.0x)** | Controls speech playback rate. |
 
 ### Quick Action Buttons
-| Button | What it does |
-|-------|-----------|
-| **✧ Refactor** | Sends the selected code in the editor with the "Refactor this code" prompt. The AI analyzes and proposes structural improvements. |
-| **◆ Fix** | Sends the selected code with "Fix errors in this code". The AI identifies bugs and generates fixes. |
-| **💡 Explain** | Sends the selected code with "Explain what this code does". The AI explains each part in English. |
-| **↺ Undo** | Undoes the last action the AI executed in the project (using Godot's Undo/Redo system). |
-| **🖥 Fix Console** | Reads the latest red errors from the Godot Output console and sends them directly to the AI to analyze and propose fixes. |
+| Button | Action |
+|---|---|
+| **✧ Refactor** | Sends selected code in the editor for structural refactoring. |
+| **◆ Fix** | Sends selected code for immediate bug fixing. |
+| **💡 Explain** | Sends selected code for step-by-step educational explanations. |
+| **↺ Undo** | Reverts the last AI action using Godot's native Undo/Redo history. |
+| **🖥 Fix Console** | Reads red error lines from Godot's Output console and prompts AI for an immediate fix. |
 
-### Input Area
+### Input Area & Prompt Settings (⚙️)
 | Element | Function |
-|----------|--------|
-| **Text Field** | Type your message. Use `Shift + Enter` to send. |
-| **📎 Attach** | Opens a file picker to attach images, scripts, or any file to the prompt. |
-| **➤ Send** | Sends the message to the AI for processing. |
-| **Drag & Drop** | Drag Scene Tree nodes or FileSystem files directly into the text field or chat area. The AI will receive the full metadata of the dragged node/file. |
-
-### Prompt Settings (Dropdown)
-These options are grouped under the ⚙️ icon next to the send button. 
-
-| Setting | Function |
-|--------|--------|
-| **Include Context** | When activated, the plugin automatically appends the full contents of the currently open script in the editor to the sent message. |
-| **Send Screenshot** | When activated, it automatically takes a screenshot of the Godot window and sends it with the message for the AI's visual analysis. |
-| **Plan First** | When activated, the AI will not write code. It will only reply with a detailed Markdown plan listing proposed changes. After reviewing, click the "Execute Plan" button that appears for it to code. |
-| **Watch Mode** | When activated, the AI automatically monitors Godot's Output console. If it detects critical (red) errors when running the game, it automatically proposes fixes. |
+|---|---|
+| **Include Context** | Automatically attaches the active script in the Script Editor. |
+| **Send Screenshot** | Captures the Godot editor viewport and attaches it to the prompt (multimodal AI vision). |
+| **Plan First** | Forces the AI to return a Markdown plan before writing code. |
+| **Watch Mode** | Monitors the Output console and suggests auto-fixes if game crashes during play. |
 
 ---
 
-## ⚙️ Settings Tab
+## 🎨 2. Shader Studio Tab
 
-### Preset Management
-| Element | Function |
-|----------|--------|
-| **Preset Selector** | Dropdown to choose among saved presets. |
-| **Add** | Creates a new empty preset to configure another provider/model. |
-| **Edit** | Opens the edit panel showing Name, Provider, API Key, Base URL, and Model fields. |
-| **Delete** | Permanently removes the selected preset. |
-| **Done Editing** | Closes the edit panel, saving the changes. |
+The built-in **Shader Studio** lets you create, customize, and preview GLSL shaders (`.gdshader`) in real time.
 
-### Preset Edit Fields
-| Field | Description |
-|-------|-----------|
-| **Preset Name** | Friendly name to identify the preset (e.g., "Gemini 3.1"). |
-| **Provider** | Dropdown choice between "Gemini" and "OpenAI / OpenRouter". |
-| **API Key** | Your API Key from the selected provider. |
-| **Base URL** | Base API URL (only for OpenAI/OpenRouter). |
-| **Model Name** | Exact model name (e.g., `gemini-2.5-flash`, `gpt-4o`). |
-
-### Language
-| Element | Function |
-|----------|--------|
-| **Language Selector** | Dropdown to choose the interface and AI response language (Português BR, English, etc.). |
-
-### Custom System Prompt
-A large text box where you can insert fixed rules the AI will always follow. Example: *"Use static typing on all functions. Comment in English."*
-
-| Button | Function |
-|-------|--------|
-| **✨ Enhance Instructions with AI** | Sends your current instructions for the AI to enhance automatically, adding technical details and best practices. A preview is shown before accepting. |
-
-### Vector Database
-| Element | Function |
-|----------|--------|
-| **File List** | Visual list of all project `.gd` files with indexing status (new, modified, unchanged). |
-| **🔍 Scan Changes** | Sweeps the project looking for new, modified, or deleted files since the last indexing. |
-| **⚡ Index Codebase** | Starts the vector indexing process of all modified scripts using the Embeddings API. |
+| Control | Function |
+|---|---|
+| **Category Selector** | Filters presets by type (`2D Effects`, `3D Materials`, `Post-Processing`, `UI`). |
+| **Preset Selector** | Chooses from ready-to-use shaders: *Hit Flash, Dissolve, Hologram, Outline, Water, Pixelate, Glitch, Glow, Fire, Shield, etc.* |
+| **2D / 3D Mode** | Toggles the SubViewport preview between Sprite2D and MeshInstance3D with directional lighting. |
+| **Dynamic Uniforms Panel** | Automatically generates sliders, color pickers, and toggles for each shader `uniform`. |
+| **Live Code Editor** | Edit `.gdshader` code and click **Recompile** for instant visual feedback. |
+| **🎲 Randomize** | Generates instant aesthetic variations by randomizing uniform parameters. |
+| **✨ Apply to Selection** | Creates `ShaderMaterial` and attaches it to the selected node in the Scene Tree. |
+| **💾 Save Shader** | Saves the shader file (`.gdshader`) and material (`.tres`) to `res://shaders/`. |
 
 ---
 
-## 🐙 Git Tab
+## 🔊 3. SFX Studio Tab (Procedural Synthesizer)
 
-### Initial Setup
-| Element | Function |
-|----------|--------|
-| **Initialize Repository** | Initializes a Git repository in the project folder (if one doesn't exist). |
-| **Remote URL** | Field to paste the GitHub repository URL (e.g., `https://github.com/user/repo.git`). |
-| **Set Remote** | Sets the remote repository URL. |
+Generates retro and procedural sound effects using pure GDScript PCM synthesis:
 
-### Main Operations
-| Button | Function |
-|-------|--------|
-| **🔃 Refresh Status** | Refreshes Git status showing modified, untracked files, and current branch. |
-| **⬇️ Pull** | Downloads the latest changes from the remote repository. |
-| **✨ Auto-Generate Commit Message** | The AI analyzes all modified files (diff) and automatically generates a professional, descriptive commit message. |
-| **Commit & Sync (Push)** | Commits all changes with the typed/generated message and pushes them to GitHub. |
-
-### Branches
-| Element | Function |
-|----------|--------|
-| **Branch Label** | Shows the current branch name. |
-| **Branch Name Input** | Field to type a new branch name or existing branch. |
-| **Checkout/Create Branch** | Creates a new branch or switches to an existing one. |
-
-### Emergency Actions
-| Button | Function |
-|-------|--------|
-| **⚠️ Undo Uncommitted Changes** | Discards ALL uncommitted local changes, reverting to the last commit's state. Requires confirmation. |
-| **⚠️ Force Pull Overwrite** | Completely replaces the local project with the state of the remote repository. Requires confirmation. |
-| **⚠️ Force Push** | Force pushes the local state to the remote repository, overwriting history. Requires confirmation. |
+| Control | Function |
+|---|---|
+| **Sound Presets** | Jump, Laser, Explosion, Coin, Power-up, Hit, UI Click. |
+| **▶ Preview** | Plays synthesized audio through the built-in `AudioStreamPlayer`. |
+| **🎲 Mutate** | Applies controlled procedural mutations to pitch and frequency envelope. |
+| **💾 Save WAV** | Writes 16-bit uncompressed `.wav` files to `res://audio/sfx/`. |
+| **➕ Insert to Scene** | Creates an `AudioStreamPlayer` node preconfigured with the stream under the selected node. |
 
 ---
 
-## 📋 Diff Panel (Code Review)
+## ⚙️ 4. Settings Tab
 
-When the AI generates or modifies code, a Diff panel appears in the chat:
+* **Supported Providers:** Google Gemini, OpenAI, OpenRouter, Ollama (Local), NVIDIA NIM.
+* **Custom System Prompt:** Permanent engineering guidelines for the AI assistant.
+* **✨ Enhance Instructions with AI:** Optimizes system instructions with Godot 4.7+ best practices.
+* **Vector Database (RAG):** Scans changes and builds semantic embeddings for codebase indexing.
 
-![Diff panel showing removed code (red) and added (green)](../../images/diff_preview.png)
+---
 
-| Element | Function |
-|----------|--------|
-| **Diff View** | Side-by-side view showing removed (red) and added (green) lines. |
-| **Apply Changes** | Accepts the changes and applies them to the real file. The action is logged in Godot's Undo/Redo. |
-| **Skip** | Rejects the changes. No files are altered. |
+## 🐙 5. Git Tab & Version Control
+
+* **Repo Setup & Remotes:** Configure GitHub remote repository URLs and initialize repos.
+* **✨ Generate Commit Message:** AI analyzes `git diff` and generates Conventional Commit messages.
+* **Branch Management:** Create, switch, and inspect branches visually.
+* **Emergency Actions:** Discard local changes, Force Pull, and Force Push with confirmation dialogs.

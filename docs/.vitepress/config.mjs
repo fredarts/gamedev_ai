@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: "Gamedev AI",
-  description: "A IA Autônoma que mora no coração do Godot 4.",
+  description: "A IA Autônoma que mora no coração do Godot 4.7+.",
   base: '/gamedev_ai/',
 
   head: [
@@ -56,7 +56,8 @@ export default defineConfig({
             collapsed: false,
             items: [
               { text: 'Guia Completo da Interface', link: '/advanced/ui-guide' },
-              { text: 'Todas as 34 Tools da IA', link: '/advanced/tools-reference' },
+              { text: '🔌 Servidor MCP (IDEs Externas)', link: '/advanced/mcp-server' },
+              { text: 'Todas as 65 Tools da IA', link: '/advanced/tools-reference' },
               { text: 'Aba Git & GitHub', link: '/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/advanced/custom-prompts' }
             ]
@@ -65,7 +66,7 @@ export default defineConfig({
             text: '🤖 Agentes & Inteligência',
             collapsed: false,
             items: [
-              { text: 'Portão Socrático & Personas', link: '/core-features/agentes-inteligencia' }
+              { text: 'Orquestração, Auto-Cura & Personas', link: '/core-features/agentes-inteligencia' }
             ]
           }
         ],
@@ -97,7 +98,7 @@ export default defineConfig({
     en: {
       label: 'English',
       lang: 'en',
-      description: "The Autonomous AI living in the heart of Godot 4.",
+      description: "The Autonomous AI living in the heart of Godot 4.7+.",
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },
@@ -137,7 +138,8 @@ export default defineConfig({
             collapsed: false,
             items: [
               { text: 'Full UI Guide', link: '/en/advanced/ui-guide' },
-              { text: 'All 34 AI Tools', link: '/en/advanced/tools-reference' },
+              { text: '🔌 MCP Server (External IDEs)', link: '/en/advanced/mcp-server' },
+              { text: 'All 65 AI Tools', link: '/en/advanced/tools-reference' },
               { text: 'Git & GitHub Tab', link: '/en/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/en/advanced/custom-prompts' }
             ]
@@ -146,7 +148,7 @@ export default defineConfig({
             text: '🤖 Agents & Intelligence',
             collapsed: false,
             items: [
-              { text: 'Socratic Gate & Personas', link: '/en/core-features/agent-intelligence' }
+              { text: 'Orchestration, Auto-Healing & Personas', link: '/en/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -162,7 +164,7 @@ export default defineConfig({
     es: {
       label: 'Español',
       lang: 'es',
-      description: "La IA Autónoma que vive en el corazón de Godot 4.",
+      description: "La IA Autónoma que vive en el corazón de Godot 4.7+.",
       themeConfig: {
         nav: [
           { text: 'Inicio', link: '/es/' },
@@ -201,8 +203,8 @@ export default defineConfig({
             text: '🚀 Herramientas y Referencia',
             collapsed: false,
             items: [
-              { text: 'Guía de Interfaz Completa', link: '/es/advanced/ui-guide' },
-              { text: 'Las 27 Tools de la IA', link: '/es/advanced/tools-reference' },
+              { text: 'Guía de Interfaz Completa', link: '/es/advanced/ui-guide' },              { text: '🔌 Servidor MCP (IDEs Externas)', link: '/es/advanced/mcp-server' },
+              { text: 'Las 65 Tools de la IA', link: '/es/advanced/tools-reference' },
               { text: 'Pestaña Git y GitHub', link: '/es/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/es/advanced/custom-prompts' }
             ]
@@ -210,8 +212,7 @@ export default defineConfig({
           {
             text: '🤖 Agentes e Inteligencia',
             collapsed: false,
-            items: [
-              { text: 'Gate Socrático y Personas', link: '/es/core-features/agent-intelligence' }
+            items: [              { text: 'Orquestación, Auto-Healing y Personas', link: '/es/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -243,7 +244,7 @@ export default defineConfig({
     fr: {
       label: 'Français',
       lang: 'fr',
-      description: "L'IA Autonome qui vit au cœur de Godot 4.",
+      description: "L'IA Autonome qui vit au cœur de Godot 4.7+.",
       themeConfig: {
         nav: [
           { text: 'Accueil', link: '/fr/' },
@@ -291,8 +292,7 @@ export default defineConfig({
           {
             text: '🤖 Agents et Intelligence',
             collapsed: false,
-            items: [
-              { text: 'Portail Socratique et Personas', link: '/fr/core-features/agent-intelligence' }
+            items: [              { text: 'Orchestration, Auto-Guérison et Personas', link: '/fr/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -324,7 +324,7 @@ export default defineConfig({
     de: {
       label: 'Deutsch',
       lang: 'de',
-      description: "Die autonome KI im Herzen von Godot 4.",
+      description: "Die autonome KI im Herzen von Godot 4.7+.",
       themeConfig: {
         nav: [
           { text: 'Startseite', link: '/de/' },
@@ -363,8 +363,8 @@ export default defineConfig({
             text: '🚀 Tools und Referenz',
             collapsed: false,
             items: [
-              { text: 'Vollständiger UI-Guide', link: '/de/advanced/ui-guide' },
-              { text: 'Die 27 KI-Tools', link: '/de/advanced/tools-reference' },
+              { text: 'Vollständiger UI-Guide', link: '/de/advanced/ui-guide' },              { text: '🔌 MCP-Server (Externe IDEs)', link: '/de/advanced/mcp-server' },
+              { text: 'Alle 65 KI-Tools', link: '/de/advanced/tools-reference' },
               { text: 'Git und GitHub Tab', link: '/de/advanced/git-github' },
               { text: 'Custom System Prompt', link: '/de/advanced/custom-prompts' }
             ]
@@ -372,8 +372,7 @@ export default defineConfig({
           {
             text: '🤖 Agenten & Intelligenz',
             collapsed: false,
-            items: [
-              { text: 'Sokratisches Tor & Personas', link: '/de/core-features/agent-intelligence' }
+            items: [              { text: 'Orchestrierung, Auto-Healing & Personas', link: '/de/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -453,8 +452,7 @@ export default defineConfig({
           {
             text: '🤖 एजेंट और इंटेलिजेंस',
             collapsed: false,
-            items: [
-              { text: 'सुकराती गेट और व्यक्तित्व', link: '/hi/core-features/agent-intelligence' }
+            items: [              { text: 'ऑर्केस्ट्रेशन, ऑटो-हीलिंग और पर्सोना', link: '/hi/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -534,8 +532,7 @@ export default defineConfig({
           {
             text: '🤖 代理与智能',
             collapsed: false,
-            items: [
-              { text: '苏格拉底门户与人格', link: '/zh_CN/core-features/agent-intelligence' }
+            items: [              { text: '多代理编排、自愈与人格', link: '/zh_CN/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -567,7 +564,7 @@ export default defineConfig({
     ar: {
       label: 'العربية',
       lang: 'ar',
-      description: "ذكاء اصطناعي مستقل في قلب Godot 4.",
+      description: "ذكاء اصطناعي مستقل في قلب Godot 4.7+.",
       themeConfig: {
         nav: [
           { text: 'الرئيسية', link: '/ar/' },
@@ -615,8 +612,7 @@ export default defineConfig({
           {
             text: '🤖 الوكلاء والذكاء',
             collapsed: false,
-            items: [
-              { text: 'بوابة سقراط والشخصيات', link: '/ar/core-features/agent-intelligence' }
+            items: [              { text: 'التنسيق، العلاج التلقائي والشخصيات', link: '/ar/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -648,7 +644,7 @@ export default defineConfig({
     ru: {
       label: 'Русский',
       lang: 'ru',
-      description: "Автономный ИИ в сердце Godot 4.",
+      description: "Автономный ИИ в сердце Godot 4.7+.",
       themeConfig: {
         nav: [
           { text: 'Главная', link: '/ru/' },
@@ -696,8 +692,7 @@ export default defineConfig({
           {
             text: '🤖 Агенты и Интеллект',
             collapsed: false,
-            items: [
-              { text: 'Сократов затвор и Персоны', link: '/ru/core-features/agent-intelligence' }
+            items: [              { text: 'Оркестрация, автоисправление и персоны', link: '/ru/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -729,7 +724,7 @@ export default defineConfig({
     bn: {
       label: 'বাংলা',
       lang: 'bn',
-      description: "Godot 4.6 এর জন্য স্বায়ত্তশাসিত AI অ্যাসিস্ট্যান্ট।",
+      description: "Godot 4.7+.7+ এর জন্য স্বায়ত্তশাসিত AI অ্যাসিস্ট্যান্ট।",
       themeConfig: {
         nav: [
           { text: 'হোম', link: '/bn/' },
@@ -777,8 +772,7 @@ export default defineConfig({
           {
             text: '🤖 এজেন্ট এবং ইন্টেলিজেন্স',
             collapsed: false,
-            items: [
-              { text: 'সক্রেটিক গেট এবং পারসোনা', link: '/bn/core-features/agent-intelligence' }
+            items: [              { text: 'অর্কেস্ট্রেশন, অটো-হিলিং এবং পারসোনা', link: '/bn/core-features/agent-intelligence' }
             ]
           }
         ],
@@ -810,7 +804,7 @@ export default defineConfig({
     id: {
       label: 'Bahasa Indonesia',
       lang: 'id',
-      description: "Software Engineer Otonom untuk Godot 4.6.",
+      description: "Software Engineer Otonom untuk Godot 4.7+.7+.",
       themeConfig: {
         nav: [
           { text: 'Beranda', link: '/id/' },
@@ -858,8 +852,7 @@ export default defineConfig({
           {
             text: '🤖 Agen & Inteligensi',
             collapsed: false,
-            items: [
-              { text: 'Gerbang Sokrates & Persona', link: '/id/core-features/agent-intelligence' }
+            items: [              { text: 'Orkestrasi, Auto-Healing & Persona', link: '/id/core-features/agent-intelligence' }
             ]
           }
         ],
