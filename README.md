@@ -5,13 +5,14 @@
 <h1 align="center">Gamedev AI</h1>
 
 <p align="center">
-  <b>The Autonomous Software Engineer for Godot 4.6+</b><br>
+  <b>The Autonomous Software Engineer for Godot 4.7+</b><br>
   <i>Not just a chat. A complete intelligence engine integrated into your workflow.</i>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Godot-4.6%2B-blue?logo=godot-engine&logoColor=white" alt="Godot Version">
+  <img src="https://img.shields.io/badge/Godot-4.7%2B-blue?logo=godot-engine&logoColor=white" alt="Godot Version">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/MCP-Native%20Server-purple" alt="MCP Server">
   <img src="https://img.shields.io/badge/Languages-11-success" alt="Languages Supported">
   <img src="https://img.shields.io/badge/Status-Premium-gold" alt="Status">
 </p>
@@ -38,9 +39,10 @@ Fully localized documentation and interface in:
 |---|---|
 | **CORE** | **Building via Chat**: Drag nodes from Scene Tree to chat. Structure systems instantly. |
 | **CORE** | **Git Integration**: Native UI to manage branches and let AI auto-generate commit messages. |
+| **MCP** | **Native MCP Server & Stdio Bridge**: Connect Antigravity, Claude Desktop, Cursor, or external IDEs directly to Godot via Model Context Protocol (localhost:6543). |
 | **SAFE** | **Safe & Visual Diff**: Preview every line of code before applying it. Accept or reject changes. |
 | **ENGINE** | **Watch Mode (Auto-Fix)**: AI monitors the Output window and proposes fixes for crashes on-the-fly. |
-| **SMART** | **25 Built-in Skills**: Shaders, Multiplayer, UI/UX, Inventories, and more — using industrial standards. |
+| **SMART** | **25 Built-in Skills**: Shaders, Multiplayer, UI/UX, Inventories, TileMaps, SFX, and more — using industrial standards. |
 | **WORKFLOW** | **Slash Commands**: Adapt AI methodology instantly with commands like `/plan`, `/debug`, and `/brainstorm`. |
 
 ### 📸 Interface Highlights
@@ -70,12 +72,15 @@ Fully localized documentation and interface in:
 ## 🎥 Power Workflow
 
 ### 1. Real Autonomy
-The AI doesn't just suggest, it acts. From draft to final implementation with one click using **34 Agentic Tools** (Add Node, Set Property, Instance Scene, Patch Script, and more).
+The AI doesn't just suggest, it acts. From draft to final implementation with one click using **50+ Agentic Tools** (Add Node, Set Property, Instance Scene, Patch Script, Synthesize SFX, Procedural Dungeons, Autotiling, Shader Generation, and more).
 
-### 2. Knowledge Engine (RAG)
+### 2. Native Model Context Protocol (MCP)
+Take control of Godot directly from your favorite AI coding environment (Antigravity, Cursor, Claude Desktop). The built-in zero-cost, local JSON-RPC server (`127.0.0.1:6543`) and `godot_mcp.py` bridge expose tools, scene trees, LSP diagnostics, and skills seamlessly.
+
+### 3. Knowledge Engine (RAG)
 Your scripts are indexed locally into a **Vector DB**. The AI understands your custom classes, functions, and project architecture without hallucinations.
 
-### 3. Socratic Gate
+### 4. Socratic Gate
 The assistant stops and asks strategic questions before changing critical systems, ensuring you maintain control and avoid broken code.
 
 ---
@@ -89,6 +94,26 @@ Gamedev AI is fully flexible and doesn't force you into a proprietary backend. Y
 *   **OpenRouter & OpenAI:** Access Claude, GPT, and other cutting-edge models.
 *   **NVIDIA NIM:** Fast access to high-end open models like DeepSeek-R1 and Llama 3.1 70B.
 *   **Multimodal Vision:** Support for AI Vision to analyze your Editor (can be toggled off if unsupported).
+
+---
+
+## 🔌 Model Context Protocol (MCP) Setup
+
+Connect your IDE or external agent to Godot in seconds:
+
+1. Enable the **Gamedev AI** plugin in Godot 4.7+ (the local MCP server starts on port `6543`).
+2. In your IDE's `mcp_config.json`, add:
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "command": "python",
+      "args": ["addons/gamedev_ai/mcp/godot_mcp.py"]
+    }
+  }
+}
+```
+3. Your external AI assistant now has real-time tool execution access inside the Godot editor!
 
 ---
 
@@ -123,10 +148,12 @@ The AI is powered by a comprehensive set of **GDScript skill documents** ensurin
 
 For detailed guides, API references, and advanced workflows, visit our official documentation:
 
-👉 **[Gamedev AI Documentation](https://fredarts.github.io/gamedev_ai/)**
+👉 **[Gamedev AI Documentation](https://fredarts.github.io/gamedev_ai/)**  
+👉 **[MCP Server Integration Guide](docs/MCP-INTEGRATION.md)**
 
 ---
 
 ## ⚖️ License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+

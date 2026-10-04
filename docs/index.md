@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "Gamedev AI"
-  text: "O Engenheiro de Software Autônomo para Godot 4.6"
+  text: "O Engenheiro de Software Autônomo para Godot 4.7+"
   tagline: "Escreva código GDScript, manipule nós, conserte erros do console da engine automaticamente e aplique mudanças complexas revisando os Diffs em tempo real. Tudo integrado no editor ao alcance dos seus dedos."
   actions:
     - theme: brand
@@ -17,6 +17,9 @@ features:
   - title: Construção via Chat
     tag: CORE
     details: "Descreva a mecânica, anexe arquivos e arraste Nodes direto da Scene Tree para o painel de conversa para a IA estruturar o sistema pra você."
+  - title: "Servidor MCP Nativo & Stdio Bridge"
+    tag: MCP
+    details: "Controle o Godot diretamente do Antigravity, Cursor ou Claude Desktop via Model Context Protocol (localhost:6543) com mais de 50 ferramentas agentics."
   - title: "Diff Seguro & Visual"
     tag: SAFE
     details: "A IA não quebra seu código às cegas. O plugin exibe uma janela lado-a-lado (Antes/Depois) para você aplicar apenas as linhas que aprovar."
