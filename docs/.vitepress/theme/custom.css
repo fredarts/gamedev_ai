@@ -31,7 +31,8 @@
 .VPHero {
   position: relative;
   overflow: hidden;
-  min-height: 1072px; /* Set directly from User Request */
+  min-height: calc(100vh - 64px) !important;
+  max-height: 900px;
   display: flex !important;
   flex-direction: column;
   justify-content: center;

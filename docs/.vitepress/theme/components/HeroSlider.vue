@@ -145,7 +145,6 @@ function resetTimer() {
 onMounted(() => {
   resetTimer()
 
-  // Ancoragem perfeita no topo do Hero
   setTimeout(() => {
     const hero = document.querySelector('.VPHero')
     const slider = document.querySelector('.hero-slider-wrapper')
@@ -181,6 +180,16 @@ onUnmounted(() => {
 
     <!-- Foreground Dynamic Content Overlay -->
     <div class="hero-content-container">
+      
+      <!-- Side Navigation Arrows -->
+      <button class="nav-arrow prev" @click.stop="prevSlide" aria-label="Slide anterior" title="Slide anterior">
+        ‹
+      </button>
+      <button class="nav-arrow next" @click.stop="nextSlide" aria-label="Próximo slide" title="Próximo slide">
+        ›
+      </button>
+
+      <!-- Main Slide Text Card -->
       <div 
         v-for="(slide, index) in slides"
         :key="'content-' + index"
@@ -188,8 +197,11 @@ onUnmounted(() => {
         :class="{ active: index === currentIndex }"
       >
         <div v-if="index === currentIndex" class="content-inner">
+          
+          <!-- High-Contrast Badge -->
           <div :class="['slide-tag', 'tag-' + slide.tagClass]">
-            <span class="tag-sparkle">✦</span> {{ slide.tag }}
+            <span class="tag-sparkle">✦</span>
+            <span class="tag-text">{{ slide.tag }}</span>
           </div>
 
           <h1 class="slide-main-title">
@@ -214,28 +226,21 @@ onUnmounted(() => {
               {{ isPt ? slide.btnSecondaryText : (slide.btnSecondaryTextEn || slide.btnSecondaryText) }}
             </a>
           </div>
+
         </div>
       </div>
 
-      <!-- Navigation Arrows -->
-      <button class="nav-arrow prev" @click="prevSlide" aria-label="Slide anterior">
-        ‹
-      </button>
-      <button class="nav-arrow next" @click="nextSlide" aria-label="Próximo slide">
-        ›
-      </button>
-
-      <!-- Clickable Pagination Dots ("Bolinhas") -->
-      <div class="pagination-dots">
+      <!-- Prominent Clickable Pagination Dots ("Bolinhas") -->
+      <div class="pagination-bar">
         <button
           v-for="(slide, idx) in slides"
           :key="'dot-' + idx"
           :class="['dot-btn', { active: idx === currentIndex }]"
           :title="isPt ? slide.title : (slide.titleEn || slide.title)"
-          @click="goToSlide(idx)"
-          :aria-label="`Ir para slide ${idx + 1}`"
+          @click.stop="goToSlide(idx)"
+          :aria-label="`Ir para banner ${idx + 1}`"
         >
-          <span class="dot-inner"></span>
+          <span class="dot-number">{{ idx + 1 }}</span>
           <span v-if="idx === currentIndex" class="dot-progress-bar"></span>
         </button>
       </div>
@@ -251,9 +256,11 @@ onUnmounted(() => {
   left: 0;
   width: 100vw;
   height: 100%;
-  min-height: 1072px;
-  z-index: 1;
+  min-height: calc(100vh - 64px);
+  max-height: 900px;
+  z-index: 5;
   overflow: hidden;
+  pointer-events: auto;
 }
 
 :global(.VPHero .hero-slider-wrapper) {
@@ -314,7 +321,7 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(ellipse at center, transparent 30%, rgba(10, 12, 18, 0.4) 70%, rgba(10, 12, 18, 0.85) 100%),
+    radial-gradient(ellipse at center, transparent 30%, rgba(10, 12, 18, 0.5) 70%, rgba(10, 12, 18, 0.9) 100%),
     linear-gradient(to bottom, transparent 60%, rgba(14, 16, 24, 0.95) 94%, #161618 100%);
   z-index: 1;
   pointer-events: none;
@@ -323,25 +330,28 @@ onUnmounted(() => {
 /* Content Container */
 .hero-content-container {
   position: relative;
-  z-index: 3;
+  z-index: 10;
   width: 100%;
-  max-width: 1180px;
+  max-width: 1200px;
   height: 100%;
-  min-height: 1072px;
+  min-height: calc(100vh - 64px);
+  max-height: 900px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 24px 100px;
+  padding: 40px 60px 80px;
   text-align: center;
+  pointer-events: auto;
 }
 
 .slide-text-card {
   width: 100%;
-  max-width: 860px;
+  max-width: 880px;
   display: flex;
   justify-content: center;
+  pointer-events: auto;
 }
 
 .content-inner {
@@ -354,7 +364,7 @@ onUnmounted(() => {
 @keyframes slideFadeIn {
   0% {
     opacity: 0;
-    transform: translateY(24px) scale(0.98);
+    transform: translateY(20px) scale(0.98);
   }
   100% {
     opacity: 1;
@@ -362,52 +372,86 @@ onUnmounted(() => {
   }
 }
 
+/* ==========================================================
+   HIGH-CONTRAST BADGES
+   ========================================================== */
 .slide-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 6px 16px;
+  padding: 8px 20px;
   border-radius: 999px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  margin-bottom: 22px;
+  background: rgba(0, 0, 0, 0.92) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
 }
 
-.tag-cyan { background: rgba(0, 186, 227, 0.18); color: #38bdf8; border: 1px solid rgba(0, 186, 227, 0.4); text-shadow: 0 0 12px rgba(0, 186, 227, 0.5); }
-.tag-purple { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); text-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
-.tag-emerald { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); text-shadow: 0 0 12px rgba(16, 185, 129, 0.5); }
-.tag-amber { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); text-shadow: 0 0 12px rgba(245, 158, 11, 0.5); }
-.tag-blue { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); text-shadow: 0 0 12px rgba(59, 130, 246, 0.5); }
+.tag-sparkle {
+  font-size: 1rem;
+}
+
+.tag-cyan {
+  color: #38bdf8 !important;
+  border: 2px solid #00bae3 !important;
+  box-shadow: 0 0 20px rgba(0, 186, 227, 0.4), 0 8px 30px rgba(0, 0, 0, 0.8);
+}
+
+.tag-purple {
+  color: #f0abfc !important;
+  border: 2px solid #c084fc !important;
+  box-shadow: 0 0 20px rgba(192, 132, 252, 0.4), 0 8px 30px rgba(0, 0, 0, 0.8);
+}
+
+.tag-emerald {
+  color: #4ade80 !important;
+  border: 2px solid #10b981 !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4), 0 8px 30px rgba(0, 0, 0, 0.8);
+}
+
+.tag-amber {
+  color: #fde047 !important;
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), 0 8px 30px rgba(0, 0, 0, 0.8);
+}
+
+.tag-blue {
+  color: #93c5fd !important;
+  border: 2px solid #3b82f6 !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 8px 30px rgba(0, 0, 0, 0.8);
+}
 
 .slide-main-title {
-  font-size: 3.8rem;
+  font-size: 3.6rem;
   font-weight: 900;
   color: #ffffff;
   margin: 0 0 16px;
   letter-spacing: -0.03em;
   line-height: 1.15;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 186, 227, 0.3);
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.9), 0 0 32px rgba(0, 186, 227, 0.35);
 }
 
 .slide-subtitle {
-  font-size: 1.45rem;
+  font-size: 1.4rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #f1f5f9;
   margin: 0 0 16px;
   line-height: 1.4;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
 }
 
 .slide-desc {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.85);
-  max-width: 680px;
+  font-size: 1.08rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 700px;
   margin: 0 0 32px;
   line-height: 1.6;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
 }
 
 .slide-action-row {
@@ -415,111 +459,145 @@ onUnmounted(() => {
   gap: 16px;
   flex-wrap: wrap;
   justify-content: center;
+  pointer-events: auto;
 }
 
 .btn-hero {
-  padding: 14px 28px;
+  padding: 14px 30px;
   border-radius: 999px;
   font-size: 0.95rem;
   font-weight: 800;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .btn-hero.primary {
   background: #00bae3;
   color: #02202c;
-  box-shadow: 0 8px 24px rgba(0, 186, 227, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 186, 227, 0.5);
 }
 
 .btn-hero.primary:hover {
   background: #38bdf8;
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 12px 32px rgba(0, 186, 227, 0.6);
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 14px 36px rgba(0, 186, 227, 0.7);
 }
 
 .btn-hero.secondary {
-  background: rgba(30, 35, 48, 0.7);
-  backdrop-filter: blur(12px);
+  background: rgba(20, 25, 38, 0.85);
+  backdrop-filter: blur(16px);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-hero.secondary:hover {
-  background: rgba(45, 52, 70, 0.9);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(40, 48, 68, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-3px);
 }
 
-/* Nav Arrows */
+/* ==========================================================
+   PROMINENT NAVIGATION ARROWS
+   ========================================================== */
 .nav-arrow {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: rgba(20, 24, 34, 0.6);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 14, 22, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.25);
   color: #ffffff;
-  font-size: 1.8rem;
-  line-height: 1;
+  font-size: 2.2rem;
+  font-weight: 300;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 4;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 50;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
 }
 
 .nav-arrow:hover {
-  background: rgba(0, 186, 227, 0.3);
-  border-color: rgba(0, 186, 227, 0.5);
-  transform: translateY(-50%) scale(1.1);
+  background: #00bae3;
+  color: #02202c;
+  border-color: #00bae3;
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 0 30px rgba(0, 186, 227, 0.8);
 }
 
-.nav-arrow.prev { left: 32px; }
-.nav-arrow.next { right: 32px; }
+.nav-arrow.prev { left: 24px; }
+.nav-arrow.next { right: 24px; }
 
-/* Clickable Pagination Dots ("Bolinhas") */
-.pagination-dots {
+/* ==========================================================
+   CLICKABLE PAGINATION DOTS ("BOLINHAS")
+   ========================================================== */
+.pagination-bar {
   position: absolute;
-  bottom: 40px;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
+  align-items: center;
   gap: 12px;
-  z-index: 4;
-  background: rgba(10, 12, 18, 0.6);
-  backdrop-filter: blur(16px);
-  padding: 8px 16px;
+  z-index: 50;
+  background: rgba(8, 10, 16, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 10px 22px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 186, 227, 0.25);
+  pointer-events: auto;
 }
 
 .dot-btn {
   position: relative;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
-  border: none;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   cursor: pointer;
   padding: 0;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot-number {
+  display: none;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #02202c;
+  z-index: 2;
 }
 
 .dot-btn:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: scale(1.2);
+  background: #ffffff;
+  transform: scale(1.25);
+  box-shadow: 0 0 12px #ffffff;
 }
 
 .dot-btn.active {
-  width: 38px;
-  background: rgba(0, 186, 227, 0.3);
-  border: 1px solid rgba(0, 186, 227, 0.6);
-  box-shadow: 0 0 12px rgba(0, 186, 227, 0.4);
+  width: 44px;
+  background: rgba(0, 186, 227, 0.4);
+  border: 1.5px solid #00bae3;
+  box-shadow: 0 0 16px rgba(0, 186, 227, 0.6);
+}
+
+.dot-btn.active .dot-number {
+  display: block;
 }
 
 .dot-progress-bar {
@@ -538,17 +616,25 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
+  .hero-content-container {
+    padding: 30px 20px 70px;
+  }
   .slide-main-title {
-    font-size: 2.4rem;
+    font-size: 2.2rem;
   }
   .slide-subtitle {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
   .slide-desc {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
   }
   .nav-arrow {
     display: none;
+  }
+  .pagination-bar {
+    bottom: 16px;
+    padding: 8px 16px;
+    gap: 8px;
   }
 }
 </style>
